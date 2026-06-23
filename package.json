@@ -1,0 +1,50 @@
+{
+  "name": "@adityab/data-explorer",
+  "module": "index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sql": "./src/sql/index.ts",
+    "./ui": "./src/ui/index.ts"
+  },
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc --noEmit",
+    "dev": ""
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@types/bun": "^1.3.14",
+    "typescript": "^7.0.1-rc"
+  },
+  "peerDependencies": {
+    "@hello-pangea/dnd": ">=17",
+    "@tabler/icons-react": ">=3",
+    "@tanstack/react-query": ">=5",
+    "@tanstack/react-table": ">=8",
+    "@tanstack/react-virtual": ">=3",
+    "drizzle-orm": ">=0.45",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@hello-pangea/dnd": {
+      "optional": true
+    },
+    "@tabler/icons-react": {
+      "optional": true
+    },
+    "@tanstack/react-table": {
+      "optional": true
+    },
+    "@tanstack/react-virtual": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "nanoid": "^5.1.15"
+  }
+}
