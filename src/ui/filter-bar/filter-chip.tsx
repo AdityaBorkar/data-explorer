@@ -4,23 +4,28 @@ import { useCallback, useState } from "react";
 import {
   getOperatorLabel,
   operatorSkipsValue,
-} from "../../core/filter/operators";
+} from "../../core/filter/operators.ts";
 import type {
   ColumnConfig,
   FilterCondition,
   FilterOperator,
-} from "../../core/types";
-import { cn, Popover, PopoverContent, PopoverTrigger } from "../primitives";
-import { OperatorSelector } from "./operator-selector";
-import { ValueInput } from "./value-input";
+} from "../../core/types.ts";
+import {
+  cn,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../primitives/index.ts";
+import { OperatorSelector } from "./operator-selector.tsx";
+import { ValueInput } from "./value-input.tsx";
 
 interface FilterChipProps {
-  condition: FilterCondition;
   column: ColumnConfig;
-  onUpdate: (id: string, updates: Partial<FilterCondition>) => void;
+  condition: FilterCondition;
   onRemove: (id: string) => void;
-  selected: boolean;
   onSelect: () => void;
+  onUpdate: (id: string, updates: Partial<FilterCondition>) => void;
+  selected: boolean;
 }
 
 export function FilterChip({
@@ -70,7 +75,7 @@ export function FilterChip({
 
   return (
     <Popover onOpenChange={setEditOpen} open={editOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild={true}>
         <button
           className={cn(
             "inline-flex h-7 items-center gap-1 rounded-md border px-1.5 text-xs transition-colors",

@@ -1,4 +1,4 @@
-import type { ColumnConfig, DataExplorerColumnMeta } from "./types";
+import type { ColumnConfig, DataExplorerColumnMeta } from "./types.ts";
 
 export function extractColumnConfigs(
   defs: ReadonlyArray<{ id?: string; meta?: unknown }>,

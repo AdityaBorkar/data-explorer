@@ -1,17 +1,17 @@
 import { and, or, type SQL, sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 
-import { filterConditionSchema } from "../core/filter/filter-condition-schema";
-import { groupConditions } from "../core/filter/filter-grouping";
-import { validateOperatorValue } from "../core/filter/filter-validation";
-import { getOperatorsForType } from "../core/filter/operators";
+import { filterConditionSchema } from "../core/filter/filter-condition-schema.ts";
+import { groupConditions } from "../core/filter/filter-grouping.ts";
+import { validateOperatorValue } from "../core/filter/filter-validation.ts";
+import { getOperatorsForType } from "../core/filter/operators.ts";
 import type {
   ColumnConfig,
   FilterCondition,
   FilterGroup,
   FilterOperator,
-} from "../core/types";
-import { SEARCH_COLUMN_ID } from "../core/types";
+} from "../core/types.ts";
+import { SEARCH_COLUMN_ID } from "../core/types.ts";
 
 function getColumnName(table: PgTable, columnId: string): string | undefined {
   const column = (table as unknown as Record<string, { name: string }>)[
@@ -110,14 +110,14 @@ function buildConditionSql(
   columnsConfig: ColumnConfig[],
 ): SQL | undefined {
   const colConfig = columnsConfig.find((c) => c.id === condition.columnId);
-  if (!colConfig) return undefined;
+  if (!colConfig) return;
 
   if (condition.columnId === SEARCH_COLUMN_ID) {
     return buildSearchSql(condition.value as string, table, columnsConfig);
   }
 
   const colName = getColumnName(table, condition.columnId);
-  if (!colName) return undefined;
+  if (!colName) return;
 
   const col = ident(colName);
   const builder = OPERATOR_SQL_BUILDERS[condition.operator as FilterOperator];
@@ -140,7 +140,7 @@ function buildSearchSql(
   const conditions = searchableCols
     .map((colConfig) => {
       const colName = getColumnName(table, colConfig.id);
-      if (!colName) return undefined;
+      if (!colName) return;
       return sql`${ident(colName)} ILIKE ${`%${searchTerm}%`}`;
     })
     .filter((c): c is SQL => c !== undefined);
@@ -177,7 +177,7 @@ function buildGroupSql(
     }
   }
 
-  if (sqls.length === 0) return undefined;
+  if (sqls.length === 0) return;
   if (sqls.length === 1) return sqls[0];
 
   if (group.combinator === "or") {
@@ -193,7 +193,7 @@ export function buildFilterWhere(
   schema: PgTable,
 ): SQL | undefined {
   const validated = validateConditions(conditions, columnsConfig);
-  if (validated.length === 0) return undefined;
+  if (validated.length === 0) return;
 
   const group = groupConditions(validated);
   return buildGroupSql(group, schema, columnsConfig);

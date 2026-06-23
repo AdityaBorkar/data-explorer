@@ -1,4 +1,4 @@
-import type { ColumnDataType, FilterOperator } from "../types";
+import type { ColumnDataType, FilterOperator } from "../types.ts";
 
 const NULLARY_OPERATORS: ReadonlySet<FilterOperator> = new Set([
   "isEmpty",

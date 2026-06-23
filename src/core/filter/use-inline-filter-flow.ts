@@ -1,9 +1,13 @@
 import { nanoid } from "nanoid";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { ColumnConfig, FilterCondition, FilterOperator } from "../types";
-import { SEARCH_COLUMN_ID } from "../types";
-import { getDefaultOperator, operatorSkipsValue } from "./operators";
+import type {
+  ColumnConfig,
+  FilterCondition,
+  FilterOperator,
+} from "../types.ts";
+import { SEARCH_COLUMN_ID } from "../types.ts";
+import { getDefaultOperator, operatorSkipsValue } from "./operators.ts";
 
 type Phase = "idle" | "column" | "operator" | "value";
 
@@ -39,7 +43,7 @@ export function useInlineFilterFlow(opts: {
   }, []);
 
   const commit = useCallback(() => {
-    if (!selectedColumnId || !selectedOperator) return;
+    if (!(selectedColumnId && selectedOperator)) return;
 
     const value = needsNullValue ? null : pendingValue;
     const hasValue =

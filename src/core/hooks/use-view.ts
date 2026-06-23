@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
-import { mergeDisplay } from "../filter/filter-merge";
-import type { FilterCondition, FilterViewDisplay } from "../types";
-import type { ViewAdapter } from "../view-adapter";
+import { mergeDisplay } from "../filter/filter-merge.ts";
+import type { FilterCondition, FilterViewDisplay } from "../types.ts";
+import type { ViewAdapter } from "../view-adapter.ts";
 
 export function useView({
   defaultDisplay,
@@ -39,7 +39,7 @@ export function useView({
   const applyView = useCallback(
     (viewId: string | null) => {
       setActiveViewId(viewId);
-      if (!viewId || !views) {
+      if (!(viewId && views)) {
         setFilters([]);
         setDisplay(defaultDisplay);
         return;
@@ -53,7 +53,7 @@ export function useView({
   );
 
   const saveView = useCallback(async () => {
-    if (!activeViewId || !viewAdapter) return;
+    if (!(activeViewId && viewAdapter)) return;
     await viewAdapter.updateView(activeViewId, {
       display,
       refine: filterConditions,

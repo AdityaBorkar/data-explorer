@@ -1,9 +1,9 @@
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { operatorSkipsValue } from "../../core/filter/operators";
-import type { ColumnConfig, FilterOperator } from "../../core/types";
-import { SEARCH_COLUMN_ID } from "../../core/types";
+import { operatorSkipsValue } from "../../core/filter/operators.ts";
+import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
+import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
   Calendar,
   Input,
@@ -11,14 +11,14 @@ import {
   PopoverContent,
   PopoverTrigger,
   Switch,
-} from "../primitives";
+} from "../primitives/index.ts";
 
 interface ValueInputProps {
   column: ColumnConfig;
-  operator: FilterOperator;
-  value: unknown;
   onChange: (value: unknown) => void;
   onCommit: () => void;
+  operator: FilterOperator;
+  value: unknown;
 }
 
 export function ValueInput({
@@ -116,7 +116,7 @@ function StringInput({
 }) {
   return (
     <Input
-      autoFocus
+      autoFocus={true}
       className="h-8 text-sm"
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
@@ -139,7 +139,7 @@ function NumberInput({
 }) {
   return (
     <Input
-      autoFocus
+      autoFocus={true}
       className="h-8 text-sm"
       onChange={(e) => {
         const v = e.target.value;
@@ -166,7 +166,7 @@ function NumberRangeInput({
   return (
     <div className="flex items-center gap-1">
       <Input
-        autoFocus
+        autoFocus={true}
         className="h-8 text-sm"
         onChange={(e) => {
           const v = e.target.value;
@@ -203,7 +203,7 @@ function DateInput({
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild={true}>
         <button
           className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
           type="button"
@@ -244,7 +244,7 @@ function DateRangeInput({
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild={true}>
         <button
           className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
           type="button"

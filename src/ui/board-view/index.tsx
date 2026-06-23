@@ -7,11 +7,11 @@ import {
   useConfigContext,
   useDataContext,
   useDisplayContext,
-} from "../../core/context";
+} from "../../core/context.tsx";
 
 interface BoardViewProps<TItem> {
-  renderCard?: (item: TItem, meta: { isDragging: boolean }) => React.ReactNode;
   getRowId: (item: TItem) => string;
+  renderCard?: (item: TItem, meta: { isDragging: boolean }) => React.ReactNode;
 }
 
 export function BoardView<TItem>({

@@ -1,45 +1,40 @@
 {
-  "name": "@adityab/data-explorer",
-  "type": "module",
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "nanoid": "^5.1.15",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@tanstack/react-table": "^9.0.0-beta.17",
+    "@tanstack/react-virtual": "^3.14.3",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react-day-picker": "^9.14.0",
+    "taze": "^19.14.1",
+    "typescript": "^7.0.1-rc",
+    "vitest": "^2.1.9"
+  },
   "exports": {
     ".": "./src/core/index.ts",
     "./sql": "./src/sql/index.ts",
     "./ui": "./src/ui/index.ts"
   },
-  "scripts": {
-    "check:lint": "biome check --fix .",
-    "check:types": "tsc --noEmit",
-    "dev": ""
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.1",
-    "@types/bun": "^1.3.14",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "cmdk": "^1.0.4",
-    "radix-ui": "^1.1.0",
-    "react-day-picker": "^9.4.0",
-    "typescript": "^7.0.1-rc",
-    "vitest": "^2.1.8"
-  },
+  "name": "@adityab/data-explorer",
   "peerDependencies": {
-    "@hello-pangea/dnd": ">=17",
-    "@tabler/icons-react": ">=3",
     "@tanstack/react-query": ">=5",
-    "@tanstack/react-table": ">=8",
+    "@tanstack/react-table": ">=9.0.0-beta.1",
     "@tanstack/react-virtual": ">=3",
-    "cmdk": ">=1",
-    "drizzle-orm": ">=0.45",
-    "radix-ui": ">=1.1",
     "react": ">=18",
-    "react-dom": ">=18",
-    "react-day-picker": ">=9"
+    "react-day-picker": ">=9",
+    "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
     "@hello-pangea/dnd": {
-      "optional": true
-    },
-    "@tabler/icons-react": {
       "optional": true
     },
     "@tanstack/react-table": {
@@ -48,25 +43,14 @@
     "@tanstack/react-virtual": {
       "optional": true
     },
-    "cmdk": {
-      "optional": true
-    },
-    "drizzle-orm": {
-      "optional": true
-    },
-    "radix-ui": {
-      "optional": true
-    },
     "react-day-picker": {
       "optional": true
     }
   },
-  "dependencies": {
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.475.0",
-    "nanoid": "^5.1.15",
-    "tailwind-merge": "^3.3.0",
-    "zod": "^4.0.0"
-  }
+  "scripts": {
+    "check:lint": "biome check --fix .",
+    "check:types": "tsc --noEmit",
+    "update:deps": "taze -w && bun install"
+  },
+  "type": "module"
 }

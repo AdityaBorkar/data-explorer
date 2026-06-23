@@ -18,8 +18,9 @@
               [":PATH:"]
             ]
           }
-          // "preset": "all",
-        }
+        },
+        "preset": "all",
+        "useSortedPackageJson": "off"
       }
     }
   },
@@ -81,7 +82,21 @@
       "preset": "recommended"
     }
   },
-  "overrides": [],
+  "overrides": [
+    {
+      "includes": ["**/*.test.*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noUnnecessaryConditions": "off"
+          }
+        }
+      }
+    }
+  ],
   "vcs": {
     "clientKind": "git",
     "enabled": true,

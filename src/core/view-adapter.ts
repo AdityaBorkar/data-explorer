@@ -1,9 +1,9 @@
-import type { FilterCondition, FilterViewDisplay } from "./types";
+import type { FilterCondition, FilterViewDisplay } from "./types.ts";
 
 export interface View {
+  display: FilterViewDisplay;
   id: string;
   name: string;
-  display: FilterViewDisplay;
   refine: FilterCondition[];
 }
 

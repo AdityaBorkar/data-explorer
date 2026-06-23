@@ -1,8 +1,8 @@
 import { IconLayoutList } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { useConfigContext, useDisplayContext } from "../../core/context";
-import { Checkbox } from "../primitives";
+import { useConfigContext, useDisplayContext } from "../../core/context.tsx";
+import { Checkbox } from "../primitives/index.ts";
 
 export function DisplayColumnSelector() {
   const { display, updateDisplay } = useDisplayContext();

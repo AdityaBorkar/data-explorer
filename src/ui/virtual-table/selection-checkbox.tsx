@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
-import { useSelectionContext } from "../../core/context";
-import { Checkbox } from "../primitives";
+import { useSelectionContext } from "../../core/context.tsx";
+import { Checkbox } from "../primitives/index.ts";
 
 export function SelectionCheckbox({ rowId }: { rowId: string }) {
   const { selectedRowIds, toggleRowSelection } = useSelectionContext();

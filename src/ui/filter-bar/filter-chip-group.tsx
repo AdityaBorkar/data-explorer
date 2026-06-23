@@ -1,16 +1,16 @@
-import { groupConditions } from "../../core/filter/filter-grouping";
-import type { ColumnConfig, FilterCondition } from "../../core/types";
-import { FilterChip } from "./filter-chip";
-import { FilterCombinatorToggle } from "./filter-combinator-toggle";
+import { groupConditions } from "../../core/filter/filter-grouping.ts";
+import type { ColumnConfig, FilterCondition } from "../../core/types.ts";
+import { FilterChip } from "./filter-chip.tsx";
+import { FilterCombinatorToggle } from "./filter-combinator-toggle.tsx";
 
 interface FilterChipGroupProps {
-  conditions: FilterCondition[];
   columnsConfig: ColumnConfig[];
-  removeCondition: (id: string) => void;
-  updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
+  conditions: FilterCondition[];
   focusedChipIndex: number | null;
-  setFocusedChipIndex: (index: number | null) => void;
   handleCombinatorChange: (index: number, combinator: "and" | "or") => void;
+  removeCondition: (id: string) => void;
+  setFocusedChipIndex: (index: number | null) => void;
+  updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
 }
 
 export function FilterChipGroup({

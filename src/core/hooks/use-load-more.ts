@@ -16,7 +16,7 @@ export function useLoadMore(
         observerRef.current.disconnect();
       }
 
-      if (!el || !hasNextPage) {
+      if (!(el && hasNextPage)) {
         sentinelRef.current = null;
         return;
       }
@@ -36,11 +36,12 @@ export function useLoadMore(
     [fetchNextPage, hasNextPage, isFetchingNextPage, threshold],
   );
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       observerRef.current?.disconnect();
-    };
-  }, []);
+    },
+    [],
+  );
 
   return { triggerRef };
 }

@@ -1,15 +1,20 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useConfigContext, useFilterContext } from "../../core/context";
-import { operatorSkipsValue } from "../../core/filter/operators";
-import { useInlineFilterFlow } from "../../core/filter/use-inline-filter-flow";
-import { SEARCH_COLUMN_ID } from "../../core/types";
-import { cn, Popover, PopoverContent, PopoverTrigger } from "../primitives";
-import { ColumnSelector } from "./column-selector";
-import { FilterChipGroup } from "./filter-chip-group";
-import { OperatorSelector } from "./operator-selector";
-import { ValueInput } from "./value-input";
+import { useConfigContext, useFilterContext } from "../../core/context.tsx";
+import { operatorSkipsValue } from "../../core/filter/operators.ts";
+import { useInlineFilterFlow } from "../../core/filter/use-inline-filter-flow.ts";
+import { SEARCH_COLUMN_ID } from "../../core/types.ts";
+import {
+  cn,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../primitives/index.ts";
+import { ColumnSelector } from "./column-selector.tsx";
+import { FilterChipGroup } from "./filter-chip-group.tsx";
+import { OperatorSelector } from "./operator-selector.tsx";
+import { ValueInput } from "./value-input.tsx";
 
 export function FilterBar({ className }: { className?: string }) {
   const { columnsConfig } = useConfigContext();
@@ -239,7 +244,7 @@ export function FilterBar({ className }: { className?: string }) {
             {flow.selectedOperator === "contains" &&
             flow.selectedColumnId === SEARCH_COLUMN_ID
               ? "contains"
-              : `— enter value`}
+              : "— enter value"}
           </div>
           <ValueInput
             column={flow.selectedColumn}

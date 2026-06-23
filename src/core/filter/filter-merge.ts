@@ -1,4 +1,4 @@
-import type { FilterCondition, FilterViewDisplay } from "../types";
+import type { FilterCondition, FilterViewDisplay } from "../types.ts";
 
 export function filterKey(cond: FilterCondition): string {
   return `${cond.columnId}::${cond.operator}`;
@@ -26,11 +26,11 @@ export function mergeFilters(
   for (const b of base) {
     const key = filterKey(b);
     const override = overrideMap.get(key);
-    if (override !== undefined) {
+    if (override === undefined) {
+      result.push(b);
+    } else {
       result.push(override);
       overrideMap.delete(key);
-    } else {
-      result.push(b);
     }
   }
 
@@ -51,7 +51,7 @@ export function computeOverrides(
   for (const f of effective) {
     const key = filterKey(f);
     const baseFilter = baseMap.get(key);
-    if (!baseFilter || !conditionsEqual(baseFilter, f)) {
+    if (!(baseFilter && conditionsEqual(baseFilter, f))) {
       overrides.push(f);
     }
   }

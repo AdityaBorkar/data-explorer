@@ -1,6 +1,6 @@
 # TODO
 
-- Migrate to Tanstack Table v9 Beta. Guide = https://tanstack.com/table/beta/docs/framework/react/guide/migrating
+Design everything as an integration to Tanstack Tables
 
 ---
 

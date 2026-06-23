@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
-import { useConfigContext, useDataContext } from "../../core/context";
-import { cn } from "../primitives";
+import { useConfigContext, useDataContext } from "../../core/context.tsx";
+import { cn } from "../primitives/index.ts";
 
 type ZoomLevel = "day" | "week" | "month";
 
@@ -24,11 +24,11 @@ const SEGMENT_PREFIX: Record<ZoomLevel, string> = {
 };
 
 interface TimelineViewProps<TItem> {
+  getRowId: (item: TItem) => string;
   renderBar?: (
     item: TItem,
     meta: { width: number; left: number },
   ) => React.ReactNode;
-  getRowId: (item: TItem) => string;
 }
 
 function parseDate(v: unknown): Date | null {
@@ -59,7 +59,7 @@ export function TimelineView<TItem>({
   );
 
   const { range, items: timelineItems } = useMemo(() => {
-    if (!startCol || !endCol)
+    if (!(startCol && endCol))
       return { items: [], range: { end: new Date(), start: new Date() } };
 
     const parsed = items.map((item) => {
@@ -124,7 +124,7 @@ export function TimelineView<TItem>({
     return days * dayWidth;
   }
 
-  if (!startCol || !endCol) {
+  if (!(startCol && endCol)) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
         Timeline requires startOf and endOf columns

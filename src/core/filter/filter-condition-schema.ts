@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import type { FilterOperator } from "../types";
-import { isValidOperatorValue } from "./filter-validation";
-import { FILTER_OPERATORS } from "./operators";
+import type { FilterOperator } from "../types.ts";
+import { isValidOperatorValue } from "./filter-validation.ts";
+import { FILTER_OPERATORS } from "./operators.ts";
 
 export const filterConditionSchema = z
   .object({

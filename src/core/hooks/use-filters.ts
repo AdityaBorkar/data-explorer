@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { FilterCondition } from "../types";
+import type { FilterCondition } from "../types.ts";
 
 export function useFilters() {
   const [conditions, setConditions] = useState<FilterCondition[]>([]);

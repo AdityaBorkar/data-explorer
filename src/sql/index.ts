@@ -1,1 +1,1 @@
-export { buildFilterWhere } from "./filter-sql";
+export { buildFilterWhere } from "./filter-sql.ts";

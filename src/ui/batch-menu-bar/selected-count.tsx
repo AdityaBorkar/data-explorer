@@ -1,4 +1,4 @@
-import { useSelectionContext } from "../../core/context";
+import { useSelectionContext } from "../../core/context.tsx";
 
 export function SelectedCount() {
   const { selectedRowIds } = useSelectionContext();

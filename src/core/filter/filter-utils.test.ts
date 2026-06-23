@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition, FilterViewDisplay } from "../types";
+import type { FilterCondition, FilterViewDisplay } from "../types.ts";
 import {
   deserializeDisplay,
   deserializeFilters,
   serializeDisplay,
   serializeFilters,
-} from "./filter-utils";
+} from "./filter-utils.ts";
 
 function cond(
   columnId: string,

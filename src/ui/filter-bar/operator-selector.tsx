@@ -3,8 +3,8 @@ import { useCallback } from "react";
 import {
   getOperatorLabel,
   getOperatorsForType,
-} from "../../core/filter/operators";
-import type { ColumnConfig, FilterOperator } from "../../core/types";
+} from "../../core/filter/operators.ts";
+import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
 import {
   Command,
   CommandEmpty,
@@ -12,13 +12,13 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "../primitives";
+} from "../primitives/index.ts";
 
 interface OperatorSelectorProps {
   column: ColumnConfig;
+  onSearchChange: (value: string) => void;
   onSelect: (operator: FilterOperator) => void;
   search: string;
-  onSearchChange: (value: string) => void;
 }
 
 export function OperatorSelector({
@@ -43,7 +43,7 @@ export function OperatorSelector({
   );
 
   return (
-    <Command loop>
+    <Command loop={true}>
       <CommandInput
         onValueChange={onSearchChange}
         placeholder="Select operator..."

@@ -9,7 +9,7 @@ import type {
   FilterContextType,
   SelectionContextType,
   ViewContextType,
-} from "./types";
+} from "./types.ts";
 
 export const ConfigContext = createContext<ConfigContextType | null>(null);
 export const FilterContext = createContext<FilterContextType | null>(null);

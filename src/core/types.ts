@@ -38,15 +38,15 @@ export function isSearchColumn(col: { id: string }): boolean {
 
 export interface DataExplorerColumnMeta<TIcon = unknown> {
   displayName: string;
-  icon?: TIcon;
-  type: ColumnDataType;
-  operators?: FilterOperator[];
-  min?: number;
-  max?: number;
-  searchable?: boolean;
-  options?: { label: string; value: string }[];
-  startOf?: "timeline";
   endOf?: "timeline";
+  icon?: TIcon;
+  max?: number;
+  min?: number;
+  operators?: FilterOperator[];
+  options?: { label: string; value: string }[];
+  searchable?: boolean;
+  startOf?: "timeline";
+  type: ColumnDataType;
 }
 
 export interface ColumnConfig<TIcon = unknown>
@@ -55,27 +55,27 @@ export interface ColumnConfig<TIcon = unknown>
 }
 
 export interface FilterCondition {
-  id: string;
   columnId: string;
+  combinator: "and" | "or";
+  id: string;
   operator: FilterOperator;
   value: unknown;
-  combinator: "and" | "or";
 }
 
 export interface FilterGroup {
-  id: string;
   combinator: "and" | "or";
   conditions: (FilterCondition | FilterGroup)[];
+  id: string;
 }
 
 export interface FilterViewDisplay {
-  type: "table" | "board" | "timeline";
+  columnWidths: Record<string, number>;
+  density: "compact" | "comfortable" | "spacious";
+  fields: string[];
   groupBy: string | null;
   orderBy: string;
   orderType: "asc" | "desc";
-  fields: string[];
-  columnWidths: Record<string, number>;
-  density: "compact" | "comfortable" | "spacious";
+  type: "table" | "board" | "timeline";
 }
 
 export interface ConfigContextType {
@@ -83,9 +83,9 @@ export interface ConfigContextType {
 }
 
 export interface FilterContextType {
-  filterConditions: FilterCondition[];
   addFilter: (v: FilterCondition) => void;
   clearFilters: () => void;
+  filterConditions: FilterCondition[];
   removeFilter: (id: string) => void;
   setFilters: (v: FilterCondition[]) => void;
   updateFilter: (id: string, updates: Partial<FilterCondition>) => void;
@@ -97,26 +97,26 @@ export interface DisplayContextType {
 }
 
 export interface SelectionContextType {
-  selectedRowIds: Set<string>;
-  toggleRowSelection: (id: string) => void;
+  allRowIds: string[];
   clearSelection: () => void;
   selectAll: () => void;
-  allRowIds: string[];
+  selectedRowIds: Set<string>;
+  toggleRowSelection: (id: string) => void;
 }
 
 export interface DataContextType<TItem = unknown> {
-  items: TItem[];
+  hasMore: boolean;
   isLoading: boolean;
   isLoadingMore: boolean;
-  hasMore: boolean;
+  items: TItem[];
   loadMoreRef: (el: Element | null) => void;
 }
 
 export interface ViewContextType {
   activeViewId: string | null;
   applyView: (viewId: string | null) => void;
-  saveView: () => void;
   resetToSaved: () => void;
+  saveView: () => void;
 }
 
 export interface CallbackContextType {
@@ -143,10 +143,10 @@ export interface ListQueryResult<TItem> {
 }
 
 export interface SerializedFilterCondition {
+  b: "and" | "or";
   c: string;
   o: string;
   v: unknown;
-  b: "and" | "or";
 }
 
 export type RefineOptions = {

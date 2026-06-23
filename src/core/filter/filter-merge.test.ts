@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition, FilterViewDisplay } from "../types";
+import type { FilterCondition, FilterViewDisplay } from "../types.ts";
 import {
   computeOverrides,
   conditionsEqual,
   filterKey,
   mergeDisplay,
   mergeFilters,
-} from "./filter-merge";
+} from "./filter-merge.ts";
 
 function cond(
   columnId: string,

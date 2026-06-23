@@ -1,18 +1,18 @@
-export { extractColumnConfigs } from "./column-utils";
-export * from "./context";
-export { filterConditionSchema } from "./filter/filter-condition-schema";
-export { groupConditions } from "./filter/filter-grouping";
+export { extractColumnConfigs } from "./column-utils.ts";
+export * from "./context.tsx";
+export { filterConditionSchema } from "./filter/filter-condition-schema.ts";
+export { groupConditions } from "./filter/filter-grouping.ts";
 export {
   computeOverrides,
   mergeDisplay,
   mergeFilters,
-} from "./filter/filter-merge";
+} from "./filter/filter-merge.ts";
 export {
   deserializeDisplay,
   deserializeFilters,
   serializeDisplay,
   serializeFilters,
-} from "./filter/filter-utils";
+} from "./filter/filter-utils.ts";
 export {
   isArrayOperator,
   isNullaryOperator,
@@ -20,20 +20,20 @@ export {
   isSetOperator,
   isValidOperatorValue,
   validateOperatorValue,
-} from "./filter/filter-validation";
+} from "./filter/filter-validation.ts";
 export {
   FILTER_OPERATORS,
   getDefaultOperator,
   getOperatorLabel,
   getOperatorsForType,
   operatorSkipsValue,
-} from "./filter/operators";
-export { useInlineFilterFlow } from "./filter/use-inline-filter-flow";
-export { useDisplay } from "./hooks/use-display";
-export { useFilters } from "./hooks/use-filters";
-export { useLoadMore } from "./hooks/use-load-more";
-export { useSelection } from "./hooks/use-selection";
-export { useView } from "./hooks/use-view";
-export { Provider, Provider as DataExplorerProvider } from "./provider";
-export * from "./types";
-export * from "./view-adapter";
+} from "./filter/operators.ts";
+export { useInlineFilterFlow } from "./filter/use-inline-filter-flow.ts";
+export { useDisplay } from "./hooks/use-display.ts";
+export { useFilters } from "./hooks/use-filters.ts";
+export { useLoadMore } from "./hooks/use-load-more.ts";
+export { useSelection } from "./hooks/use-selection.ts";
+export { useView } from "./hooks/use-view.ts";
+export { Provider, Provider as DataExplorerProvider } from "./provider.tsx";
+export * from "./types.ts";
+export * from "./view-adapter.ts";

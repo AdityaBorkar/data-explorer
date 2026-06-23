@@ -1,6 +1,6 @@
-export { Button, buttonVariants } from "./button";
-export { Calendar, CalendarDayButton } from "./calendar";
-export { Checkbox } from "./checkbox";
+export { Button, buttonVariants } from "./button.tsx";
+export { Calendar, CalendarDayButton } from "./calendar.tsx";
+export { Checkbox } from "./checkbox.tsx";
 export {
   Command,
   CommandEmpty,
@@ -10,8 +10,8 @@ export {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "./command";
-export { Input } from "./input";
+} from "./command.tsx";
+export { Input } from "./input.tsx";
 export {
   Popover,
   PopoverAnchor,
@@ -20,7 +20,7 @@ export {
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
-} from "./popover";
+} from "./popover.tsx";
 export {
   Select,
   SelectContent,
@@ -32,6 +32,6 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "./select";
-export { Switch } from "./switch";
-export { cn } from "./utils";
+} from "./select.tsx";
+export { Switch } from "./switch.tsx";
+export { cn } from "./utils.ts";

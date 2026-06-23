@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
-import type { ColumnConfig } from "../../core/types";
-import { SEARCH_COLUMN_ID } from "../../core/types";
+import type { ColumnConfig } from "../../core/types.ts";
+import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
   Command,
   CommandEmpty,
@@ -9,14 +9,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "../primitives";
+} from "../primitives/index.ts";
 
 interface ColumnSelectorProps {
   columns: ColumnConfig[];
-  search: string;
+  onQuickValueSelect?: (columnId: string, value: string) => void;
   onSearchChange: (value: string) => void;
   onSelect: (columnId: string) => void;
-  onQuickValueSelect?: (columnId: string, value: string) => void;
+  search: string;
 }
 
 export function ColumnSelector({
@@ -73,7 +73,7 @@ export function ColumnSelector({
       filter={(value, term) =>
         value.toLowerCase().includes(term.toLowerCase()) ? 1 : 0
       }
-      loop
+      loop={true}
     >
       <CommandInput
         onValueChange={onSearchChange}

@@ -1,9 +1,10 @@
 import { IconLoader2 } from "@tabler/icons-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
+  FlexRender,
+  rowSelectionFeature,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef } from "react";
@@ -12,9 +13,15 @@ import {
   useDataContext,
   useDisplayContext,
   useSelectionContext,
-} from "../../core/context";
-import { cn } from "../primitives";
-import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox";
+} from "../../core/context.tsx";
+import { cn } from "../primitives/index.ts";
+import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox.tsx";
+
+const virtualTableFeatures = tableFeatures({
+  rowSelectionFeature,
+});
+
+export type VirtualTableFeatures = typeof virtualTableFeatures;
 
 const DENSITY_ROW_HEIGHTS: Record<string, number> = {
   comfortable: 36,
@@ -38,7 +45,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
   emptyMessage = "No items found",
   getRowId,
 }: {
-  columnDefs: ColumnDef<TItem>[];
+  columnDefs: ColumnDef<VirtualTableFeatures, TItem>[];
   onRowClick?: (row: TItem) => void;
   emptyMessage?: string;
   getRowId: (row: TItem) => string;
@@ -48,21 +55,20 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
   const { display } = useDisplayContext();
   const { clearSelection, selectedRowIds } = useSelectionContext();
 
-  const table = useReactTable({
+  const table = useTable({
     columns: columnDefs,
     data: items,
-    getCoreRowModel: getCoreRowModel(),
+    features: virtualTableFeatures,
     getRowId: (row) => getRowId(row),
   });
 
-  const columnSizing = table.getState().columnSizing;
   const columnWidths = useMemo(() => {
     const widths: Record<string, number> = {};
     for (const header of table.getFlatHeaders()) {
-      widths[header.id] = columnSizing[header.id] ?? DEFAULT_COLUMN_WIDTH;
+      widths[header.id] = DEFAULT_COLUMN_WIDTH;
     }
     return widths;
-  }, [table, columnSizing]);
+  }, [table]);
   const totalWidth = useMemo(
     () => Object.values(columnWidths).reduce((sum, w) => sum + w, 0) + 32,
     [columnWidths],
@@ -113,10 +119,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                     width: columnWidths[header.id] ?? DEFAULT_COLUMN_WIDTH,
                   }}
                 >
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext(),
-                  )}
+                  <FlexRender header={header} />
                 </th>
               ))}
             </tr>
@@ -177,7 +180,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                     <td className="w-8 min-w-8">
                       <SelectionCheckbox rowId={row.id} />
                     </td>
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getAllCells().map((cell) => (
                       <td
                         className="whitespace-nowrap px-2 align-middle text-sm"
                         key={cell.id}
@@ -190,10 +193,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                             DEFAULT_COLUMN_WIDTH,
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
+                        <FlexRender cell={cell} />
                       </td>
                     ))}
                   </tr>

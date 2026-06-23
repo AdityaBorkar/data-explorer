@@ -13,19 +13,19 @@ import {
   FilterContext,
   SelectionContext,
   ViewContext,
-} from "./context";
-import { useDisplay } from "./hooks/use-display";
-import { useFilters } from "./hooks/use-filters";
-import { useLoadMore } from "./hooks/use-load-more";
-import { useSelection } from "./hooks/use-selection";
-import { useView } from "./hooks/use-view";
+} from "./context.tsx";
+import { useDisplay } from "./hooks/use-display.ts";
+import { useFilters } from "./hooks/use-filters.ts";
+import { useLoadMore } from "./hooks/use-load-more.ts";
+import { useSelection } from "./hooks/use-selection.ts";
+import { useView } from "./hooks/use-view.ts";
 import type {
   ColumnConfig,
   FilterViewDisplay,
   ListQueryResult,
   RefineOptions,
-} from "./types";
-import type { ViewAdapter } from "./view-adapter";
+} from "./types.ts";
+import type { ViewAdapter } from "./view-adapter.ts";
 
 const PAGE_SIZE = 20;
 
