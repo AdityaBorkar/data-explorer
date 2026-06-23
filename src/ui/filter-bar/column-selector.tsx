@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import type { ColumnConfig } from "../../core/types";
+import { SEARCH_COLUMN_ID } from "../../core/types";
 import {
   Command,
   CommandEmpty,
@@ -7,10 +9,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-
-import type { ColumnConfig } from "../../core/types";
-import { SEARCH_COLUMN_ID } from "../../core/types";
+} from "../primitives";
 
 interface ColumnSelectorProps {
   columns: ColumnConfig[];

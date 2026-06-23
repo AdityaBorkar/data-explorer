@@ -2,13 +2,6 @@ import { IconX } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
-import {
   getOperatorLabel,
   operatorSkipsValue,
 } from "../../core/filter/operators";
@@ -17,6 +10,7 @@ import type {
   FilterCondition,
   FilterOperator,
 } from "../../core/types";
+import { cn, Popover, PopoverContent, PopoverTrigger } from "../primitives";
 import { OperatorSelector } from "./operator-selector";
 import { ValueInput } from "./value-input";
 
@@ -76,40 +70,42 @@ export function FilterChip({
 
   return (
     <Popover onOpenChange={setEditOpen} open={editOpen}>
-      <PopoverTrigger
-        className={cn(
-          "inline-flex h-7 items-center gap-1 rounded-md border px-1.5 text-xs transition-colors",
-          selected
-            ? "border-ring bg-muted"
-            : "border-border bg-background hover:bg-muted/50",
-        )}
-        data-filter-chip={condition.id}
-        onClick={onSelect}
-        render={<button type="button" />}
-      >
-        {Icon && (
-          <Icon
-            className="size-3.5 shrink-0 text-muted-foreground"
-            strokeWidth={2.25}
-          />
-        )}
-        <span className="font-medium">{column.displayName}</span>
-        <span className="text-muted-foreground">{operatorLabel}</span>
-        {displayValue !== null && (
-          <span className="max-w-24 truncate">{displayValue}</span>
-        )}
+      <PopoverTrigger asChild>
         <button
-          className="ml-0.5 shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-          onClick={handleRemove}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleRemove(e);
-            }
-          }}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 rounded-md border px-1.5 text-xs transition-colors",
+            selected
+              ? "border-ring bg-muted"
+              : "border-border bg-background hover:bg-muted/50",
+          )}
+          data-filter-chip={condition.id}
+          onClick={onSelect}
           type="button"
         >
-          <IconX className="size-3" />
+          {Icon && (
+            <Icon
+              className="size-3.5 shrink-0 text-muted-foreground"
+              strokeWidth={2.25}
+            />
+          )}
+          <span className="font-medium">{column.displayName}</span>
+          <span className="text-muted-foreground">{operatorLabel}</span>
+          {displayValue !== null && (
+            <span className="max-w-24 truncate">{displayValue}</span>
+          )}
+          <button
+            className="ml-0.5 shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+            onClick={handleRemove}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleRemove(e);
+              }
+            }}
+            type="button"
+          >
+            <IconX className="size-3" />
+          </button>
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-2">

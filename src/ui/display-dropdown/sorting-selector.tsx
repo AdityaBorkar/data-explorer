@@ -5,7 +5,9 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useMemo } from "react";
 
+import { useConfigContext, useDisplayContext } from "../../core/context";
 import {
+  cn,
   Select,
   SelectContent,
   SelectGroup,
@@ -13,10 +15,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-
-import { useConfigContext, useDisplayContext } from "../../core/context";
+} from "../primitives";
 
 export function SortingSelector() {
   const { display, updateDisplay } = useDisplayContext();

@@ -113,7 +113,7 @@ describe("groupConditions", () => {
     };
     expect(firstGroup.combinator).toBe("and");
     expect(firstGroup.conditions).toHaveLength(1);
-    expect(firstGroup.conditions[0].columnId).toBe("name");
+    expect(firstGroup.conditions[0]?.columnId).toBe("name");
 
     const secondGroup = result.conditions[1] as {
       combinator: string;
@@ -121,8 +121,8 @@ describe("groupConditions", () => {
     };
     expect(secondGroup.combinator).toBe("and");
     expect(secondGroup.conditions).toHaveLength(2);
-    expect(secondGroup.conditions[0].columnId).toBe("slug");
-    expect(secondGroup.conditions[1].columnId).toBe("legalName");
+    expect(secondGroup.conditions[0]?.columnId).toBe("slug");
+    expect(secondGroup.conditions[1]?.columnId).toBe("legalName");
   });
 
   it("handles AND at end: A OR B OR C AND D", () => {
@@ -156,11 +156,11 @@ describe("groupConditions", () => {
     const result = groupConditions([a, b, c]);
 
     const andGroup = result.conditions[0] as { conditions: FilterCondition[] };
-    expect(andGroup.conditions[0].combinator).toBe("and");
-    expect(andGroup.conditions[1].combinator).toBe("and");
+    expect(andGroup.conditions[0]?.combinator).toBe("and");
+    expect(andGroup.conditions[1]?.combinator).toBe("and");
 
     const orCond = (result.conditions[1] as { conditions: FilterCondition[] })
       .conditions[0];
-    expect(orCond.combinator).toBe("or");
+    expect(orCond?.combinator).toBe("or");
   });
 });

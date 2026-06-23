@@ -8,13 +8,12 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef } from "react";
 
-import { cn } from "@/lib/utils";
-
 import {
   useDataContext,
   useDisplayContext,
   useSelectionContext,
 } from "../../core/context";
+import { cn } from "../primitives";
 import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox";
 
 const DENSITY_ROW_HEIGHTS: Record<string, number> = {

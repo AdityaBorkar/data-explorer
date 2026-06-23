@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 
-import { cn } from "@/lib/utils";
-
 import { useConfigContext, useDataContext } from "../../core/context";
+import { cn } from "../primitives";
 
 type ZoomLevel = "day" | "week" | "month";
 
@@ -70,8 +69,14 @@ export function TimelineView<TItem>({
       return { end, item, start };
     });
 
-    const withDates = parsed.filter((p) => p.start && p.end);
-    const milestones = parsed.filter((p) => p.start && !p.end);
+    const withDates = parsed.filter(
+      (p): p is { end: Date; item: TItem; start: Date } =>
+        p.start !== null && p.end !== null,
+    );
+    const milestones = parsed.filter(
+      (p): p is { end: Date | null; item: TItem; start: Date } =>
+        p.start !== null && p.end === null,
+    );
 
     const allDates = [
       ...withDates.flatMap((p) => [p.start, p.end]),
@@ -155,6 +160,7 @@ export function TimelineView<TItem>({
             {Array.from({ length: segmentCount }, (_, i) => (
               <div
                 className="flex shrink-0 items-center border-r px-1 text-muted-foreground text-xs"
+                // biome-ignore lint/suspicious/noArrayIndexKey: segments are a fixed positional sequence that never reorders
                 key={i}
                 style={{ width: segmentDays * dayWidth }}
               >

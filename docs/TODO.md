@@ -1,5 +1,9 @@
 # TODO
 
+- Migrate to Tanstack Table v9 Beta. Guide = https://tanstack.com/table/beta/docs/framework/react/guide/migrating
+
+---
+
 Map View
 
 Integrations architecture (with UI as shadcn components only and NEVER import UI components from integrations)

@@ -1,19 +1,18 @@
 import { useCallback } from "react";
 
 import {
+  getOperatorLabel,
+  getOperatorsForType,
+} from "../../core/filter/operators";
+import type { ColumnConfig, FilterOperator } from "../../core/types";
+import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-
-import {
-  getOperatorLabel,
-  getOperatorsForType,
-} from "../../core/filter/operators";
-import type { ColumnConfig, FilterOperator } from "../../core/types";
+} from "../primitives";
 
 interface OperatorSelectorProps {
   column: ColumnConfig;

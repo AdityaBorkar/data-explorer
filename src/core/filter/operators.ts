@@ -108,5 +108,5 @@ export function getOperatorLabel(operator: FilterOperator): string {
 }
 
 export function getDefaultOperator(type: ColumnDataType): FilterOperator {
-  return OPERATORS[type][0].key;
+  return OPERATORS[type][0]?.key ?? "eq";
 }

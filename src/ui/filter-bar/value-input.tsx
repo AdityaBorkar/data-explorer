@@ -1,18 +1,17 @@
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
-
 import { operatorSkipsValue } from "../../core/filter/operators";
 import type { ColumnConfig, FilterOperator } from "../../core/types";
 import { SEARCH_COLUMN_ID } from "../../core/types";
+import {
+  Calendar,
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Switch,
+} from "../primitives";
 
 interface ValueInputProps {
   column: ColumnConfig;
@@ -204,14 +203,16 @@ function DateInput({
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger
-        className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
-        render={<button type="button" />}
-      >
-        <span className={value ? "" : "text-muted-foreground"}>
-          {value ?? "Pick a date..."}
-        </span>
-        <IconChevronDown className="size-3.5 text-muted-foreground" />
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
+          type="button"
+        >
+          <span className={value ? "" : "text-muted-foreground"}>
+            {value ?? "Pick a date..."}
+          </span>
+          <IconChevronDown className="size-3.5 text-muted-foreground" />
+        </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
@@ -243,18 +244,20 @@ function DateRangeInput({
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger
-        className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
-        render={<button type="button" />}
-      >
-        <span className={from ? "" : "text-muted-foreground"}>
-          {from ?? "From..."}
-        </span>
-        <span className="text-muted-foreground">–</span>
-        <span className={to ? "" : "text-muted-foreground"}>
-          {to ?? "To..."}
-        </span>
-        <IconChevronDown className="size-3.5 text-muted-foreground" />
+      <PopoverTrigger asChild>
+        <button
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2 text-sm"
+          type="button"
+        >
+          <span className={from ? "" : "text-muted-foreground"}>
+            {from ?? "From..."}
+          </span>
+          <span className="text-muted-foreground">–</span>
+          <span className={to ? "" : "text-muted-foreground"}>
+            {to ?? "To..."}
+          </span>
+          <IconChevronDown className="size-3.5 text-muted-foreground" />
+        </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import type { FilterCondition, FilterViewDisplay } from "../types";
 import {
   computeOverrides,
   conditionsEqual,
   filterKey,
   mergeDisplay,
   mergeFilters,
-} from "../core/filter/filter-merge";
-import type { FilterCondition, FilterViewDisplay } from "../core/types";
+} from "./filter-merge";
 
 function cond(
   columnId: string,
@@ -73,7 +73,7 @@ describe("mergeFilters", () => {
     const base = [cond("name", "eq", "foo", "and")];
     const result = mergeFilters(base, []);
     expect(result).toHaveLength(1);
-    expect(result[0].columnId).toBe("name");
+    expect(result[0]?.columnId).toBe("name");
   });
 
   it("overrides matching key", () => {
@@ -81,7 +81,7 @@ describe("mergeFilters", () => {
     const overrides = [cond("name", "eq", "bar", "and")];
     const result = mergeFilters(base, overrides);
     expect(result).toHaveLength(1);
-    expect(result[0].value).toBe("bar");
+    expect(result[0]?.value).toBe("bar");
   });
 
   it("appends new conditions from overrides", () => {
@@ -96,7 +96,7 @@ describe("mergeFilters", () => {
     const overrides = [cond("name", "eq", "foo", "and")];
     const result = mergeFilters(base, overrides);
     expect(result).toHaveLength(1);
-    expect(result[0].value).toBe("foo");
+    expect(result[0]?.value).toBe("foo");
   });
 });
 
@@ -113,7 +113,7 @@ describe("computeOverrides", () => {
     const effective = [cond("name", "eq", "bar", "and")];
     const result = computeOverrides(base, effective);
     expect(result).toHaveLength(1);
-    expect(result[0].value).toBe("bar");
+    expect(result[0]?.value).toBe("bar");
   });
 
   it("returns new conditions not in base", () => {
@@ -124,7 +124,7 @@ describe("computeOverrides", () => {
     ];
     const result = computeOverrides(base, effective);
     expect(result).toHaveLength(1);
-    expect(result[0].columnId).toBe("slug");
+    expect(result[0]?.columnId).toBe("slug");
   });
 });
 

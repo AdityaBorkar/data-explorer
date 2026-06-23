@@ -150,7 +150,7 @@ function buildSearchSql(
   }
 
   if (conditions.length === 1) {
-    return conditions[0];
+    return conditions[0] ?? sql`1 = 0`;
   }
 
   return or(...conditions) ?? sql`1 = 0`;

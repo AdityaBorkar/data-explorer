@@ -1,17 +1,11 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
 import { useConfigContext, useFilterContext } from "../../core/context";
 import { operatorSkipsValue } from "../../core/filter/operators";
 import { useInlineFilterFlow } from "../../core/filter/use-inline-filter-flow";
 import { SEARCH_COLUMN_ID } from "../../core/types";
+import { cn, Popover, PopoverContent, PopoverTrigger } from "../primitives";
 import { ColumnSelector } from "./column-selector";
 import { FilterChipGroup } from "./filter-chip-group";
 import { OperatorSelector } from "./operator-selector";
@@ -305,6 +299,7 @@ export function FilterBar({ className }: { className?: string }) {
         }}
         ref={containerRef}
         role="combobox"
+        tabIndex={-1}
       >
         <IconSearch className="size-4 shrink-0 text-muted-foreground" />
 

@@ -1,8 +1,7 @@
 import { useCallback } from "react";
 
-import { Checkbox } from "@/components/ui/checkbox";
-
 import { useSelectionContext } from "../../core/context";
+import { Checkbox } from "../primitives";
 
 export function SelectionCheckbox({ rowId }: { rowId: string }) {
   const { selectedRowIds, toggleRowSelection } = useSelectionContext();
@@ -31,7 +30,7 @@ export function SelectAllCheckbox() {
   const indeterminate = selectedCount > 0 && selectedCount < totalCount;
 
   const handleChange = useCallback(
-    (c: boolean) => {
+    (c: boolean | "indeterminate") => {
       if (c) selectAll();
       else clearSelection();
     },
@@ -41,8 +40,7 @@ export function SelectAllCheckbox() {
   return (
     <div className="flex items-center justify-center">
       <Checkbox
-        checked={checked}
-        indeterminate={indeterminate}
+        checked={indeterminate ? "indeterminate" : checked}
         onCheckedChange={handleChange}
       />
     </div>

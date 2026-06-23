@@ -1,6 +1,6 @@
 import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { useCallback, useMemo } from "react";
+import { type CSSProperties, useCallback, useMemo } from "react";
 
 import {
   useCallbackContext,
@@ -99,27 +99,32 @@ export function BoardView<TItem>({
                     const id = getRowId(item);
                     return (
                       <Draggable draggableId={id} index={index} key={id}>
-                        {(dragProvided, dragSnapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                          >
-                            {renderCard ? (
-                              renderCard(item, {
-                                isDragging: dragSnapshot.isDragging,
-                              })
-                            ) : (
-                              <div className="rounded-md border bg-card p-3 text-sm shadow-xs">
-                                {String(
-                                  (item as Record<string, unknown>)[
-                                    groupByColumn.id
-                                  ] ?? id,
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {(dragProvided, dragSnapshot) => {
+                          const { style, ...draggableProps } =
+                            dragProvided.draggableProps;
+                          return (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...draggableProps}
+                              {...dragProvided.dragHandleProps}
+                              style={style as CSSProperties}
+                            >
+                              {renderCard ? (
+                                renderCard(item, {
+                                  isDragging: dragSnapshot.isDragging,
+                                })
+                              ) : (
+                                <div className="rounded-md border bg-card p-3 text-sm shadow-xs">
+                                  {String(
+                                    (item as Record<string, unknown>)[
+                                      groupByColumn.id
+                                    ] ?? id,
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }}
                       </Draggable>
                     );
                   })}

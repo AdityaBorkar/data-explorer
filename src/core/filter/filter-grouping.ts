@@ -7,10 +7,15 @@ export function groupConditions(conditions: FilterCondition[]): FilterGroup {
     return { combinator: "and", conditions: [], id: nanoid() };
   }
 
+  const first = conditions[0];
+  if (!first) {
+    return { combinator: "and", conditions: [], id: nanoid() };
+  }
+
   if (conditions.length === 1) {
     return {
-      combinator: conditions[0].combinator,
-      conditions: [conditions[0]],
+      combinator: first.combinator,
+      conditions: [first],
       id: nanoid(),
     };
   }
@@ -42,12 +47,13 @@ export function groupConditions(conditions: FilterCondition[]): FilterGroup {
 
   let currentAndGroup: FilterGroup = {
     combinator: "and",
-    conditions: [conditions[0]],
+    conditions: [first],
     id: nanoid(),
   };
 
   for (let i = 1; i < conditions.length; i++) {
     const cond = conditions[i];
+    if (!cond) continue;
     if (cond.combinator === "or") {
       orRoot.conditions.push(currentAndGroup);
       currentAndGroup = {

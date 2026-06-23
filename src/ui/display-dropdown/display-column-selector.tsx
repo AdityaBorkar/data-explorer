@@ -1,9 +1,8 @@
 import { IconLayoutList } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { Checkbox } from "@/components/ui/checkbox";
-
 import { useConfigContext, useDisplayContext } from "../../core/context";
+import { Checkbox } from "../primitives";
 
 export function DisplayColumnSelector() {
   const { display, updateDisplay } = useDisplayContext();
@@ -35,6 +34,7 @@ export function DisplayColumnSelector() {
             | React.ComponentType<{ className?: string }>
             | undefined;
           return (
+            // biome-ignore lint/a11y/useSemanticElements: ARIA checkbox wrapping a Radix Checkbox (button); native input not applicable
             <div
               aria-checked={isVisible}
               className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted"
