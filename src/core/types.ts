@@ -82,54 +82,29 @@ export interface FilterViewDisplay {
   type: "table" | "board" | "timeline";
 }
 
-export interface ConfigContextType {
+export interface DataExplorerContextType<TItem = unknown> {
   columnsConfig: ColumnConfig[];
-}
-
-export interface FilterContextType {
-  addFilter: (v: FilterCondition) => void;
-  clearFilters: () => void;
-  filterConditions: FilterCondition[];
-  removeFilter: (id: string) => void;
-  setFilters: (v: FilterCondition[]) => void;
-  updateFilter: (id: string, updates: Partial<FilterCondition>) => void;
-}
-
-export interface DisplayContextType {
+  data: {
+    hasMore: boolean;
+    isLoading: boolean;
+    isLoadingMore: boolean;
+    items: TItem[];
+    loadMoreRef: (el: Element | null) => void;
+  };
   display: FilterViewDisplay;
-  updateDisplay: (updates: Partial<FilterViewDisplay>) => void;
-}
-
-export interface SelectionContextType {
-  allRowIds: string[];
-  clearSelection: () => void;
-  selectAll: () => void;
-  selectedRowIds: Set<string>;
-  toggleRowSelection: (id: string) => void;
-}
-
-export interface DataContextType<TItem = unknown> {
-  hasMore: boolean;
-  isLoading: boolean;
-  isLoadingMore: boolean;
-  items: TItem[];
-  loadMoreRef: (el: Element | null) => void;
-}
-
-export interface ViewContextType {
-  activeViewId: string | null;
-  applyView: (viewId: string | null) => void;
-  resetToSaved: () => void;
-  saveView: () => void;
-}
-
-export interface CallbackContextType {
   onMove?: (args: {
     itemId: string;
     fromGroup: string;
     toGroup: string;
     columnId: string;
   }) => void;
+  updateDisplay: (updates: Partial<FilterViewDisplay>) => void;
+  view: {
+    activeViewId: string | null;
+    applyView: (viewId: string | null) => void;
+    resetToSaved: () => void;
+    saveView: () => void;
+  };
 }
 
 export interface TableContextType {
@@ -137,13 +112,9 @@ export interface TableContextType {
 }
 
 export interface ContextType<TItem = unknown>
-  extends ConfigContextType,
-    FilterContextType,
-    DisplayContextType,
-    SelectionContextType,
-    DataContextType<TItem>,
-    ViewContextType,
-    CallbackContextType {}
+  extends DataExplorerContextType<TItem> {
+  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
+}
 
 export interface ListQueryResult<TItem> {
   items: TItem[];

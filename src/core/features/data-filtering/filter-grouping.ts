@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 
-import type { FilterCondition, FilterGroup } from "../types.ts";
+import type { FilterCondition, FilterGroup } from "../../types.ts";
 
 export function groupConditions(conditions: FilterCondition[]): FilterGroup {
   if (conditions.length === 0) {

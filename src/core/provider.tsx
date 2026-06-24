@@ -11,27 +11,17 @@ import type {
   Updater,
 } from "@tanstack/react-table";
 import { useTable } from "@tanstack/react-table";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { extractColumnConfigs } from "./column-utils.ts";
-import {
-  CallbackContext,
-  ConfigContext,
-  DataContext,
-  DisplayContext,
-  FilterContext,
-  SelectionContext,
-  TableContext,
-  ViewContext,
-} from "./context.tsx";
+import { extractColumnConfigs } from "./features/extract-column-config.ts";
+import { DataExplorerContext, TableContext } from "./context.tsx";
 import { dataExplorerTableFeatures } from "./features/index.ts";
 import { useDisplay } from "./hooks/use-display.ts";
-import { useFilters } from "./hooks/use-filters.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
-import { useSelection } from "./hooks/use-selection.ts";
 import { useView } from "./hooks/use-view.ts";
 import type {
   ColumnConfig,
+  FilterCondition,
   FilterViewDisplay,
   ListQueryResult,
   RefineOptions,
@@ -41,7 +31,6 @@ import type { ViewAdapter } from "./view-adapter.ts";
 
 const PAGE_SIZE = 20;
 
-/** Apply a TanStack `Updater<T>` (value or function) to a current value. */
 function resolveUpdater<T>(updater: Updater<T>, current: T): T {
   return typeof updater === "function"
     ? (updater as (old: T) => T)(current)
@@ -131,14 +120,16 @@ export function Provider<TItem extends Record<string, unknown>>({
     columnsConfig,
     defaultDisplay,
   });
-  const filtersHook = useFilters();
+
+  const [dataFilters, setDataFilters] = useState<FilterCondition[]>([]);
+
   const viewHook = useView({
+    dataFilters,
     defaultDisplay,
     display: displayHook.display,
     domain,
-    filterConditions: filtersHook.filterConditions,
+    setDataFilters,
     setDisplay: displayHook.setDisplay,
-    setFilters: filtersHook.setFilters,
     viewAdapter,
   });
 
@@ -160,7 +151,7 @@ export function Provider<TItem extends Record<string, unknown>>({
       const opts = queryBuilder({
         cursor: pageParam,
         display: displayHook.display,
-        filters: filtersHook.filterConditions,
+        filters: dataFilters,
         limit: PAGE_SIZE,
         orderBy,
       });
@@ -176,7 +167,7 @@ export function Provider<TItem extends Record<string, unknown>>({
       "data-explorer",
       domain,
       {
-        conditions: filtersHook.filterConditions,
+        conditions: dataFilters,
         display: displayHook.display,
         orderBy,
       },
@@ -186,11 +177,6 @@ export function Provider<TItem extends Record<string, unknown>>({
   const allItems = useMemo(
     () => query.data?.pages.flatMap((p) => p.items) ?? [],
     [query.data?.pages],
-  );
-
-  const derivedAllRowIds = useMemo(
-    () => allItems.map((item) => getRowId(item as TItem)),
-    [allItems, getRowId],
   );
 
   const table = useTable({
@@ -214,6 +200,7 @@ export function Provider<TItem extends Record<string, unknown>>({
         ...prev,
         ...fromColumnVisibilityChange(updater, prev, columnsConfig),
       })),
+    onDataFiltersChange: setDataFilters,
     onGroupingChange: (updater) =>
       displayHook.setDisplay((prev) => ({
         ...prev,
@@ -230,17 +217,11 @@ export function Provider<TItem extends Record<string, unknown>>({
         displayHook.display,
         columnsConfig,
       ),
+      dataFilters,
       grouping: toGroupingState(displayHook.display),
       sorting: toSortingState(displayHook.display),
     },
   });
-
-  const selection = useSelection({ table });
-
-  const selectAll = useCallback(
-    () => table.toggleAllRowsSelected(true),
-    [table],
-  );
 
   const { triggerRef } = useLoadMore(
     query.fetchNextPage,
@@ -248,70 +229,36 @@ export function Provider<TItem extends Record<string, unknown>>({
     query.isFetchingNextPage,
   );
 
-  const configValue = useMemo(() => ({ columnsConfig }), [columnsConfig]);
-
-  const filterValue = useMemo(
+  const explorerValue = useMemo(
     () => ({
-      addFilter: filtersHook.addFilter,
-      clearFilters: filtersHook.clearFilters,
-      filterConditions: filtersHook.filterConditions,
-      removeFilter: filtersHook.removeFilter,
-      setFilters: filtersHook.setFilters,
-      updateFilter: filtersHook.updateFilter,
-    }),
-    [filtersHook],
-  );
-
-  const displayValue = useMemo(
-    () => ({
+      columnsConfig,
+      data: {
+        hasMore: query.hasNextPage ?? false,
+        isLoading: query.isLoading,
+        isLoadingMore: query.isFetchingNextPage,
+        items: allItems,
+        loadMoreRef: triggerRef,
+      },
       display: displayHook.display,
+      onMove,
       updateDisplay: displayHook.updateDisplay,
-    }),
-    [displayHook.display, displayHook.updateDisplay],
-  );
-
-  const selectionValue = useMemo(
-    () => ({
-      allRowIds: derivedAllRowIds,
-      clearSelection: selection.clearSelection,
-      selectAll,
-      selectedRowIds: selection.selectedRowIds,
-      toggleRowSelection: selection.toggleRowSelection,
+      view: {
+        activeViewId: viewHook.activeViewId,
+        applyView: viewHook.applyView,
+        resetToSaved: viewHook.resetToSaved,
+        saveView: viewHook.saveView,
+      },
     }),
     [
-      derivedAllRowIds,
-      selection.clearSelection,
-      selectAll,
-      selection.selectedRowIds,
-      selection.toggleRowSelection,
-    ],
-  );
-
-  const dataValue = useMemo(
-    () => ({
-      hasMore: query.hasNextPage ?? false,
-      isLoading: query.isLoading,
-      isLoadingMore: query.isFetchingNextPage,
-      items: allItems,
-      loadMoreRef: triggerRef,
-    }),
-    [
+      columnsConfig,
       query.hasNextPage,
       query.isLoading,
       query.isFetchingNextPage,
       allItems,
       triggerRef,
-    ],
-  );
-
-  const viewValue = useMemo(
-    () => ({
-      activeViewId: viewHook.activeViewId,
-      applyView: viewHook.applyView,
-      resetToSaved: viewHook.resetToSaved,
-      saveView: viewHook.saveView,
-    }),
-    [
+      displayHook.display,
+      displayHook.updateDisplay,
+      onMove,
       viewHook.activeViewId,
       viewHook.applyView,
       viewHook.resetToSaved,
@@ -319,27 +266,11 @@ export function Provider<TItem extends Record<string, unknown>>({
     ],
   );
 
-  const callbackValue = useMemo(() => ({ onMove }), [onMove]);
-
   return (
-    <ConfigContext value={configValue}>
-      <FilterContext value={filterValue}>
-        <DisplayContext value={displayValue}>
-          <SelectionContext value={selectionValue}>
-            <DataContext value={dataValue}>
-              <ViewContext value={viewValue}>
-                <CallbackContext value={callbackValue}>
-                  <TableContext
-                    value={{ table } as unknown as TableContextType}
-                  >
-                    {children}
-                  </TableContext>
-                </CallbackContext>
-              </ViewContext>
-            </DataContext>
-          </SelectionContext>
-        </DisplayContext>
-      </FilterContext>
-    </ConfigContext>
+    <DataExplorerContext value={explorerValue}>
+      <TableContext value={{ table } as unknown as TableContextType}>
+        {children}
+      </TableContext>
+    </DataExplorerContext>
   );
 }

@@ -1,7 +1,7 @@
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { operatorSkipsValue } from "../../core/filter/operators.ts";
+import { operatorSkipsValue } from "../../core/features/data-filtering/operators.ts";
 import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
 import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {

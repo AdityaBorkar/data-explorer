@@ -1,9 +1,9 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useConfigContext, useFilterContext } from "../../core/context.tsx";
-import { operatorSkipsValue } from "../../core/filter/operators.ts";
-import { useInlineFilterFlow } from "../../core/filter/use-inline-filter-flow.ts";
+import { useConfigContext, useTableContext } from "../../core/context.tsx";
+import { operatorSkipsValue } from "../../core/features/data-filtering/operators.ts";
+import { useInlineFilterFlow } from "../../core/features/data-filtering/use-inline-filter-flow.ts";
 import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
   cn,
@@ -18,13 +18,14 @@ import { ValueInput } from "./value-input.tsx";
 
 export function FilterBar({ className }: { className?: string }) {
   const { columnsConfig } = useConfigContext();
+  const { table } = useTableContext();
+  const filterConditions = table.state.dataFilters;
   const {
-    addFilter,
-    filterConditions,
-    clearFilters,
-    removeFilter,
-    updateFilter,
-  } = useFilterContext();
+    addDataFilter: addFilter,
+    clearDataFilters: clearFilters,
+    removeDataFilter: removeFilter,
+    updateDataFilter: updateFilter,
+  } = table;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

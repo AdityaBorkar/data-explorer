@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition } from "../types.ts";
+import type { FilterCondition } from "../../types.ts";
 import { groupConditions } from "./filter-grouping.ts";
 
 function cond(

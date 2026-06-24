@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { FilterOperator } from "../types.ts";
+import type { FilterOperator } from "../../types.ts";
 import { isValidOperatorValue } from "./filter-validation.ts";
 import { FILTER_OPERATORS } from "./operators.ts";
 

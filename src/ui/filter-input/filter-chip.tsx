@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import {
   getOperatorLabel,
   operatorSkipsValue,
-} from "../../core/filter/operators.ts";
+} from "../../core/features/data-filtering/operators.ts";
 import type {
   ColumnConfig,
   FilterCondition,

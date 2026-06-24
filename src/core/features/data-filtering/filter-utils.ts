@@ -4,7 +4,7 @@ import type {
   FilterCondition,
   FilterViewDisplay,
   SerializedFilterCondition,
-} from "../types.ts";
+} from "../../types.ts";
 
 export function serializeFilters(conditions: FilterCondition[]): string {
   const serialized: SerializedFilterCondition[] = conditions.map((c) => ({

@@ -1,18 +1,17 @@
 # TODO
 
-
-- thermonuclear
-- grill-with-docs
-
-- Remove cmdk references
-- Design everything as an integration to Tanstack Tables
+- Create examples with bun (to directly start using bun)
 - Integrations
   - display-dropdown
   - filter-bar
   - icons in data-config
   - virtual-table
-- FOCUS: Grouping, Virtualization
-- Write instructions for AI -> CONTEXT.md GLOSSARY.md
+
+- thermonuclear
+- grill-with-docs
+  - Write instructions for AI -> CONTEXT.md GLOSSARY.md
+
+- Remove cmdk references
 
 - Grouping
 - Column Filtering

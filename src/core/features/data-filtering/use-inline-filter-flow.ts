@@ -5,8 +5,8 @@ import type {
   ColumnConfig,
   FilterCondition,
   FilterOperator,
-} from "../types.ts";
-import { SEARCH_COLUMN_ID } from "../types.ts";
+} from "../../types.ts";
+import { SEARCH_COLUMN_ID } from "../../types.ts";
 import { getDefaultOperator, operatorSkipsValue } from "./operators.ts";
 
 type Phase = "idle" | "column" | "operator" | "value";

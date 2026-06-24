@@ -1,4 +1,4 @@
-import type { ColumnDataType, FilterOperator } from "../types.ts";
+import type { ColumnDataType, FilterOperator } from "../../types.ts";
 
 interface OperatorDef {
   key: FilterOperator;

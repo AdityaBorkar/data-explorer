@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import {
   getOperatorLabel,
   getOperatorsForType,
-} from "../../core/filter/operators.ts";
+} from "../../core/features/data-filtering/operators.ts";
 import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
 import {
   Command,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition, FilterViewDisplay } from "../types.ts";
+import type { FilterCondition, FilterViewDisplay } from "../../types.ts";
 import {
   computeOverrides,
   conditionsEqual,

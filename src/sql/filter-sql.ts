@@ -1,7 +1,7 @@
-import { filterConditionSchema } from "../core/filter/filter-condition-schema.ts";
-import { groupConditions } from "../core/filter/filter-grouping.ts";
-import { validateOperatorValue } from "../core/filter/filter-validation.ts";
-import { getOperatorsForType } from "../core/filter/operators.ts";
+import { filterConditionSchema } from "../core/features/data-filtering/filter-condition-schema.ts";
+import { groupConditions } from "../core/features/data-filtering/filter-grouping.ts";
+import { validateOperatorValue } from "../core/features/data-filtering/filter-validation.ts";
+import { getOperatorsForType } from "../core/features/data-filtering/operators.ts";
 import type {
   ColumnConfig,
   FilterCondition,

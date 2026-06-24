@@ -1,4 +1,4 @@
-import type { FilterCondition, FilterViewDisplay } from "../types.ts";
+import type { FilterCondition, FilterViewDisplay } from "../../types.ts";
 
 export function filterKey(cond: FilterCondition): string {
   return `${cond.columnId}::${cond.operator}`;

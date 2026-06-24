@@ -20,16 +20,16 @@ A React UI library (`@adityab/data-explorer`) — a **headless** data-explorer c
 
 ## Tests
 
-- Co-located in `src/core/filter/` (`*.test.ts`). Top-level `tests/` and `examples/` dirs are empty.
+- Co-located in `src/core/features/data-filtering/` (`*.test.ts`). Top-level `tests/` and `examples/` dirs are empty.
 - No vitest config file — uses defaults.
 - `bunx vitest` opens **watch mode**; for one-shot use `bunx vitest run` or `bun run test:unit`.
-- Single file: `bunx vitest src/core/filter/filter-merge.test.ts`.
+- Single file: `bunx vitest src/core/features/data-filtering/filter-merge.test.ts`.
 
 ## Entrypoints & structure
 
 Three subpath exports (the real barrels):
 
-- `.` → `src/core/index.ts` — headless: hooks, filter logic, provider/context (incl. `TableContext`), view adapter, types. Depends on react + react-query + @tanstack/react-table (+ nanoid, zod v4).
+- `.` → `src/core/index.ts` — headless: hooks, filter logic (via `dataFilteringFeature`), provider/context (incl. `TableContext`), view adapter, types. Depends on react + react-query + @tanstack/react-table (+ nanoid, zod v4).
 - `./sql` → `src/sql/index.ts` — filter → SQL. Depends on `.` only.
 - `./ui` → `src/ui/index.ts` — prebuilt components. Real dirs: `batch-menu/`, `display-dropdown/`, `filter-input/`, `primitives/`, `views/{board,list,map,timeline,virtual-table}/`. Depends on `.` + `primitives/`. Dependency direction is one-way: `ui → core`, `sql → core`, never reverse.
 
@@ -37,10 +37,17 @@ Three subpath exports (the real barrels):
 
 The `Provider` is the single place a TanStack Table instance is constructed (`src/core/provider.tsx`). The feature set lives in `src/core/features/index.ts` (`dataExplorerTableFeatures` / `DataExplorerTableFeatures`); `ColumnDef`s are typed against it. The instance is exposed via `TableContext` / `useTableContext()` (core/context.tsx).
 
+The custom `dataFilteringFeature` (`src/core/features/data-filtering/`) is a TanStack `TableFeature` that owns `FilterCondition[]` state (`state.dataFilters`) and provides table-level CRUD APIs (`addDataFilter`, `removeDataFilter`, `updateDataFilter`, `clearDataFilters`, `setDataFilters`, `resetDataFilters`). All filter logic — operators, validation, serialization, merging, grouping, schema, and the inline filter flow hook — lives in this directory. The feature replaces TanStack's built-in `columnFilteringFeature` (which uses a different `ColumnFiltersState` model).
+
+Context structure: two contexts only — `DataExplorerContext` (config, display, data, view, callback) and `TableContext` (the table instance, which includes filter state via `dataFilteringFeature` and selection via `rowSelectionFeature`). Backward-compatible hooks (`useConfigContext`, `useDisplayContext`, `useDataContext`, `useViewContext`, `useCallbackContext`, `useSelectionContext`) destructure from these two.
+
 State ownership (deliberate split):
 
-- **Row selection** — table-internal (`rowSelectionFeature`). `useSelection` reads `table.state.rowSelection` and forwards mutations (`toggleSelected`, `resetRowSelection`, `toggleAllRowsSelected`). No `Set`-based mirror, no `useEffect` sync. This is the source of truth.
+- **Data filters** — controlled by the `Provider`'s `useState` (`dataFilters`), passed as `state.dataFilters` and mirrored back via `onDataFiltersChange`. UI calls `table.addDataFilter()` etc.; the `useInlineFilterFlow` hook uses the `onAdd` callback which the caller binds to `table.addDataFilter`.
+- **Row selection** — table-internal (`rowSelectionFeature`). `useSelectionContext` reads `table.state.rowSelection` and forwards mutations (`toggleRowSelection`, `resetRowSelection`, `toggleAllRowsSelected`). No `Set`-based mirror, no `useEffect` sync. This is the source of truth.
 - **Column visibility / sorting / column sizing / grouping** — *controlled* by `FilterViewDisplay` so they persist into saved views and feed the data query key. `state.{columnVisibility,sorting,columnSizing,grouping}` is derived from `display`; the `on*Change` handlers mirror updates back into `display` via `setDisplay`. Sorting and grouping are `manual` (`manualSorting`/`manualGrouping: true`) — the server supplies pre-sorted, flat rows, so the row model is never reordered client-side; the features only drive state + header UI (`getIsSorted`, `getToggleSortingHandler`, `toggleVisibility`, `getSize`).
+
+Removed features (redundant): `columnFilteringFeature` (replaced by `dataFilteringFeature`), `columnResizingFeature` (only adds drag-resize `columnSizingInfo` state, unused), `columnOrderingFeature` (`state.columnOrder` never set, drag-reorder not used).
 
 The `VirtualTable` view and the display/selection UI consume the instance from context — they no longer build their own table. `Provider` now takes `columns: ColumnDef[]` (with `meta: DataExplorerColumnMeta`); `columnsConfig` is derived via `extractColumnConfigs`.
 

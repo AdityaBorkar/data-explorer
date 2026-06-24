@@ -1,24 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
-import { mergeDisplay } from "../filter/filter-merge.ts";
+import { mergeDisplay } from "../features/data-filtering/filter-merge.ts";
 import type { FilterCondition, FilterViewDisplay } from "../types.ts";
 import type { ViewAdapter } from "../view-adapter.ts";
 
 export function useView({
+  dataFilters,
   defaultDisplay,
   display,
   domain,
-  filterConditions,
-  setFilters,
+  setDataFilters,
   setDisplay,
   viewAdapter,
 }: {
+  dataFilters: FilterCondition[];
   defaultDisplay: FilterViewDisplay;
   display: FilterViewDisplay;
   domain: string;
-  filterConditions: FilterCondition[];
-  setFilters: (v: FilterCondition[]) => void;
+  setDataFilters: (filters: FilterCondition[]) => void;
   setDisplay: (v: FilterViewDisplay) => void;
   viewAdapter?: ViewAdapter;
 }) {
@@ -40,45 +40,38 @@ export function useView({
     (viewId: string | null) => {
       setActiveViewId(viewId);
       if (!(viewId && views)) {
-        setFilters([]);
+        setDataFilters([]);
         setDisplay(defaultDisplay);
         return;
       }
       const view = views.find((v) => v.id === viewId);
       if (!view) return;
-      setFilters(view.refine);
+      setDataFilters(view.refine);
       setDisplay(mergeDisplay(defaultDisplay, view.display));
     },
-    [views, defaultDisplay, setFilters, setDisplay],
+    [views, defaultDisplay, setDataFilters, setDisplay],
   );
 
   const saveView = useCallback(async () => {
     if (!(activeViewId && viewAdapter)) return;
     await viewAdapter.updateView(activeViewId, {
       display,
-      refine: filterConditions,
+      refine: dataFilters,
     });
     queryClient.invalidateQueries({
       queryKey: ["data-explorer", "views", domain],
     });
-  }, [
-    activeViewId,
-    filterConditions,
-    display,
-    domain,
-    queryClient,
-    viewAdapter,
-  ]);
+  }, [activeViewId, dataFilters, display, domain, queryClient, viewAdapter]);
 
   const resetToSaved = useCallback(() => {
     if (!activeView) {
-      setFilters([]);
+      setDataFilters([]);
       setDisplay(defaultDisplay);
       return;
     }
-    setFilters(activeView.refine);
+    setDataFilters(activeView.refine);
     setDisplay(mergeDisplay(defaultDisplay, activeView.display));
-  }, [activeView, defaultDisplay, setFilters, setDisplay]);
+  }, [activeView, defaultDisplay, setDataFilters, setDisplay]);
 
   return {
     activeView,

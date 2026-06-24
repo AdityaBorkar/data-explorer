@@ -1,4 +1,4 @@
-import { groupConditions } from "../../core/filter/filter-grouping.ts";
+import { groupConditions } from "../../core/features/data-filtering/filter-grouping.ts";
 import type { ColumnConfig, FilterCondition } from "../../core/types.ts";
 import { FilterChip } from "./filter-chip.tsx";
 import { FilterCombinatorToggle } from "./filter-combinator-toggle.tsx";
