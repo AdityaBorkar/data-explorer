@@ -1,25 +1,13 @@
 {
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM"],
-    "module": "Preserve",
-    "moduleDetection": "force",
-    "moduleResolution": "bundler",
-    "noEmit": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ESNext",
-    "types": ["bun", "react"],
-    "verbatimModuleSyntax": true
+    "declarationDir": "../.local/types/www",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "ES2022",
+    "types": ["react"]
   },
-
-  "exclude": ["dist", "node_modules"]
+  "extends": "../tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx"]
 }

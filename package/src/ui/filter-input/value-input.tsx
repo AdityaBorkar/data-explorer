@@ -43,63 +43,58 @@ export function ValueInput({
     );
   }
 
-  switch (column.type) {
-    case "string":
+  if (column.type === "string") {
+    return (
+      <StringInput
+        onChange={onChange}
+        onCommit={onCommit}
+        placeholder="Value..."
+        value={value as string}
+      />
+    );
+  } else if (column.type === "number") {
+    if (operator === "between" || operator === "notBetween") {
       return (
-        <StringInput
+        <NumberRangeInput
           onChange={onChange}
-          onCommit={onCommit}
-          placeholder="Value..."
-          value={value as string}
+          value={value as [number, number] | undefined}
         />
       );
-    case "number":
-      if (operator === "between" || operator === "notBetween") {
-        return (
-          <NumberRangeInput
-            onChange={onChange}
-            value={value as [number, number] | undefined}
-          />
-        );
-      }
+    }
+    return (
+      <NumberInput
+        onChange={onChange}
+        onCommit={onCommit}
+        value={value as number | undefined}
+      />
+    );
+  } else if (column.type === "date") {
+    if (operator === "between" || operator === "notBetween") {
       return (
-        <NumberInput
+        <DateRangeInput
           onChange={onChange}
-          onCommit={onCommit}
-          value={value as number | undefined}
+          value={value as [string, string] | undefined}
         />
       );
-    case "date":
-      if (operator === "between" || operator === "notBetween") {
-        return (
-          <DateRangeInput
-            onChange={onChange}
-            value={value as [string, string] | undefined}
-          />
-        );
-      }
-      return (
-        <DateInput onChange={onChange} value={value as string | undefined} />
-      );
-    case "boolean":
-      return (
-        <BooleanInput
-          onChange={onChange}
-          value={value as boolean | undefined}
-        />
-      );
-    case "enum":
-    case "multiEnum":
-      return null;
-    default:
-      return (
-        <StringInput
-          onChange={onChange}
-          onCommit={onCommit}
-          placeholder="Value..."
-          value={value as string}
-        />
-      );
+    }
+    return (
+      <DateInput onChange={onChange} value={value as string | undefined} />
+    );
+  } else if (column.type === "boolean") {
+    return (
+      <BooleanInput onChange={onChange} value={value as boolean | undefined} />
+    );
+  } else if (column.type === "enum" || column.type === "multiEnum") {
+    return null;
+  } else {
+    return (
+      <StringInput
+        onChange={onChange}
+        onCommit={onCommit}
+        placeholder="Value..."
+        value={value as string}
+      />
+    );
   }
 }
 
@@ -123,7 +118,7 @@ function StringInput({
         if (e.key === "Enter") onCommit();
       }}
       placeholder={placeholder}
-      value={value ?? ""}
+      value={value}
     />
   );
 }
