@@ -1,3 +1,7 @@
+import type { ReactTable } from "@tanstack/react-table";
+
+import type { DataExplorerTableFeatures } from "./table-features.ts";
+
 export type ColumnDataType =
   | "string"
   | "number"
@@ -126,6 +130,10 @@ export interface CallbackContextType {
     toGroup: string;
     columnId: string;
   }) => void;
+}
+
+export interface TableContextType {
+  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
 }
 
 export interface ContextType<TItem = unknown>

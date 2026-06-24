@@ -4,7 +4,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/ui/primitives/index.ts";
+} from "../primitives/index.ts";
 
 export function DisplayComponent({ children }: { children: React.ReactNode }) {
   return (

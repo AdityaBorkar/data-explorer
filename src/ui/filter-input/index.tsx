@@ -1,11 +1,10 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useConfigContext, useFilterContext } from "@/core/context.tsx";
-import { operatorSkipsValue } from "@/core/filter/operators.ts";
-import { useInlineFilterFlow } from "@/core/filter/use-inline-filter-flow.ts";
-import { SEARCH_COLUMN_ID } from "@/core/types.ts";
-
+import { useConfigContext, useFilterContext } from "../../core/context.tsx";
+import { operatorSkipsValue } from "../../core/filter/operators.ts";
+import { useInlineFilterFlow } from "../../core/filter/use-inline-filter-flow.ts";
+import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
   cn,
   Popover,

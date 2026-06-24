@@ -1,5 +1,7 @@
+import type { ReactTable } from "@tanstack/react-table";
 import { createContext, useContext } from "react";
 
+import type { DataExplorerTableFeatures } from "./table-features.ts";
 import type {
   CallbackContextType,
   ConfigContextType,
@@ -8,6 +10,7 @@ import type {
   DisplayContextType,
   FilterContextType,
   SelectionContextType,
+  TableContextType,
   ViewContextType,
 } from "./types.ts";
 
@@ -21,6 +24,7 @@ export const SelectionContext = createContext<SelectionContextType | null>(
 export const DataContext = createContext<DataContextType<any> | null>(null);
 export const ViewContext = createContext<ViewContextType | null>(null);
 export const CallbackContext = createContext<CallbackContextType | null>(null);
+export const TableContext = createContext<TableContextType | null>(null);
 
 function useNonNullContext<T>(ctx: React.Context<T | null>, name: string): T {
   const value = useContext(ctx);
@@ -59,6 +63,15 @@ export function useViewContext(): ViewContextType {
 
 export function useCallbackContext(): CallbackContextType {
   return useNonNullContext(CallbackContext, "useCallbackContext");
+}
+
+export function useTableContext<
+  TItem extends Record<string, unknown> = Record<string, unknown>,
+>(): { table: ReactTable<DataExplorerTableFeatures, TItem> } {
+  const { table } = useNonNullContext(TableContext, "useTableContext");
+  return {
+    table: table as unknown as ReactTable<DataExplorerTableFeatures, TItem>,
+  };
 }
 
 export function useDataExplorerContext<TItem = unknown>(): ContextType<TItem> {

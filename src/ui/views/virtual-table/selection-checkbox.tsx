@@ -1,16 +1,18 @@
+import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { useSelectionContext } from "@/core/context.tsx";
-import { Checkbox } from "@/ui/primitives/index.ts";
+import { useTableContext } from "../../../core/context.tsx";
+import type { DataExplorerTableFeatures } from "../../../core/index.ts";
+import { Checkbox } from "../../primitives/index.ts";
 
-export function SelectionCheckbox({ rowId }: { rowId: string }) {
-  const { selectedRowIds, toggleRowSelection } = useSelectionContext();
+export function SelectionCheckbox<TItem extends Record<string, unknown>>({
+  row,
+}: {
+  row: Row<DataExplorerTableFeatures, TItem>;
+}) {
+  const checked = row.getIsSelected();
 
-  const checked = selectedRowIds.has(rowId);
-
-  const handleChange = useCallback(() => {
-    toggleRowSelection(rowId);
-  }, [rowId, toggleRowSelection]);
+  const handleChange = useCallback(() => row.toggleSelected(), [row]);
 
   return (
     <div className="flex items-center justify-center">
@@ -20,21 +22,14 @@ export function SelectionCheckbox({ rowId }: { rowId: string }) {
 }
 
 export function SelectAllCheckbox() {
-  const { allRowIds, selectedRowIds, selectAll, clearSelection } =
-    useSelectionContext();
+  const { table } = useTableContext();
 
-  const totalCount = allRowIds.length;
-  const selectedCount = selectedRowIds.size;
-
-  const checked = totalCount > 0 && selectedCount === totalCount;
-  const indeterminate = selectedCount > 0 && selectedCount < totalCount;
+  const checked = table.getIsAllRowsSelected();
+  const indeterminate = table.getIsSomeRowsSelected() && !checked;
 
   const handleChange = useCallback(
-    (c: boolean | "indeterminate") => {
-      if (c) selectAll();
-      else clearSelection();
-    },
-    [selectAll, clearSelection],
+    () => table.toggleAllRowsSelected(!checked),
+    [table, checked],
   );
 
   return (

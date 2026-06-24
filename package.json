@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@tabler/icons-react": "^3.44.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -16,7 +17,7 @@
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "react-day-picker": "^9.14.0",
+    "react-day-picker": "^10.0.1",
     "taze": "^19.14.1",
     "typescript": "^7.0.1-rc",
     "vitest": "^2.1.9"
@@ -36,12 +37,6 @@
     "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
-    "@hello-pangea/dnd": {
-      "optional": true
-    },
-    "@tanstack/react-table": {
-      "optional": true
-    },
     "@tanstack/react-virtual": {
       "optional": true
     },
@@ -52,6 +47,7 @@
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc --noEmit",
+    "test:unit": "vitest run",
     "update:deps": "taze -w && bun install"
   },
   "type": "module"

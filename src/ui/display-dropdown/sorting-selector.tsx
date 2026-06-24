@@ -3,10 +3,9 @@ import {
   IconSortAscending,
   IconSortDescending,
 } from "@tabler/icons-react";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 
-import { useConfigContext, useDisplayContext } from "@/core/context.tsx";
-
+import { useTableContext } from "../../core/context.tsx";
 import {
   cn,
   Select,
@@ -19,24 +18,24 @@ import {
 } from "../primitives/index.ts";
 
 export function SortingSelector() {
-  const { display, updateDisplay } = useDisplayContext();
-  const { columnsConfig } = useConfigContext();
+  const { table } = useTableContext();
 
-  const visibleColumns = useMemo(
-    () => columnsConfig.filter((c) => display.fields.includes(c.id)),
-    [columnsConfig, display.fields],
-  );
+  const visibleColumns = table.getVisibleLeafColumns();
+  const sorting = table.state.sorting;
+  const current = sorting[0];
+  const orderType = current?.desc ? "desc" : "asc";
 
   const handleSortColumnChange = useCallback(
-    (value: string | null) => {
-      if (value) updateDisplay({ orderBy: value });
+    (value: string) => {
+      table.setSorting([{ desc: current?.desc ?? false, id: value }]);
     },
-    [updateDisplay],
+    [table, current],
   );
 
   const toggleSortDirection = useCallback(() => {
-    updateDisplay({ orderType: display.orderType === "asc" ? "desc" : "asc" });
-  }, [display.orderType, updateDisplay]);
+    if (!current) return;
+    table.setSorting([{ desc: !current.desc, id: current.id }]);
+  }, [table, current]);
 
   return (
     <div className="p-3">
@@ -45,30 +44,36 @@ export function SortingSelector() {
         Sort
       </div>
       <div className="flex items-center gap-2">
-        <Select onValueChange={handleSortColumnChange} value={display.orderBy}>
+        <Select
+          onValueChange={handleSortColumnChange}
+          value={current?.id ?? undefined}
+        >
           <SelectTrigger className="h-8 flex-1" size="sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Column</SelectLabel>
-              {visibleColumns.map((col) => (
-                <SelectItem key={col.id} value={col.id}>
-                  {col.displayName}
-                </SelectItem>
-              ))}
+              {visibleColumns.map((column) => {
+                const meta = column.columnDef.meta;
+                return (
+                  <SelectItem key={column.id} value={column.id}>
+                    {meta?.displayName ?? column.id}
+                  </SelectItem>
+                );
+              })}
             </SelectGroup>
           </SelectContent>
         </Select>
         <button
-          aria-label={`Sort ${display.orderType === "asc" ? "ascending" : "descending"}`}
+          aria-label={`Sort ${orderType === "asc" ? "ascending" : "descending"}`}
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input transition-colors hover:bg-muted",
           )}
           onClick={toggleSortDirection}
           type="button"
         >
-          {display.orderType === "asc" ? (
+          {orderType === "asc" ? (
             <IconSortAscending className="size-4" />
           ) : (
             <IconSortDescending className="size-4" />

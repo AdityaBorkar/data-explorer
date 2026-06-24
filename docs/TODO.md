@@ -1,7 +1,10 @@
 # TODO
 
-- Remove cmdk, drizzle-orm references
-- Replace lucide-react references with @tabler/icons-react
+
+- thermonuclear
+- grill-with-docs
+
+- Remove cmdk references
 - Design everything as an integration to Tanstack Tables
 - Integrations
   - display-dropdown
@@ -10,6 +13,16 @@
   - virtual-table
 - FOCUS: Grouping, Virtualization
 - Write instructions for AI -> CONTEXT.md GLOSSARY.md
+
+- Grouping
+- Expanding
+- Column Filtering
+- Global Filtering
+- Fuzzy Filtering
+- Row Selection
+- Sorting
+- Virtualization
+- CUSTOM FEATURES
 
 ## Phase 2
 
@@ -21,8 +34,10 @@
 ## Features not supported / planned:
 
 - Row Pinning
-- Column Pinning
-- Column Drag Sizing
 - Column Ordering
+- Column Pinning
+- Column Sizing
+- Column Resizing
+- Column Drag Sizing
 - Expanding
 - Pagination

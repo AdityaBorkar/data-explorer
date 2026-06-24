@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 
-import type { ColumnConfig } from "@/core/types.ts";
-import { SEARCH_COLUMN_ID } from "@/core/types.ts";
-
+import type { ColumnConfig } from "../../core/types.ts";
+import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
   Command,
   CommandEmpty,

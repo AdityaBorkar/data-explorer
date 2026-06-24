@@ -4,13 +4,12 @@ import { useCallback, useState } from "react";
 import {
   getOperatorLabel,
   operatorSkipsValue,
-} from "@/core/filter/operators.ts";
+} from "../../core/filter/operators.ts";
 import type {
   ColumnConfig,
   FilterCondition,
   FilterOperator,
-} from "@/core/types.ts";
-
+} from "../../core/types.ts";
 import {
   cn,
   Popover,

@@ -1,56 +1,32 @@
 import { IconLoader2 } from "@tabler/icons-react";
-import type { ColumnDef } from "@tanstack/react-table";
-import {
-  FlexRender,
-  rowSelectionFeature,
-  tableFeatures,
-  useTable,
-} from "@tanstack/react-table";
+import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useMemo, useRef } from "react";
+import { useRef } from "react";
 
 import {
   useDataContext,
   useDisplayContext,
-  useSelectionContext,
-} from "@/core/context.tsx";
-import { cn } from "@/ui/primitives/index.ts";
-
+  useTableContext,
+} from "../../../core/context.tsx";
+import { cn } from "../../primitives/index.ts";
 import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox.tsx";
 
-const features = tableFeatures({
-  rowSelectionFeature,
-});
-
-export type VirtualTableFeatures = typeof features;
+export type { DataExplorerTableFeatures as VirtualTableFeatures } from "../../../core/index.ts";
 
 const DENSITY_ROW_HEIGHTS: Record<string, number> = {
   comfortable: 36,
   compact: 28,
   spacious: 48,
 };
-const DEFAULT_COLUMN_WIDTH = 150;
-
-function getAriaSort(
-  orderBy: string,
-  orderType: "asc" | "desc",
-  columnId: string,
-): "ascending" | "descending" | "none" {
-  if (orderBy !== columnId) return "none";
-  return orderType === "asc" ? "ascending" : "descending";
-}
+const SELECT_COLUMN_WIDTH = 32;
 
 export function VirtualTable<TItem extends Record<string, unknown>>({
-  columnDefs: columns,
   onRowClick,
   emptyMessage = "No items found",
-  getRowId,
 }: {
-  columnDefs: ColumnDef<VirtualTableFeatures, TItem>[];
   onRowClick?: (row: TItem) => void;
   emptyMessage?: string;
-  getRowId: (row: TItem) => string;
-}) {
+} = {}) {
   const {
     items: data,
     isLoading,
@@ -59,22 +35,10 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
     loadMoreRef,
   } = useDataContext<TItem>();
   const { display } = useDisplayContext();
-  const { clearSelection, selectedRowIds } = useSelectionContext();
+  const { table } = useTableContext<TItem>();
 
-  const table = useTable({ columns, data, features, getRowId });
-
-  const columnWidths = useMemo(() => {
-    const widths: Record<string, number> = {};
-    for (const header of table.getFlatHeaders()) {
-      widths[header.id] = DEFAULT_COLUMN_WIDTH;
-    }
-    return widths;
-  }, [table]);
-  const totalWidth = useMemo(
-    () => Object.values(columnWidths).reduce((sum, w) => sum + w, 0) + 32,
-    [columnWidths],
-  );
   const rowHeight = DENSITY_ROW_HEIGHTS[display.density] ?? 36;
+  const totalWidth = table.getTotalSize() + SELECT_COLUMN_WIDTH;
 
   const headers = table.getHeaderGroups()[0]?.headers ?? [];
 
@@ -86,16 +50,6 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
     overscan: 5,
   });
 
-  useEffect(() => {
-    const rowSelection: Record<string, boolean> = {};
-    for (const id of selectedRowIds) {
-      if (table.getRowModel().rowsById[id]) {
-        rowSelection[id] = true;
-      }
-    }
-    table.setRowSelection(rowSelection);
-  }, [table, selectedRowIds]);
-
   return (
     <div className="h-full rounded-lg border bg-card">
       <div className="h-full overflow-auto rounded-t-lg" ref={scrollRef}>
@@ -105,24 +59,29 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
               <th className="h-10 w-8 min-w-8">
                 <SelectAllCheckbox />
               </th>
-              {headers.map((header) => (
-                <th
-                  aria-sort={getAriaSort(
-                    display.orderBy,
-                    display.orderType,
-                    header.id,
-                  )}
-                  className="h-10 whitespace-nowrap px-2 text-left font-medium text-foreground text-sm"
-                  key={header.id}
-                  scope="col"
-                  style={{
-                    minWidth: columnWidths[header.id] ?? DEFAULT_COLUMN_WIDTH,
-                    width: columnWidths[header.id] ?? DEFAULT_COLUMN_WIDTH,
-                  }}
-                >
-                  <FlexRender header={header} />
-                </th>
-              ))}
+              {headers.map((header) => {
+                const sorted = header.column.getIsSorted();
+                return (
+                  <th
+                    aria-sort={
+                      sorted === false
+                        ? "none"
+                        : sorted === "asc"
+                          ? "ascending"
+                          : "descending"
+                    }
+                    className="h-10 whitespace-nowrap px-2 text-left font-medium text-foreground text-sm"
+                    key={header.id}
+                    scope="col"
+                    style={{
+                      minWidth: header.getSize(),
+                      width: header.getSize(),
+                    }}
+                  >
+                    <FlexRender header={header} />
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 
@@ -155,12 +114,13 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const row = table.getRowModel().rows[virtualRow.index];
                 if (!row) return null;
+                const selected = row.getIsSelected();
                 return (
                   <tr
                     aria-rowindex={virtualRow.index + 1}
                     className={cn(
                       "absolute top-0 left-0 flex cursor-pointer border-b last:border-0 hover:bg-muted/50",
-                      selectedRowIds.has(row.id) && "bg-muted/80",
+                      selected && "bg-muted/80",
                     )}
                     key={row.id}
                     onClick={() => onRowClick?.(row.original as TItem)}
@@ -169,7 +129,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                         e.preventDefault();
                         onRowClick?.(row.original as TItem);
                       }
-                      if (e.key === "Escape") clearSelection();
+                      if (e.key === "Escape") table.resetRowSelection();
                     }}
                     style={{
                       height: `${virtualRow.size}px`,
@@ -179,19 +139,15 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                     tabIndex={0}
                   >
                     <td className="w-8 min-w-8">
-                      <SelectionCheckbox rowId={row.id} />
+                      <SelectionCheckbox row={row} />
                     </td>
-                    {row.getAllCells().map((cell) => (
+                    {row.getVisibleCells().map((cell) => (
                       <td
                         className="whitespace-nowrap px-2 align-middle text-sm"
                         key={cell.id}
                         style={{
-                          minWidth:
-                            columnWidths[cell.column.id] ??
-                            DEFAULT_COLUMN_WIDTH,
-                          width:
-                            columnWidths[cell.column.id] ??
-                            DEFAULT_COLUMN_WIDTH,
+                          minWidth: cell.column.getSize(),
+                          width: cell.column.getSize(),
                         }}
                       >
                         <FlexRender cell={cell} />

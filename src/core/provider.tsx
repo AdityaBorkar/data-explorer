@@ -3,8 +3,17 @@ import type {
   UseQueryOptions,
 } from "@tanstack/react-query";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import type {
+  ColumnDef,
+  ColumnVisibilityState,
+  GroupingState,
+  SortingState,
+  Updater,
+} from "@tanstack/react-table";
+import { useTable } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
 
+import { extractColumnConfigs } from "./column-utils.ts";
 import {
   CallbackContext,
   ConfigContext,
@@ -12,6 +21,7 @@ import {
   DisplayContext,
   FilterContext,
   SelectionContext,
+  TableContext,
   ViewContext,
 } from "./context.tsx";
 import { useDisplay } from "./hooks/use-display.ts";
@@ -19,19 +29,81 @@ import { useFilters } from "./hooks/use-filters.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useSelection } from "./hooks/use-selection.ts";
 import { useView } from "./hooks/use-view.ts";
+import { dataExplorerTableFeatures } from "./table-features.ts";
 import type {
   ColumnConfig,
   FilterViewDisplay,
   ListQueryResult,
   RefineOptions,
+  TableContextType,
 } from "./types.ts";
 import type { ViewAdapter } from "./view-adapter.ts";
 
 const PAGE_SIZE = 20;
 
-export function Provider<TItem>({
+/** Apply a TanStack `Updater<T>` (value or function) to a current value. */
+function resolveUpdater<T>(updater: Updater<T>, current: T): T {
+  return typeof updater === "function"
+    ? (updater as (old: T) => T)(current)
+    : updater;
+}
+
+function toSortingState(display: FilterViewDisplay): SortingState {
+  return display.orderBy
+    ? [{ desc: display.orderType === "desc", id: display.orderBy }]
+    : [];
+}
+
+function fromSortingChange(
+  updater: Updater<SortingState>,
+  prev: FilterViewDisplay,
+): Partial<FilterViewDisplay> {
+  const next = resolveUpdater(updater, toSortingState(prev));
+  const first = next[0];
+  if (!first) return { orderBy: "", orderType: "asc" };
+  return { orderBy: first.id, orderType: first.desc ? "desc" : "asc" };
+}
+
+function toColumnVisibilityState(
+  display: FilterViewDisplay,
+  columnsConfig: ColumnConfig[],
+): ColumnVisibilityState {
+  const state: ColumnVisibilityState = {};
+  for (const col of columnsConfig) {
+    state[col.id] = display.fields.includes(col.id);
+  }
+  return state;
+}
+
+function fromColumnVisibilityChange(
+  updater: Updater<ColumnVisibilityState>,
+  prev: FilterViewDisplay,
+  columnsConfig: ColumnConfig[],
+): Partial<FilterViewDisplay> {
+  const next = resolveUpdater(
+    updater,
+    toColumnVisibilityState(prev, columnsConfig),
+  );
+  return {
+    fields: columnsConfig.filter((c) => next[c.id] !== false).map((c) => c.id),
+  };
+}
+
+function toGroupingState(display: FilterViewDisplay): GroupingState {
+  return display.groupBy ? [display.groupBy] : [];
+}
+
+function fromGroupingChange(
+  updater: Updater<GroupingState>,
+  prev: FilterViewDisplay,
+): Partial<FilterViewDisplay> {
+  const next = resolveUpdater(updater, toGroupingState(prev));
+  return { groupBy: next[0] ?? null };
+}
+
+export function Provider<TItem extends Record<string, unknown>>({
   children,
-  columnsConfig: columnsConfigProp,
+  columns,
   defaultDisplay,
   domain,
   getRowId,
@@ -40,7 +112,7 @@ export function Provider<TItem>({
   viewAdapter,
 }: {
   children: React.ReactNode;
-  columnsConfig: ColumnConfig[];
+  columns: ColumnDef<typeof dataExplorerTableFeatures, TItem>[];
   defaultDisplay: FilterViewDisplay;
   domain: string;
   getRowId: (row: TItem) => string;
@@ -53,12 +125,13 @@ export function Provider<TItem>({
   query: (opts: RefineOptions) => UseQueryOptions<ListQueryResult<TItem>>;
   viewAdapter?: ViewAdapter;
 }) {
+  const columnsConfig = useMemo(() => extractColumnConfigs(columns), [columns]);
+
   const displayHook = useDisplay({
-    columnsConfig: columnsConfigProp,
+    columnsConfig,
     defaultDisplay,
   });
   const filtersHook = useFilters();
-  const selection = useSelection();
   const viewHook = useView({
     defaultDisplay,
     display: displayHook.display,
@@ -120,9 +193,54 @@ export function Provider<TItem>({
     [allItems, getRowId],
   );
 
-  const selectAll = useCallback(() => {
-    selection.setSelectedRowIds(new Set(derivedAllRowIds));
-  }, [derivedAllRowIds, selection.setSelectedRowIds]);
+  const table = useTable({
+    columns,
+    data: allItems,
+    enableGrouping: true,
+    enableHiding: true,
+    enableSorting: true,
+    enableSortingRemoval: true,
+    features: dataExplorerTableFeatures,
+    getRowId: (row) => getRowId(row as TItem),
+    manualGrouping: true,
+    manualSorting: true,
+    onColumnSizingChange: (updater) =>
+      displayHook.setDisplay((prev) => ({
+        ...prev,
+        columnWidths: resolveUpdater(updater, prev.columnWidths),
+      })),
+    onColumnVisibilityChange: (updater) =>
+      displayHook.setDisplay((prev) => ({
+        ...prev,
+        ...fromColumnVisibilityChange(updater, prev, columnsConfig),
+      })),
+    onGroupingChange: (updater) =>
+      displayHook.setDisplay((prev) => ({
+        ...prev,
+        ...fromGroupingChange(updater, prev),
+      })),
+    onSortingChange: (updater) =>
+      displayHook.setDisplay((prev) => ({
+        ...prev,
+        ...fromSortingChange(updater, prev),
+      })),
+    state: {
+      columnSizing: displayHook.display.columnWidths,
+      columnVisibility: toColumnVisibilityState(
+        displayHook.display,
+        columnsConfig,
+      ),
+      grouping: toGroupingState(displayHook.display),
+      sorting: toSortingState(displayHook.display),
+    },
+  });
+
+  const selection = useSelection({ table });
+
+  const selectAll = useCallback(
+    () => table.toggleAllRowsSelected(true),
+    [table],
+  );
 
   const { triggerRef } = useLoadMore(
     query.fetchNextPage,
@@ -130,10 +248,7 @@ export function Provider<TItem>({
     query.isFetchingNextPage,
   );
 
-  const configValue = useMemo(
-    () => ({ columnsConfig: columnsConfigProp }),
-    [columnsConfigProp],
-  );
+  const configValue = useMemo(() => ({ columnsConfig }), [columnsConfig]);
 
   const filterValue = useMemo(
     () => ({
@@ -214,7 +329,11 @@ export function Provider<TItem>({
             <DataContext value={dataValue}>
               <ViewContext value={viewValue}>
                 <CallbackContext value={callbackValue}>
-                  {children}
+                  <TableContext
+                    value={{ table } as unknown as TableContextType}
+                  >
+                    {children}
+                  </TableContext>
                 </CallbackContext>
               </ViewContext>
             </DataContext>
