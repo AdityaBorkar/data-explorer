@@ -1,5 +1,8 @@
 import {
+  columnFilteringFeature,
   columnGroupingFeature,
+  columnOrderingFeature,
+  columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
   rowSelectionFeature,
@@ -7,7 +10,7 @@ import {
   tableFeatures,
 } from "@tanstack/react-table";
 
-import type { DataExplorerColumnMeta } from "./types.ts";
+import type { DataExplorerColumnMeta } from "../types.ts";
 
 /**
  * The set of TanStack Table features the data-explorer headless core is built
@@ -23,8 +26,11 @@ import type { DataExplorerColumnMeta } from "./types.ts";
  * reordered client-side — the server supplies pre-sorted, flat rows.
  */
 export const dataExplorerTableFeatures = tableFeatures({
+  columnFilteringFeature,
   columnGroupingFeature,
   columnMeta: {} as DataExplorerColumnMeta,
+  columnOrderingFeature,
+  columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
   rowSelectionFeature,

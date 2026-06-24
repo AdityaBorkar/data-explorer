@@ -5,7 +5,7 @@ import type {
 } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
 
-import type { DataExplorerTableFeatures } from "../table-features.ts";
+import type { DataExplorerTableFeatures } from "../features/index.ts";
 
 /**
  * Row selection backed by a TanStack Table instance. The table's

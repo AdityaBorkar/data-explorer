@@ -1,7 +1,7 @@
 import type { ReactTable } from "@tanstack/react-table";
 import { createContext, useContext } from "react";
 
-import type { DataExplorerTableFeatures } from "./table-features.ts";
+import type { DataExplorerTableFeatures } from "./features";
 import type {
   CallbackContextType,
   ConfigContextType,

@@ -1,5 +1,9 @@
 export { extractColumnConfigs } from "./column-utils.ts";
 export * from "./context.tsx";
+export {
+  type DataExplorerTableFeatures,
+  dataExplorerTableFeatures,
+} from "./features";
 export { filterConditionSchema } from "./filter/filter-condition-schema.ts";
 export { groupConditions } from "./filter/filter-grouping.ts";
 export {
@@ -35,9 +39,5 @@ export { useLoadMore } from "./hooks/use-load-more.ts";
 export { useSelection } from "./hooks/use-selection.ts";
 export { useView } from "./hooks/use-view.ts";
 export { Provider, Provider as DataExplorerProvider } from "./provider.tsx";
-export {
-  type DataExplorerTableFeatures,
-  dataExplorerTableFeatures,
-} from "./table-features.ts";
 export * from "./types.ts";
 export * from "./view-adapter.ts";

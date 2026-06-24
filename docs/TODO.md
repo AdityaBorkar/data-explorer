@@ -15,7 +15,6 @@
 - Write instructions for AI -> CONTEXT.md GLOSSARY.md
 
 - Grouping
-- Expanding
 - Column Filtering
 - Global Filtering
 - Fuzzy Filtering
@@ -23,6 +22,8 @@
 - Sorting
 - Virtualization
 - CUSTOM FEATURES
+- 
+- Expanding
 
 ## Phase 2
 

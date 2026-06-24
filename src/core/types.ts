@@ -1,6 +1,6 @@
 import type { ReactTable } from "@tanstack/react-table";
 
-import type { DataExplorerTableFeatures } from "./table-features.ts";
+import type { DataExplorerTableFeatures } from "./features";
 
 export type ColumnDataType =
   | "string"

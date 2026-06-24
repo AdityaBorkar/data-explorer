@@ -35,7 +35,7 @@ Three subpath exports (the real barrels):
 
 ## Headless table (TanStack)
 
-The `Provider` is the single place a TanStack Table instance is constructed (`src/core/provider.tsx`). The feature set lives in `src/core/table-features.ts` (`dataExplorerTableFeatures` / `DataExplorerTableFeatures`); `ColumnDef`s are typed against it. The instance is exposed via `TableContext` / `useTableContext()` (core/context.tsx).
+The `Provider` is the single place a TanStack Table instance is constructed (`src/core/provider.tsx`). The feature set lives in `src/core/features/index.ts` (`dataExplorerTableFeatures` / `DataExplorerTableFeatures`); `ColumnDef`s are typed against it. The instance is exposed via `TableContext` / `useTableContext()` (core/context.tsx).
 
 State ownership (deliberate split):
 

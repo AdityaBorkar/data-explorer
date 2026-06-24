@@ -24,12 +24,12 @@ import {
   TableContext,
   ViewContext,
 } from "./context.tsx";
+import { dataExplorerTableFeatures } from "./features/index.ts";
 import { useDisplay } from "./hooks/use-display.ts";
 import { useFilters } from "./hooks/use-filters.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useSelection } from "./hooks/use-selection.ts";
 import { useView } from "./hooks/use-view.ts";
-import { dataExplorerTableFeatures } from "./table-features.ts";
 import type {
   ColumnConfig,
   FilterViewDisplay,
