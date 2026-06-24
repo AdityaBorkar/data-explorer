@@ -11,13 +11,14 @@ const DENSITY_OPTIONS = [
 ] as const;
 
 export function SpacingDensitySelector() {
-  const { density, setDensity } = useDataExplorerContext();
+  const { table } = useDataExplorerContext();
+  const density = table.state.density ?? "comfortable";
 
   const handleDensityChange = useCallback(
     (value: "compact" | "comfortable" | "spacious") => {
-      setDensity(value);
+      table.setDensity(value);
     },
-    [setDensity],
+    [table],
   );
 
   return (

@@ -1,14 +1,15 @@
 import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { useDataExplorerContext } from "../../../core/context.tsx";
-import type { DataExplorerTableFeatures } from "../../../core/index.ts";
-import { Checkbox } from "../../primitives/index.ts";
+import type { TableFeatures } from "@/core/types";
+
+import { useDataExplorerContext } from "../core/context.tsx";
+import { Checkbox } from "./primitives/index.ts";
 
 export function SelectionCheckbox<TItem extends Record<string, unknown>>({
   row,
 }: {
-  row: Row<DataExplorerTableFeatures, TItem>;
+  row: Row<TableFeatures, TItem>;
 }) {
   const checked = row.getIsSelected();
 

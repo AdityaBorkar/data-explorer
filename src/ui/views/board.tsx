@@ -2,7 +2,7 @@ import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { type CSSProperties, useCallback, useMemo } from "react";
 
-import { useDataExplorerContext } from "../../../core/context.tsx";
+import { useDataExplorerContext } from "../../core/context.tsx";
 
 interface BoardViewProps<TItem> {
   getRowId: (item: TItem) => string;

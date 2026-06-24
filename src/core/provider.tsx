@@ -14,19 +14,17 @@ import { useTable } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 
 import { DataExplorerContext } from "./context.tsx";
-import { extractColumnConfigs } from "./features/extract-column-config.ts";
-import { dataExplorerTableFeatures } from "./features/index.ts";
+import { extractColumnConfigs } from "./extract-column-config.ts";
+import { TableFeatures } from "./features/index.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
 import type {
   ColumnConfig,
   ContextType,
-  Density,
   FilterViewDisplay,
   ListQueryResult,
   RefineOptions,
   ViewAdapter,
-  ViewType,
 } from "./types.ts";
 
 const PAGE_SIZE = 20;
@@ -63,7 +61,7 @@ export function Provider<TItem extends Record<string, unknown>>({
   viewAdapter,
 }: {
   children: React.ReactNode;
-  columns: ColumnDef<typeof dataExplorerTableFeatures, TItem>[];
+  columns: ColumnDef<typeof TableFeatures, TItem>[];
   defaultDisplay: FilterViewDisplay;
   domain: string;
   getRowId: (row: TItem) => string;
@@ -77,9 +75,22 @@ export function Provider<TItem extends Record<string, unknown>>({
   viewAdapter?: ViewAdapter;
 }) {
   const columnsConfig = useMemo(() => extractColumnConfigs(columns), [columns]);
+  const initialState = useMemo(
+    () => ({
+      columnSizing: defaultDisplay.columnWidths,
+      columnVisibility: toInitialColumnVisibility(
+        defaultDisplay,
+        columnsConfig,
+      ),
+      dataFilters: [],
+      density: defaultDisplay.density,
+      grouping: toInitialGrouping(defaultDisplay),
+      sorting: toInitialSorting(defaultDisplay),
+      viewType: defaultDisplay.type,
+    }),
+    [defaultDisplay, columnsConfig],
+  );
 
-  const [density, setDensity] = useState<Density>(defaultDisplay.density);
-  const [viewType, setViewType] = useState<ViewType>(defaultDisplay.type);
   const [data, setData] = useState<TItem[]>([]);
 
   const table = useTable({
@@ -89,18 +100,9 @@ export function Provider<TItem extends Record<string, unknown>>({
     enableHiding: true,
     enableSorting: true,
     enableSortingRemoval: true,
-    features: dataExplorerTableFeatures,
+    features: TableFeatures,
     getRowId: (row) => getRowId(row as TItem),
-    initialState: {
-      columnSizing: defaultDisplay.columnWidths,
-      columnVisibility: toInitialColumnVisibility(
-        defaultDisplay,
-        columnsConfig,
-      ),
-      dataFilters: [],
-      grouping: toInitialGrouping(defaultDisplay),
-      sorting: toInitialSorting(defaultDisplay),
-    },
+    initialState,
     manualGrouping: true,
     manualSorting: true,
   });
@@ -126,13 +128,13 @@ export function Provider<TItem extends Record<string, unknown>>({
         columnSizing: table.state.columnSizing,
         columnVisibility: table.state.columnVisibility,
         cursor: pageParam,
-        density,
+        density: table.state.density ?? "comfortable",
         filters: table.state.dataFilters ?? [],
         grouping: table.state.grouping,
         limit: PAGE_SIZE,
         orderBy,
         sorting: table.state.sorting,
-        viewType,
+        viewType: table.state.viewType ?? "table",
       });
       if (typeof opts.queryFn !== "function") {
         throw new Error("buildQueryOptions must return a queryFn");
@@ -148,15 +150,14 @@ export function Provider<TItem extends Record<string, unknown>>({
       {
         columnVisibility: table.state.columnVisibility,
         conditions: table.state.dataFilters ?? [],
-        density,
+        density: table.state.density,
         grouping: table.state.grouping,
         orderBy,
         sorting: table.state.sorting,
-        viewType,
+        viewType: table.state.viewType,
       },
     ],
   });
-
   const allItems = useMemo(
     () => query.data?.pages.flatMap((p) => p.items) ?? [],
     [query.data?.pages],
@@ -168,16 +169,12 @@ export function Provider<TItem extends Record<string, unknown>>({
   const viewHook = useView({
     columnsConfig,
     defaultDisplay,
-    density,
     domain,
-    setDensity,
-    setViewType,
     table: table as unknown as ReactTable<
-      typeof dataExplorerTableFeatures,
+      typeof TableFeatures,
       Record<string, unknown>
     >,
     viewAdapter,
-    viewType,
   });
 
   const { triggerRef } = useLoadMore(
@@ -197,16 +194,12 @@ export function Provider<TItem extends Record<string, unknown>>({
           items: allItems,
           loadMoreRef: triggerRef,
         },
-        density,
         onMove,
-        setDensity,
-        setViewType,
         table: table as unknown as ReactTable<
-          typeof dataExplorerTableFeatures,
+          typeof TableFeatures,
           Record<string, unknown>
         >,
         view: viewHook,
-        viewType,
       }) as unknown as ContextType,
     [
       columnsConfig,
@@ -215,9 +208,7 @@ export function Provider<TItem extends Record<string, unknown>>({
       query.isFetchingNextPage,
       allItems,
       triggerRef,
-      density,
       onMove,
-      viewType,
       viewHook,
       table,
     ],

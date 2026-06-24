@@ -6,7 +6,9 @@ import type {
   SortingState,
 } from "@tanstack/react-table";
 
-import type { DataExplorerTableFeatures } from "./features";
+import type { TableFeatures as $TableFeatures } from "./features";
+
+export type TableFeatures = typeof $TableFeatures;
 
 export type ViewType = "table" | "board" | "timeline";
 export type Density = "compact" | "comfortable" | "spacious";
@@ -115,27 +117,23 @@ export interface DataExplorerContextType<TItem = unknown> {
     items: TItem[];
     loadMoreRef: (el: Element | null) => void;
   };
-  density: Density;
   onMove?: (args: {
     itemId: string;
     fromGroup: string;
     toGroup: string;
     columnId: string;
   }) => void;
-  setDensity: (density: Density) => void;
-  setViewType: (viewType: ViewType) => void;
   view: {
     activeViewId: string | null;
     applyView: (viewId: string | null) => void;
     resetToSaved: () => void;
     saveView: () => void;
   };
-  viewType: ViewType;
 }
 
 export interface ContextType<TItem = unknown>
   extends DataExplorerContextType<TItem> {
-  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
+  table: ReactTable<TableFeatures, Record<string, unknown>>;
 }
 
 export interface ListQueryResult<TItem> {

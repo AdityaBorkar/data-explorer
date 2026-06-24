@@ -7,35 +7,25 @@ import {
   applyDisplaySnapshot,
   toDisplaySnapshot,
 } from "../features/display-snapshot.ts";
-import type { DataExplorerTableFeatures } from "../features/index.ts";
 import type {
   ColumnConfig,
-  Density,
   FilterViewDisplay,
+  TableFeatures,
   ViewAdapter,
-  ViewType,
 } from "../types.ts";
 
 export function useView({
   columnsConfig,
   defaultDisplay,
-  density,
   domain,
-  setDensity,
-  setViewType,
   table,
   viewAdapter,
-  viewType,
 }: {
   columnsConfig: ColumnConfig[];
   defaultDisplay: FilterViewDisplay;
-  density: Density;
   domain: string;
-  setDensity: (d: Density) => void;
-  setViewType: (vt: ViewType) => void;
-  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
+  table: ReactTable<TableFeatures, Record<string, unknown>>;
   viewAdapter?: ViewAdapter;
-  viewType: ViewType;
 }) {
   const queryClient = useQueryClient();
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -56,13 +46,7 @@ export function useView({
       setActiveViewId(viewId);
       if (!(viewId && views)) {
         table.setDataFilters([]);
-        applyDisplaySnapshot(
-          defaultDisplay,
-          table,
-          setDensity,
-          setViewType,
-          columnsConfig,
-        );
+        applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
         return;
       }
       const view = views.find((v) => v.id === viewId);
@@ -71,17 +55,15 @@ export function useView({
       applyDisplaySnapshot(
         mergeDisplay(defaultDisplay, view.display),
         table,
-        setDensity,
-        setViewType,
         columnsConfig,
       );
     },
-    [views, defaultDisplay, table, setDensity, setViewType, columnsConfig],
+    [views, defaultDisplay, table, columnsConfig],
   );
 
   const saveView = useCallback(async () => {
     if (!(activeViewId && viewAdapter)) return;
-    const display = toDisplaySnapshot(table, density, viewType, columnsConfig);
+    const display = toDisplaySnapshot(table, columnsConfig);
     await viewAdapter.updateView(activeViewId, {
       display,
       refine: table.state.dataFilters,
@@ -89,45 +71,21 @@ export function useView({
     queryClient.invalidateQueries({
       queryKey: ["data-explorer", "views", domain],
     });
-  }, [
-    activeViewId,
-    columnsConfig,
-    density,
-    domain,
-    queryClient,
-    table,
-    viewAdapter,
-    viewType,
-  ]);
+  }, [activeViewId, columnsConfig, domain, queryClient, table, viewAdapter]);
 
   const resetToSaved = useCallback(() => {
     if (!activeView) {
       table.setDataFilters([]);
-      applyDisplaySnapshot(
-        defaultDisplay,
-        table,
-        setDensity,
-        setViewType,
-        columnsConfig,
-      );
+      applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
       return;
     }
     table.setDataFilters(activeView.refine);
     applyDisplaySnapshot(
       mergeDisplay(defaultDisplay, activeView.display),
       table,
-      setDensity,
-      setViewType,
       columnsConfig,
     );
-  }, [
-    activeView,
-    defaultDisplay,
-    table,
-    setDensity,
-    setViewType,
-    columnsConfig,
-  ]);
+  }, [activeView, defaultDisplay, table, columnsConfig]);
 
   return {
     activeView,

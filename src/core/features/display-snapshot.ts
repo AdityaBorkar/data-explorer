@@ -2,37 +2,31 @@ import type { ReactTable } from "@tanstack/react-table";
 
 import type {
   ColumnConfig,
-  Density,
   FilterViewDisplay,
-  ViewType,
+  TableFeatures,
 } from "../types.ts";
-import type { DataExplorerTableFeatures } from "./index.ts";
 
 export function toDisplaySnapshot(
-  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>,
-  density: Density,
-  viewType: ViewType,
+  table: ReactTable<TableFeatures, Record<string, unknown>>,
   columnsConfig: ColumnConfig[],
 ): FilterViewDisplay {
   const first = table.state.sorting[0];
   return {
     columnWidths: { ...table.state.columnSizing },
-    density,
+    density: table.state.density ?? "comfortable",
     fields: columnsConfig
       .filter((c) => table.state.columnVisibility[c.id] !== false)
       .map((c) => c.id),
     groupBy: table.state.grouping[0] ?? null,
     orderBy: first?.id ?? "",
     orderType: first?.desc ? "desc" : "asc",
-    type: viewType,
+    type: table.state.viewType ?? "table",
   };
 }
 
 export function applyDisplaySnapshot(
   snapshot: FilterViewDisplay,
-  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>,
-  setDensity: (density: Density) => void,
-  setViewType: (viewType: ViewType) => void,
+  table: ReactTable<TableFeatures, Record<string, unknown>>,
   columnsConfig: ColumnConfig[],
 ): void {
   table.setSorting(
@@ -47,6 +41,6 @@ export function applyDisplaySnapshot(
   }
   table.setColumnVisibility(visibility);
   table.setColumnSizing({ ...snapshot.columnWidths });
-  setDensity(snapshot.density);
-  setViewType(snapshot.type);
+  table.setDensity(snapshot.density);
+  table.setViewType(snapshot.type);
 }

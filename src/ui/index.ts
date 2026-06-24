@@ -11,11 +11,10 @@ export { FilterCombinatorToggle } from "./filter-input/filter-combinator-toggle.
 export { FilterBar } from "./filter-input/index.tsx";
 export { OperatorSelector } from "./filter-input/operator-selector.tsx";
 export { ValueInput } from "./filter-input/value-input.tsx";
-export { BoardView } from "./views/board/index.tsx";
-export { TimelineView } from "./views/timeline/index.tsx";
-export type { VirtualTableFeatures } from "./views/virtual-table/index.tsx";
-export { VirtualTable } from "./views/virtual-table/index.tsx";
 export {
   SelectAllCheckbox,
   SelectionCheckbox,
-} from "./views/virtual-table/selection-checkbox.tsx";
+} from "./selection-checkbox.tsx";
+export { BoardView } from "./views/board";
+export { VirtualTable } from "./views/table";
+export { TimelineView } from "./views/timeline";

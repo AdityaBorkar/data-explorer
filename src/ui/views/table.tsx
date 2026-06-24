@@ -3,11 +3,13 @@ import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-import { useDataExplorerContext } from "../../../core/context.tsx";
-import { cn } from "../../primitives/index.ts";
-import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox.tsx";
+import { useDataExplorerContext } from "@/core/context";
+import { cn } from "@/ui/primitives";
 
-export type { DataExplorerTableFeatures as VirtualTableFeatures } from "../../../core/index.ts";
+import {
+  SelectAllCheckbox,
+  SelectionCheckbox,
+} from "../selection-checkbox.tsx";
 
 const DENSITY_ROW_HEIGHTS: Record<string, number> = {
   comfortable: 36,
@@ -25,11 +27,11 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 } = {}) {
   const {
     data: { hasMore, isLoading, isLoadingMore, items: data, loadMoreRef },
-    density,
     table,
   } = useDataExplorerContext<TItem>();
 
-  const rowHeight = DENSITY_ROW_HEIGHTS[density] ?? 36;
+  const rowHeight =
+    DENSITY_ROW_HEIGHTS[table.state.density ?? "comfortable"] ?? 36;
   const totalWidth = table.getTotalSize() + SELECT_COLUMN_WIDTH;
 
   const headers = table.getHeaderGroups()[0]?.headers ?? [];
