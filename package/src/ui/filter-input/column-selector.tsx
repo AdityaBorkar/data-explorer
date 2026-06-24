@@ -98,7 +98,7 @@ export function ColumnSelector({
                 value={col.id}
               >
                 <div className="flex w-full items-center gap-1.5">
-                  {Icon && (
+                  {!!Icon && (
                     <Icon className="size-4 shrink-0" strokeWidth={2.25} />
                   )}
                   <span>{col.displayName}</span>

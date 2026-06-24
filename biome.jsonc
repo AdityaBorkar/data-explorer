@@ -32,7 +32,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**"]
+    "includes": ["**", "!examples", "!www"]
   },
   "formatter": {
     "attributePosition": "auto",
@@ -79,10 +79,23 @@
           }
         }
       },
+      "performance": {
+        "noJsxPropsBind": "off"
+      },
       "preset": "recommended"
     }
   },
   "overrides": [
+    {
+      "includes": ["src/ui/filter-input/value-input.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnnecessaryConditions": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/*.test.*"],
       "linter": {

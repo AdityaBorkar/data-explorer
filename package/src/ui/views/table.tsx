@@ -154,9 +154,9 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
           )}
         </table>
 
-        {hasMore && <div className="h-px" ref={loadMoreRef} />}
+        {!!hasMore && <div className="h-px" ref={loadMoreRef} />}
       </div>
-      {isLoadingMore && (
+      {!!isLoadingMore && (
         <div className="flex items-center justify-center py-3 text-muted-foreground text-sm">
           <IconLoader2 className="mr-2 size-4 animate-spin" />
           Loading more...

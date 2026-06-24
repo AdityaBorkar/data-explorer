@@ -87,7 +87,7 @@ export function FilterChip({
           onClick={onSelect}
           type="button"
         >
-          {Icon && (
+          {!!Icon && (
             <Icon
               className="size-3.5 shrink-0 text-muted-foreground"
               strokeWidth={2.25}

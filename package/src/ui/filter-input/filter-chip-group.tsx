@@ -64,7 +64,7 @@ export function FilterChipGroup({
           return (
             <span key={`group-${item.id}`}>
               {orSeparator}
-              {showBrackets && (
+              {!!showBrackets && (
                 <span className="text-muted-foreground text-xs">(</span>
               )}
               {bracketConditions.map((cond, i) => (
@@ -83,7 +83,7 @@ export function FilterChipGroup({
                   updateCondition={updateCondition}
                 />
               ))}
-              {showBrackets && (
+              {!!showBrackets && (
                 <span className="text-muted-foreground text-xs">)</span>
               )}
             </span>
@@ -138,7 +138,7 @@ function ChipWithCombinator({
 
   return (
     <span>
-      {showCombinator && (
+      {!!showCombinator && (
         <FilterCombinatorToggle
           combinator={condition.combinator}
           onChange={(c) => handleCombinatorChange(combinatorIndex, c)}
