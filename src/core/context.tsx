@@ -1,75 +1,18 @@
-import type { ReactTable, RowSelectionState } from "@tanstack/react-table";
+import type { RowSelectionState } from "@tanstack/react-table";
 import { createContext, useContext, useMemo } from "react";
 
-import type { DataExplorerTableFeatures } from "./features";
-import type {
-  ColumnConfig,
-  ContextType,
-  DataExplorerContextType,
-  FilterViewDisplay,
-  TableContextType,
-} from "./types.ts";
+import type { ContextType } from "./types.ts";
 
-export const DataExplorerContext =
-  createContext<DataExplorerContextType | null>(null);
-export const TableContext = createContext<TableContextType | null>(null);
+export const DataExplorerContext = createContext<ContextType | null>(null);
 
-function useNonNullContext<T>(ctx: React.Context<T | null>, name: string): T {
-  const value = useContext(ctx);
+export function useDataExplorerContext<TItem = unknown>(): ContextType<TItem> {
+  const value = useContext(DataExplorerContext);
   if (!value) {
-    throw new Error(`${name} must be used within DataExplorerProvider`);
+    throw new Error(
+      "useDataExplorerContext must be used within DataExplorerProvider",
+    );
   }
-  return value;
-}
-
-export function useDataExplorerContext<
-  TItem = unknown,
->(): DataExplorerContextType<TItem> {
-  return useNonNullContext(
-    DataExplorerContext,
-    "useDataExplorerContext",
-  ) as DataExplorerContextType<TItem>;
-}
-
-export function useTableContext<
-  TItem extends Record<string, unknown> = Record<string, unknown>,
->(): { table: ReactTable<DataExplorerTableFeatures, TItem> } {
-  const { table } = useNonNullContext(TableContext, "useTableContext");
-  return {
-    table: table as unknown as ReactTable<DataExplorerTableFeatures, TItem>,
-  };
-}
-
-export function useConfigContext(): { columnsConfig: ColumnConfig[] } {
-  const { columnsConfig } = useDataExplorerContext();
-  return useMemo(() => ({ columnsConfig }), [columnsConfig]);
-}
-
-export function useDisplayContext(): {
-  display: FilterViewDisplay;
-  updateDisplay: (updates: Partial<FilterViewDisplay>) => void;
-} {
-  const { display, updateDisplay } = useDataExplorerContext();
-  return useMemo(() => ({ display, updateDisplay }), [display, updateDisplay]);
-}
-
-export function useDataContext<
-  TItem = unknown,
->(): DataExplorerContextType<TItem>["data"] {
-  const { data } = useDataExplorerContext<TItem>();
-  return data;
-}
-
-export function useViewContext(): DataExplorerContextType["view"] {
-  const { view } = useDataExplorerContext();
-  return view;
-}
-
-export function useCallbackContext(): {
-  onMove?: DataExplorerContextType["onMove"];
-} {
-  const { onMove } = useDataExplorerContext();
-  return useMemo(() => ({ onMove }), [onMove]);
+  return value as ContextType<TItem>;
 }
 
 export interface SelectionState {
@@ -81,7 +24,7 @@ export interface SelectionState {
 }
 
 export function useSelectionContext(): SelectionState {
-  const { table } = useTableContext();
+  const { table } = useDataExplorerContext();
   const rowSelection: RowSelectionState = table.state.rowSelection;
 
   return useMemo(() => {
@@ -104,12 +47,4 @@ export function useSelectionContext(): SelectionState {
         }),
     };
   }, [rowSelection, table]);
-}
-
-export function useDataExplorerContextFull<
-  TItem = unknown,
->(): ContextType<TItem> {
-  const ctx = useDataExplorerContext<TItem>();
-  const { table } = useTableContext();
-  return useMemo(() => ({ ...ctx, table }), [ctx, table]);
 }

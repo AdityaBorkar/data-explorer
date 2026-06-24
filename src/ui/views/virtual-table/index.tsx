@@ -3,11 +3,7 @@ import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-import {
-  useDataContext,
-  useDisplayContext,
-  useTableContext,
-} from "../../../core/context.tsx";
+import { useDataExplorerContext } from "../../../core/context.tsx";
 import { cn } from "../../primitives/index.ts";
 import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox.tsx";
 
@@ -28,16 +24,12 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
   emptyMessage?: string;
 } = {}) {
   const {
-    items: data,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    loadMoreRef,
-  } = useDataContext<TItem>();
-  const { display } = useDisplayContext();
-  const { table } = useTableContext<TItem>();
+    data: { hasMore, isLoading, isLoadingMore, items: data, loadMoreRef },
+    density,
+    table,
+  } = useDataExplorerContext<TItem>();
 
-  const rowHeight = DENSITY_ROW_HEIGHTS[display.density] ?? 36;
+  const rowHeight = DENSITY_ROW_HEIGHTS[density] ?? 36;
   const totalWidth = table.getTotalSize() + SELECT_COLUMN_WIDTH;
 
   const headers = table.getHeaderGroups()[0]?.headers ?? [];

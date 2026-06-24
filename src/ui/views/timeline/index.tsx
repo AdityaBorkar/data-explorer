@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { useConfigContext, useDataContext } from "../../../core/context.tsx";
+import { useDataExplorerContext } from "../../../core/context.tsx";
 import { cn } from "../../primitives/index.ts";
 
 type ZoomLevel = "day" | "week" | "month";
@@ -45,8 +45,10 @@ export function TimelineView<TItem>({
   renderBar,
   getRowId,
 }: TimelineViewProps<TItem>) {
-  const { items } = useDataContext<TItem>();
-  const { columnsConfig } = useConfigContext();
+  const {
+    data: { items },
+    columnsConfig,
+  } = useDataExplorerContext<TItem>();
   const [zoom, setZoom] = useState<ZoomLevel>("week");
 
   const startCol = useMemo(

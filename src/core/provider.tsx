@@ -7,53 +7,37 @@ import type {
   ColumnDef,
   ColumnVisibilityState,
   GroupingState,
+  ReactTable,
   SortingState,
-  Updater,
 } from "@tanstack/react-table";
 import { useTable } from "@tanstack/react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { DataExplorerContext } from "./context.tsx";
 import { extractColumnConfigs } from "./features/extract-column-config.ts";
-import { DataExplorerContext, TableContext } from "./context.tsx";
 import { dataExplorerTableFeatures } from "./features/index.ts";
-import { useDisplay } from "./hooks/use-display.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
 import type {
   ColumnConfig,
-  FilterCondition,
+  ContextType,
+  Density,
   FilterViewDisplay,
   ListQueryResult,
   RefineOptions,
-  TableContextType,
+  ViewAdapter,
+  ViewType,
 } from "./types.ts";
-import type { ViewAdapter } from "./view-adapter.ts";
 
 const PAGE_SIZE = 20;
 
-function resolveUpdater<T>(updater: Updater<T>, current: T): T {
-  return typeof updater === "function"
-    ? (updater as (old: T) => T)(current)
-    : updater;
-}
-
-function toSortingState(display: FilterViewDisplay): SortingState {
+function toInitialSorting(display: FilterViewDisplay): SortingState {
   return display.orderBy
     ? [{ desc: display.orderType === "desc", id: display.orderBy }]
     : [];
 }
 
-function fromSortingChange(
-  updater: Updater<SortingState>,
-  prev: FilterViewDisplay,
-): Partial<FilterViewDisplay> {
-  const next = resolveUpdater(updater, toSortingState(prev));
-  const first = next[0];
-  if (!first) return { orderBy: "", orderType: "asc" };
-  return { orderBy: first.id, orderType: first.desc ? "desc" : "asc" };
-}
-
-function toColumnVisibilityState(
+function toInitialColumnVisibility(
   display: FilterViewDisplay,
   columnsConfig: ColumnConfig[],
 ): ColumnVisibilityState {
@@ -64,30 +48,8 @@ function toColumnVisibilityState(
   return state;
 }
 
-function fromColumnVisibilityChange(
-  updater: Updater<ColumnVisibilityState>,
-  prev: FilterViewDisplay,
-  columnsConfig: ColumnConfig[],
-): Partial<FilterViewDisplay> {
-  const next = resolveUpdater(
-    updater,
-    toColumnVisibilityState(prev, columnsConfig),
-  );
-  return {
-    fields: columnsConfig.filter((c) => next[c.id] !== false).map((c) => c.id),
-  };
-}
-
-function toGroupingState(display: FilterViewDisplay): GroupingState {
+function toInitialGrouping(display: FilterViewDisplay): GroupingState {
   return display.groupBy ? [display.groupBy] : [];
-}
-
-function fromGroupingChange(
-  updater: Updater<GroupingState>,
-  prev: FilterViewDisplay,
-): Partial<FilterViewDisplay> {
-  const next = resolveUpdater(updater, toGroupingState(prev));
-  return { groupBy: next[0] ?? null };
 }
 
 export function Provider<TItem extends Record<string, unknown>>({
@@ -116,29 +78,41 @@ export function Provider<TItem extends Record<string, unknown>>({
 }) {
   const columnsConfig = useMemo(() => extractColumnConfigs(columns), [columns]);
 
-  const displayHook = useDisplay({
-    columnsConfig,
-    defaultDisplay,
-  });
+  const [density, setDensity] = useState<Density>(defaultDisplay.density);
+  const [viewType, setViewType] = useState<ViewType>(defaultDisplay.type);
+  const [data, setData] = useState<TItem[]>([]);
 
-  const [dataFilters, setDataFilters] = useState<FilterCondition[]>([]);
-
-  const viewHook = useView({
-    dataFilters,
-    defaultDisplay,
-    display: displayHook.display,
-    domain,
-    setDataFilters,
-    setDisplay: displayHook.setDisplay,
-    viewAdapter,
+  const table = useTable({
+    columns,
+    data,
+    enableGrouping: true,
+    enableHiding: true,
+    enableSorting: true,
+    enableSortingRemoval: true,
+    features: dataExplorerTableFeatures,
+    getRowId: (row) => getRowId(row as TItem),
+    initialState: {
+      columnSizing: defaultDisplay.columnWidths,
+      columnVisibility: toInitialColumnVisibility(
+        defaultDisplay,
+        columnsConfig,
+      ),
+      dataFilters: [],
+      grouping: toInitialGrouping(defaultDisplay),
+      sorting: toInitialSorting(defaultDisplay),
+    },
+    manualGrouping: true,
+    manualSorting: true,
   });
 
   const orderBy = useMemo(
     () => ({
-      columnId: displayHook.display.orderBy,
-      direction: displayHook.display.orderType,
+      columnId: table.state.sorting[0]?.id ?? "",
+      direction: (table.state.sorting[0]?.desc ? "desc" : "asc") as
+        | "asc"
+        | "desc",
     }),
-    [displayHook.display.orderBy, displayHook.display.orderType],
+    [table.state.sorting],
   );
 
   const query = useInfiniteQuery({
@@ -149,11 +123,16 @@ export function Provider<TItem extends Record<string, unknown>>({
       signal,
     }: QueryFunctionContext<readonly unknown[], string | undefined>) => {
       const opts = queryBuilder({
+        columnSizing: table.state.columnSizing,
+        columnVisibility: table.state.columnVisibility,
         cursor: pageParam,
-        display: displayHook.display,
-        filters: dataFilters,
+        density,
+        filters: table.state.dataFilters ?? [],
+        grouping: table.state.grouping,
         limit: PAGE_SIZE,
         orderBy,
+        sorting: table.state.sorting,
+        viewType,
       });
       if (typeof opts.queryFn !== "function") {
         throw new Error("buildQueryOptions must return a queryFn");
@@ -167,9 +146,13 @@ export function Provider<TItem extends Record<string, unknown>>({
       "data-explorer",
       domain,
       {
-        conditions: dataFilters,
-        display: displayHook.display,
+        columnVisibility: table.state.columnVisibility,
+        conditions: table.state.dataFilters ?? [],
+        density,
+        grouping: table.state.grouping,
         orderBy,
+        sorting: table.state.sorting,
+        viewType,
       },
     ],
   });
@@ -178,49 +161,23 @@ export function Provider<TItem extends Record<string, unknown>>({
     () => query.data?.pages.flatMap((p) => p.items) ?? [],
     [query.data?.pages],
   );
+  if (allItems !== data) {
+    setData(allItems);
+  }
 
-  const table = useTable({
-    columns,
-    data: allItems,
-    enableGrouping: true,
-    enableHiding: true,
-    enableSorting: true,
-    enableSortingRemoval: true,
-    features: dataExplorerTableFeatures,
-    getRowId: (row) => getRowId(row as TItem),
-    manualGrouping: true,
-    manualSorting: true,
-    onColumnSizingChange: (updater) =>
-      displayHook.setDisplay((prev) => ({
-        ...prev,
-        columnWidths: resolveUpdater(updater, prev.columnWidths),
-      })),
-    onColumnVisibilityChange: (updater) =>
-      displayHook.setDisplay((prev) => ({
-        ...prev,
-        ...fromColumnVisibilityChange(updater, prev, columnsConfig),
-      })),
-    onDataFiltersChange: setDataFilters,
-    onGroupingChange: (updater) =>
-      displayHook.setDisplay((prev) => ({
-        ...prev,
-        ...fromGroupingChange(updater, prev),
-      })),
-    onSortingChange: (updater) =>
-      displayHook.setDisplay((prev) => ({
-        ...prev,
-        ...fromSortingChange(updater, prev),
-      })),
-    state: {
-      columnSizing: displayHook.display.columnWidths,
-      columnVisibility: toColumnVisibilityState(
-        displayHook.display,
-        columnsConfig,
-      ),
-      dataFilters,
-      grouping: toGroupingState(displayHook.display),
-      sorting: toSortingState(displayHook.display),
-    },
+  const viewHook = useView({
+    columnsConfig,
+    defaultDisplay,
+    density,
+    domain,
+    setDensity,
+    setViewType,
+    table: table as unknown as ReactTable<
+      typeof dataExplorerTableFeatures,
+      Record<string, unknown>
+    >,
+    viewAdapter,
+    viewType,
   });
 
   const { triggerRef } = useLoadMore(
@@ -229,26 +186,28 @@ export function Provider<TItem extends Record<string, unknown>>({
     query.isFetchingNextPage,
   );
 
-  const explorerValue = useMemo(
-    () => ({
-      columnsConfig,
-      data: {
-        hasMore: query.hasNextPage ?? false,
-        isLoading: query.isLoading,
-        isLoadingMore: query.isFetchingNextPage,
-        items: allItems,
-        loadMoreRef: triggerRef,
-      },
-      display: displayHook.display,
-      onMove,
-      updateDisplay: displayHook.updateDisplay,
-      view: {
-        activeViewId: viewHook.activeViewId,
-        applyView: viewHook.applyView,
-        resetToSaved: viewHook.resetToSaved,
-        saveView: viewHook.saveView,
-      },
-    }),
+  const contextValue = useMemo(
+    () =>
+      ({
+        columnsConfig,
+        data: {
+          hasMore: query.hasNextPage ?? false,
+          isLoading: query.isLoading,
+          isLoadingMore: query.isFetchingNextPage,
+          items: allItems,
+          loadMoreRef: triggerRef,
+        },
+        density,
+        onMove,
+        setDensity,
+        setViewType,
+        table: table as unknown as ReactTable<
+          typeof dataExplorerTableFeatures,
+          Record<string, unknown>
+        >,
+        view: viewHook,
+        viewType,
+      }) as unknown as ContextType,
     [
       columnsConfig,
       query.hasNextPage,
@@ -256,21 +215,15 @@ export function Provider<TItem extends Record<string, unknown>>({
       query.isFetchingNextPage,
       allItems,
       triggerRef,
-      displayHook.display,
-      displayHook.updateDisplay,
+      density,
       onMove,
-      viewHook.activeViewId,
-      viewHook.applyView,
-      viewHook.resetToSaved,
-      viewHook.saveView,
+      viewType,
+      viewHook,
+      table,
     ],
   );
 
   return (
-    <DataExplorerContext value={explorerValue}>
-      <TableContext value={{ table } as unknown as TableContextType}>
-        {children}
-      </TableContext>
-    </DataExplorerContext>
+    <DataExplorerContext value={contextValue}>{children}</DataExplorerContext>
   );
 }

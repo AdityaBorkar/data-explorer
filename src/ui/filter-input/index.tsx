@@ -1,7 +1,7 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useConfigContext, useTableContext } from "../../core/context.tsx";
+import { useDataExplorerContext } from "../../core/context.tsx";
 import { operatorSkipsValue } from "../../core/features/data-filtering/operators.ts";
 import { useInlineFilterFlow } from "../../core/features/data-filtering/use-inline-filter-flow.ts";
 import { SEARCH_COLUMN_ID } from "../../core/types.ts";
@@ -17,8 +17,7 @@ import { OperatorSelector } from "./operator-selector.tsx";
 import { ValueInput } from "./value-input.tsx";
 
 export function FilterBar({ className }: { className?: string }) {
-  const { columnsConfig } = useConfigContext();
-  const { table } = useTableContext();
+  const { columnsConfig, table } = useDataExplorerContext();
   const filterConditions = table.state.dataFilters;
   const {
     addDataFilter: addFilter,

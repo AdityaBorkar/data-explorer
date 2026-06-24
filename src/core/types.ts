@@ -1,6 +1,30 @@
-import type { ReactTable } from "@tanstack/react-table";
+import type {
+  ColumnSizingState,
+  ColumnVisibilityState,
+  GroupingState,
+  ReactTable,
+  SortingState,
+} from "@tanstack/react-table";
 
 import type { DataExplorerTableFeatures } from "./features";
+
+export type ViewType = "table" | "board" | "timeline";
+export type Density = "compact" | "comfortable" | "spacious";
+
+export interface View {
+  display: FilterViewDisplay;
+  id: string;
+  name: string;
+  refine: FilterCondition[];
+}
+
+export interface ViewAdapter {
+  listViews: (domain: string) => Promise<View[]>;
+  updateView: (
+    id: string,
+    data: { display: FilterViewDisplay; refine: FilterCondition[] },
+  ) => Promise<void>;
+}
 
 export type ColumnDataType =
   | "string"
@@ -74,12 +98,12 @@ export interface FilterGroup {
 
 export interface FilterViewDisplay {
   columnWidths: Record<string, number>;
-  density: "compact" | "comfortable" | "spacious";
+  density: Density;
   fields: string[];
   groupBy: string | null;
   orderBy: string;
   orderType: "asc" | "desc";
-  type: "table" | "board" | "timeline";
+  type: ViewType;
 }
 
 export interface DataExplorerContextType<TItem = unknown> {
@@ -91,24 +115,22 @@ export interface DataExplorerContextType<TItem = unknown> {
     items: TItem[];
     loadMoreRef: (el: Element | null) => void;
   };
-  display: FilterViewDisplay;
+  density: Density;
   onMove?: (args: {
     itemId: string;
     fromGroup: string;
     toGroup: string;
     columnId: string;
   }) => void;
-  updateDisplay: (updates: Partial<FilterViewDisplay>) => void;
+  setDensity: (density: Density) => void;
+  setViewType: (viewType: ViewType) => void;
   view: {
     activeViewId: string | null;
     applyView: (viewId: string | null) => void;
     resetToSaved: () => void;
     saveView: () => void;
   };
-}
-
-export interface TableContextType {
-  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
+  viewType: ViewType;
 }
 
 export interface ContextType<TItem = unknown>
@@ -129,9 +151,14 @@ export interface SerializedFilterCondition {
 }
 
 export type RefineOptions = {
-  filters: FilterCondition[];
+  columnSizing: ColumnSizingState;
+  columnVisibility: ColumnVisibilityState;
   cursor?: string;
+  density: Density;
+  filters: FilterCondition[];
+  grouping: GroupingState;
   limit: number;
   orderBy: { columnId: string; direction: "asc" | "desc" };
-  display: FilterViewDisplay;
+  sorting: SortingState;
+  viewType: ViewType;
 };

@@ -1,10 +1,10 @@
 import { IconLayoutList } from "@tabler/icons-react";
 
-import { useTableContext } from "../../core/context.tsx";
+import { useDataExplorerContext } from "../../core/context.tsx";
 import { Checkbox } from "../primitives/index.ts";
 
 export function DisplayColumnSelector() {
-  const { table } = useTableContext();
+  const { table } = useDataExplorerContext();
 
   const columns = table.getAllLeafColumns();
 

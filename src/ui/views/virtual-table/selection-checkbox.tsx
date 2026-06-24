@@ -1,7 +1,7 @@
 import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { useTableContext } from "../../../core/context.tsx";
+import { useDataExplorerContext } from "../../../core/context.tsx";
 import type { DataExplorerTableFeatures } from "../../../core/index.ts";
 import { Checkbox } from "../../primitives/index.ts";
 
@@ -22,7 +22,7 @@ export function SelectionCheckbox<TItem extends Record<string, unknown>>({
 }
 
 export function SelectAllCheckbox() {
-  const { table } = useTableContext();
+  const { table } = useDataExplorerContext();
 
   const checked = table.getIsAllRowsSelected();
   const indeterminate = table.getIsSomeRowsSelected() && !checked;

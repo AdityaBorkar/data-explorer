@@ -2,12 +2,7 @@ import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { type CSSProperties, useCallback, useMemo } from "react";
 
-import {
-  useCallbackContext,
-  useConfigContext,
-  useDataContext,
-  useDisplayContext,
-} from "../../../core/context.tsx";
+import { useDataExplorerContext } from "../../../core/context.tsx";
 
 interface BoardViewProps<TItem> {
   getRowId: (item: TItem) => string;
@@ -18,14 +13,15 @@ export function BoardView<TItem>({
   renderCard,
   getRowId,
 }: BoardViewProps<TItem>) {
-  const { items } = useDataContext<TItem>();
-  const { display } = useDisplayContext();
-  const { columnsConfig } = useConfigContext();
-  const { onMove } = useCallbackContext();
+  const { columnsConfig, data, onMove, table } =
+    useDataExplorerContext<TItem>();
+  const { items } = data;
+
+  const groupBy = table.state.grouping[0] ?? null;
 
   const groupByColumn = useMemo(
-    () => columnsConfig.find((c) => c.id === display.groupBy),
-    [columnsConfig, display.groupBy],
+    () => columnsConfig.find((c) => c.id === groupBy),
+    [columnsConfig, groupBy],
   );
 
   const columns = useMemo(() => {
@@ -39,15 +35,13 @@ export function BoardView<TItem>({
       groups[col.value] = [];
     }
     for (const item of items) {
-      const groupValue = (item as Record<string, unknown>)[
-        display.groupBy ?? ""
-      ];
+      const groupValue = (item as Record<string, unknown>)[groupBy ?? ""];
       const key = String(groupValue ?? "");
       if (!groups[key]) groups[key] = [];
       groups[key].push(item);
     }
     return groups;
-  }, [items, columns, display.groupBy]);
+  }, [items, columns, groupBy]);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {

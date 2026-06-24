@@ -1,7 +1,7 @@
 import { IconLineHeight } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { useDisplayContext } from "../../core/context.tsx";
+import { useDataExplorerContext } from "../../core/context.tsx";
 import { cn } from "../primitives/index.ts";
 
 const DENSITY_OPTIONS = [
@@ -11,13 +11,13 @@ const DENSITY_OPTIONS = [
 ] as const;
 
 export function SpacingDensitySelector() {
-  const { display, updateDisplay } = useDisplayContext();
+  const { density, setDensity } = useDataExplorerContext();
 
   const handleDensityChange = useCallback(
     (value: "compact" | "comfortable" | "spacious") => {
-      updateDisplay({ density: value });
+      setDensity(value);
     },
-    [updateDisplay],
+    [setDensity],
   );
 
   return (
@@ -31,7 +31,7 @@ export function SpacingDensitySelector() {
           <button
             className={cn(
               "flex-1 rounded-md border px-2 py-1 text-xs transition-colors",
-              display.density === opt.value
+              density === opt.value
                 ? "border-primary bg-primary/10 font-medium text-primary"
                 : "border-input text-muted-foreground hover:bg-muted hover:text-foreground",
             )}

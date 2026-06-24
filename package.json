@@ -17,6 +17,7 @@
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "husky": "^9.1.7",
     "react-day-picker": "^10.0.1",
     "taze": "^19.14.1",
     "typescript": "^7.0.1-rc",
@@ -47,6 +48,7 @@
   "scripts": {
     "check:lint": "biome check --fix .",
     "check:types": "tsc --noEmit",
+    "prepare": "husky",
     "test:unit": "vitest run",
     "update:deps": "taze -w && bun install"
   },

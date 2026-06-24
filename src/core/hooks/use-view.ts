@@ -1,26 +1,41 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactTable } from "@tanstack/react-table";
 import { useCallback, useMemo, useState } from "react";
 
 import { mergeDisplay } from "../features/data-filtering/filter-merge.ts";
-import type { FilterCondition, FilterViewDisplay } from "../types.ts";
-import type { ViewAdapter } from "../view-adapter.ts";
+import {
+  applyDisplaySnapshot,
+  toDisplaySnapshot,
+} from "../features/display-snapshot.ts";
+import type { DataExplorerTableFeatures } from "../features/index.ts";
+import type {
+  ColumnConfig,
+  Density,
+  FilterViewDisplay,
+  ViewAdapter,
+  ViewType,
+} from "../types.ts";
 
 export function useView({
-  dataFilters,
+  columnsConfig,
   defaultDisplay,
-  display,
+  density,
   domain,
-  setDataFilters,
-  setDisplay,
+  setDensity,
+  setViewType,
+  table,
   viewAdapter,
+  viewType,
 }: {
-  dataFilters: FilterCondition[];
+  columnsConfig: ColumnConfig[];
   defaultDisplay: FilterViewDisplay;
-  display: FilterViewDisplay;
+  density: Density;
   domain: string;
-  setDataFilters: (filters: FilterCondition[]) => void;
-  setDisplay: (v: FilterViewDisplay) => void;
+  setDensity: (d: Density) => void;
+  setViewType: (vt: ViewType) => void;
+  table: ReactTable<DataExplorerTableFeatures, Record<string, unknown>>;
   viewAdapter?: ViewAdapter;
+  viewType: ViewType;
 }) {
   const queryClient = useQueryClient();
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -40,38 +55,79 @@ export function useView({
     (viewId: string | null) => {
       setActiveViewId(viewId);
       if (!(viewId && views)) {
-        setDataFilters([]);
-        setDisplay(defaultDisplay);
+        table.setDataFilters([]);
+        applyDisplaySnapshot(
+          defaultDisplay,
+          table,
+          setDensity,
+          setViewType,
+          columnsConfig,
+        );
         return;
       }
       const view = views.find((v) => v.id === viewId);
       if (!view) return;
-      setDataFilters(view.refine);
-      setDisplay(mergeDisplay(defaultDisplay, view.display));
+      table.setDataFilters(view.refine);
+      applyDisplaySnapshot(
+        mergeDisplay(defaultDisplay, view.display),
+        table,
+        setDensity,
+        setViewType,
+        columnsConfig,
+      );
     },
-    [views, defaultDisplay, setDataFilters, setDisplay],
+    [views, defaultDisplay, table, setDensity, setViewType, columnsConfig],
   );
 
   const saveView = useCallback(async () => {
     if (!(activeViewId && viewAdapter)) return;
+    const display = toDisplaySnapshot(table, density, viewType, columnsConfig);
     await viewAdapter.updateView(activeViewId, {
       display,
-      refine: dataFilters,
+      refine: table.state.dataFilters,
     });
     queryClient.invalidateQueries({
       queryKey: ["data-explorer", "views", domain],
     });
-  }, [activeViewId, dataFilters, display, domain, queryClient, viewAdapter]);
+  }, [
+    activeViewId,
+    columnsConfig,
+    density,
+    domain,
+    queryClient,
+    table,
+    viewAdapter,
+    viewType,
+  ]);
 
   const resetToSaved = useCallback(() => {
     if (!activeView) {
-      setDataFilters([]);
-      setDisplay(defaultDisplay);
+      table.setDataFilters([]);
+      applyDisplaySnapshot(
+        defaultDisplay,
+        table,
+        setDensity,
+        setViewType,
+        columnsConfig,
+      );
       return;
     }
-    setDataFilters(activeView.refine);
-    setDisplay(mergeDisplay(defaultDisplay, activeView.display));
-  }, [activeView, defaultDisplay, setDataFilters, setDisplay]);
+    table.setDataFilters(activeView.refine);
+    applyDisplaySnapshot(
+      mergeDisplay(defaultDisplay, activeView.display),
+      table,
+      setDensity,
+      setViewType,
+      columnsConfig,
+    );
+  }, [
+    activeView,
+    defaultDisplay,
+    table,
+    setDensity,
+    setViewType,
+    columnsConfig,
+  ]);
 
   return {
     activeView,

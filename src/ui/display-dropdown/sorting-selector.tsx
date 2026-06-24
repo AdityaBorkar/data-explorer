@@ -5,7 +5,7 @@ import {
 } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { useTableContext } from "../../core/context.tsx";
+import { useDataExplorerContext } from "../../core/context.tsx";
 import {
   cn,
   Select,
@@ -18,7 +18,7 @@ import {
 } from "../primitives/index.ts";
 
 export function SortingSelector() {
-  const { table } = useTableContext();
+  const { table } = useDataExplorerContext();
 
   const visibleColumns = table.getVisibleLeafColumns();
   const sorting = table.state.sorting;
