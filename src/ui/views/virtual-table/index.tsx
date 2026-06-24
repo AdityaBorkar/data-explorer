@@ -13,15 +13,16 @@ import {
   useDataContext,
   useDisplayContext,
   useSelectionContext,
-} from "../../core/context.tsx";
-import { cn } from "../primitives/index.ts";
+} from "@/core/context.tsx";
+import { cn } from "@/ui/primitives/index.ts";
+
 import { SelectAllCheckbox, SelectionCheckbox } from "./selection-checkbox.tsx";
 
-const virtualTableFeatures = tableFeatures({
+const features = tableFeatures({
   rowSelectionFeature,
 });
 
-export type VirtualTableFeatures = typeof virtualTableFeatures;
+export type VirtualTableFeatures = typeof features;
 
 const DENSITY_ROW_HEIGHTS: Record<string, number> = {
   comfortable: 36,
@@ -40,7 +41,7 @@ function getAriaSort(
 }
 
 export function VirtualTable<TItem extends Record<string, unknown>>({
-  columnDefs,
+  columnDefs: columns,
   onRowClick,
   emptyMessage = "No items found",
   getRowId,
@@ -50,17 +51,17 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
   emptyMessage?: string;
   getRowId: (row: TItem) => string;
 }) {
-  const { items, isLoading, isLoadingMore, hasMore, loadMoreRef } =
-    useDataContext<TItem>();
+  const {
+    items: data,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    loadMoreRef,
+  } = useDataContext<TItem>();
   const { display } = useDisplayContext();
   const { clearSelection, selectedRowIds } = useSelectionContext();
 
-  const table = useTable({
-    columns: columnDefs,
-    data: items,
-    features: virtualTableFeatures,
-    getRowId: (row) => getRowId(row),
-  });
+  const table = useTable({ columns, data, features, getRowId });
 
   const columnWidths = useMemo(() => {
     const widths: Record<string, number> = {};
@@ -79,7 +80,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
-    count: items.length,
+    count: data.length,
     estimateSize: () => rowHeight,
     getScrollElement: () => scrollRef.current,
     overscan: 5,
@@ -136,7 +137,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
                 </td>
               </tr>
             </tbody>
-          ) : items.length === 0 ? (
+          ) : data.length === 0 ? (
             <tbody>
               <tr>
                 <td colSpan={headers.length + 1}>

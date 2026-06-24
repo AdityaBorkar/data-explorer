@@ -5,7 +5,8 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useMemo } from "react";
 
-import { useConfigContext, useDisplayContext } from "../../core/context.tsx";
+import { useConfigContext, useDisplayContext } from "@/core/context.tsx";
+
 import {
   cn,
   Select,

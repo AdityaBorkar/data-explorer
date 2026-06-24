@@ -140,7 +140,7 @@ function buildSearchSql(
   const conditions = searchableCols
     .map((colConfig) => {
       const colName = getColumnName(table, colConfig.id);
-      if (!colName) return;
+      if (!colName) return "";
       return sql`${ident(colName)} ILIKE ${`%${searchTerm}%`}`;
     })
     .filter((c): c is SQL => c !== undefined);

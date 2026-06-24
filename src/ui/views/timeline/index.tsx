@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
-import { useConfigContext, useDataContext } from "../../core/context.tsx";
-import { cn } from "../primitives/index.ts";
+import { useConfigContext, useDataContext } from "@/core/context.tsx";
+import { cn } from "@/ui/primitives/index.ts";
 
 type ZoomLevel = "day" | "week" | "month";
 

@@ -1,8 +1,8 @@
 import { IconLineHeight } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { useDisplayContext } from "../../core/context.tsx";
-import { cn } from "../primitives/index.ts";
+import { useDisplayContext } from "@/core/context.tsx";
+import { cn } from "@/ui/primitives/index.ts";
 
 const DENSITY_OPTIONS = [
   { label: "Compact", value: "compact" },

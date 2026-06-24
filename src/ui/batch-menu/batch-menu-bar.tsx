@@ -1,7 +1,7 @@
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useEffect } from "react";
 
-import { useSelectionContext } from "../../core/context.tsx";
+import { useSelectionContext } from "@/core/context.tsx";
 
 export function BatchMenuBar({ children }: { children: React.ReactNode }) {
   const { clearSelection, selectedRowIds } = useSelectionContext();

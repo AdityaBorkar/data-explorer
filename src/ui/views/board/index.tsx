@@ -7,7 +7,7 @@ import {
   useConfigContext,
   useDataContext,
   useDisplayContext,
-} from "../../core/context.tsx";
+} from "@/core/context.tsx";
 
 interface BoardViewProps<TItem> {
   getRowId: (item: TItem) => string;
