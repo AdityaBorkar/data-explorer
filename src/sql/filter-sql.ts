@@ -1,6 +1,3 @@
-import { and, or, type SQL, sql } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
-
 import { filterConditionSchema } from "../core/filter/filter-condition-schema.ts";
 import { groupConditions } from "../core/filter/filter-grouping.ts";
 import { validateOperatorValue } from "../core/filter/filter-validation.ts";
@@ -13,11 +10,41 @@ import type {
 } from "../core/types.ts";
 import { SEARCH_COLUMN_ID } from "../core/types.ts";
 
-function getColumnName(table: PgTable, columnId: string): string | undefined {
-  const column = (table as unknown as Record<string, { name: string }>)[
-    columnId
-  ];
-  return column?.name;
+export interface ParameterizedSql {
+  params: unknown[];
+  sql: string;
+}
+
+export type ColumnMapping = Record<string, string>;
+
+export type PlaceholderStyle = "numbered" | "positional";
+
+export interface BuildFilterOptions {
+  placeholderStyle?: PlaceholderStyle;
+  tableAlias?: string;
+}
+
+interface BuildContext {
+  nextIdx: number;
+  params: unknown[];
+  placeholder: PlaceholderStyle;
+}
+
+function pushParam(ctx: BuildContext, value: unknown): string {
+  ctx.params.push(value);
+  if (ctx.placeholder === "positional") {
+    return "?";
+  }
+  return `$${ctx.nextIdx++ + 1}`;
+}
+
+function quoteIdent(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+function colRef(columnName: string, tableAlias: string | undefined): string {
+  const quoted = quoteIdent(columnName);
+  return tableAlias ? `${quoteIdent(tableAlias)}.${quoted}` : quoted;
 }
 
 function validateConditions(
@@ -55,123 +82,144 @@ function validateConditions(
   return conditions;
 }
 
-function ident(name: string): SQL {
-  return sql`${sql.identifier(name)}`;
+type SqlBuilder = (col: string, value: unknown, ctx: BuildContext) => string;
+
+function arrayPlaceholders(vals: string[], ctx: BuildContext): string {
+  return vals.map((v) => pushParam(ctx, v)).join(", ");
 }
 
-type SqlBuilder = (col: SQL, value: unknown) => SQL;
-
 const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
-  between: (col, value) => {
+  between: (col, value, ctx) => {
     const [min, max] = value as [number | string, number | string];
-    return sql`${col} BETWEEN ${min} AND ${max}`;
+    return `${col} BETWEEN ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
   },
-  contains: (col, value) => sql`${col} ILIKE ${`%${value as string}%`}`,
-  endsWith: (col, value) => sql`${col} ILIKE ${`%${value as string}`}`,
-  eq: (col, value) => sql`${col} = ${value}`,
-  exclude: (col, value) => sql`NOT (${col} @> ARRAY[${value}]::text[])`,
-  excludeAll: (col, value) => sql`NOT (${col} @> ARRAY[${value}]::text[])`,
-  excludeAny: (col, value) => sql`NOT (${col} && ARRAY[${value}]::text[])`,
-  gt: (col, value) => sql`${col} > ${value}`,
-  gte: (col, value) => sql`${col} >= ${value}`,
-  in: (col, value) => {
-    const vals = value as string[];
-    return sql`${col} IN (${sql.join(
-      vals.map((v) => sql`${v}`),
-      sql`, `,
-    )})`;
-  },
-  include: (col, value) => sql`${col} @> ARRAY[${value}]::text[]`,
-  includeAll: (col, value) => sql`${col} @> ARRAY[${value}]::text[]`,
-  includeAny: (col, value) => sql`${col} && ARRAY[${value}]::text[]`,
-  isEmpty: (col) => sql`${col} IS NULL`,
-  isNotEmpty: (col) => sql`${col} IS NOT NULL`,
-  lt: (col, value) => sql`${col} < ${value}`,
-  lte: (col, value) => sql`${col} <= ${value}`,
-  neq: (col, value) => sql`${col} != ${value}`,
-  notBetween: (col, value) => {
+  contains: (col, value, ctx) =>
+    `${col} ILIKE ${pushParam(ctx, `%${value as string}%`)}`,
+  endsWith: (col, value, ctx) =>
+    `${col} ILIKE ${pushParam(ctx, `%${value as string}`)}`,
+  eq: (col, value, ctx) => `${col} = ${pushParam(ctx, value)}`,
+  exclude: (col, value, ctx) =>
+    `NOT (${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
+  excludeAll: (col, value, ctx) =>
+    `NOT (${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
+  excludeAny: (col, value, ctx) =>
+    `NOT (${col} && ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
+  gt: (col, value, ctx) => `${col} > ${pushParam(ctx, value)}`,
+  gte: (col, value, ctx) => `${col} >= ${pushParam(ctx, value)}`,
+  in: (col, value, ctx) =>
+    `${col} IN (${arrayPlaceholders(value as string[], ctx)})`,
+  include: (col, value, ctx) =>
+    `${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
+  includeAll: (col, value, ctx) =>
+    `${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
+  includeAny: (col, value, ctx) =>
+    `${col} && ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
+  isEmpty: (col) => `${col} IS NULL`,
+  isNotEmpty: (col) => `${col} IS NOT NULL`,
+  lt: (col, value, ctx) => `${col} < ${pushParam(ctx, value)}`,
+  lte: (col, value, ctx) => `${col} <= ${pushParam(ctx, value)}`,
+  neq: (col, value, ctx) => `${col} != ${pushParam(ctx, value)}`,
+  notBetween: (col, value, ctx) => {
     const [min, max] = value as [number | string, number | string];
-    return sql`${col} NOT BETWEEN ${min} AND ${max}`;
+    return `${col} NOT BETWEEN ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
   },
-  notContains: (col, value) => sql`${col} NOT ILIKE ${`%${value as string}%`}`,
-  notIn: (col, value) => {
-    const vals = value as string[];
-    return sql`${col} NOT IN (${sql.join(
-      vals.map((v) => sql`${v}`),
-      sql`, `,
-    )})`;
-  },
-  startsWith: (col, value) => sql`${col} ILIKE ${`${value as string}%`}`,
+  notContains: (col, value, ctx) =>
+    `${col} NOT ILIKE ${pushParam(ctx, `%${value as string}%`)}`,
+  notIn: (col, value, ctx) =>
+    `${col} NOT IN (${arrayPlaceholders(value as string[], ctx)})`,
+  startsWith: (col, value, ctx) =>
+    `${col} ILIKE ${pushParam(ctx, `${value as string}%`)}`,
 };
 
 function buildConditionSql(
   condition: FilterCondition,
-  table: PgTable,
+  columnMapping: ColumnMapping,
   columnsConfig: ColumnConfig[],
-): SQL | undefined {
+  ctx: BuildContext,
+  tableAlias: string | undefined,
+): string | undefined {
   const colConfig = columnsConfig.find((c) => c.id === condition.columnId);
   if (!colConfig) return;
 
   if (condition.columnId === SEARCH_COLUMN_ID) {
-    return buildSearchSql(condition.value as string, table, columnsConfig);
+    return buildSearchSql(
+      condition.value as string,
+      columnMapping,
+      columnsConfig,
+      ctx,
+      tableAlias,
+    );
   }
 
-  const colName = getColumnName(table, condition.columnId);
-  if (!colName) return;
+  const columnName = columnMapping[condition.columnId];
+  if (!columnName) return;
 
-  const col = ident(colName);
+  const col = colRef(columnName, tableAlias);
   const builder = OPERATOR_SQL_BUILDERS[condition.operator as FilterOperator];
   if (!builder) {
     throw new Error(`Unhandled filter operator: ${condition.operator}`);
   }
 
-  return builder(col, condition.value);
+  return builder(col, condition.value, ctx);
 }
 
 function buildSearchSql(
   searchTerm: string,
-  table: PgTable,
+  columnMapping: ColumnMapping,
   columnsConfig: ColumnConfig[],
-): SQL {
+  ctx: BuildContext,
+  tableAlias: string | undefined,
+): string {
   const searchableCols = columnsConfig.filter(
     (c) => c.searchable && c.id !== SEARCH_COLUMN_ID,
   );
 
   const conditions = searchableCols
     .map((colConfig) => {
-      const colName = getColumnName(table, colConfig.id);
-      if (!colName) return "";
-      return sql`${ident(colName)} ILIKE ${`%${searchTerm}%`}`;
+      const columnName = columnMapping[colConfig.id];
+      if (!columnName) return undefined;
+      const col = colRef(columnName, tableAlias);
+      return `${col} ILIKE ${pushParam(ctx, `%${searchTerm}%`)}`;
     })
-    .filter((c): c is SQL => c !== undefined);
+    .filter((c): c is string => c !== undefined);
 
   if (conditions.length === 0) {
-    return sql`1 = 0`;
+    return "1 = 0";
   }
 
   if (conditions.length === 1) {
-    return conditions[0] ?? sql`1 = 0`;
+    return conditions[0] ?? "1 = 0";
   }
 
-  return or(...conditions) ?? sql`1 = 0`;
+  return `(${conditions.join(" OR ")})`;
 }
 
 function buildGroupSql(
   group: FilterGroup,
-  table: PgTable,
+  columnMapping: ColumnMapping,
   columnsConfig: ColumnConfig[],
-): SQL | undefined {
-  const sqls: SQL[] = [];
+  ctx: BuildContext,
+  tableAlias: string | undefined,
+): string | undefined {
+  const sqls: string[] = [];
 
   for (const item of group.conditions) {
     if ("conditions" in item) {
-      const subSql = buildGroupSql(item as FilterGroup, table, columnsConfig);
+      const subSql = buildGroupSql(
+        item as FilterGroup,
+        columnMapping,
+        columnsConfig,
+        ctx,
+        tableAlias,
+      );
       if (subSql) sqls.push(subSql);
     } else {
       const condSql = buildConditionSql(
         item as FilterCondition,
-        table,
+        columnMapping,
         columnsConfig,
+        ctx,
+        tableAlias,
       );
       if (condSql) sqls.push(condSql);
     }
@@ -180,21 +228,36 @@ function buildGroupSql(
   if (sqls.length === 0) return;
   if (sqls.length === 1) return sqls[0];
 
-  if (group.combinator === "or") {
-    return or(...sqls);
-  }
-
-  return and(...sqls);
+  const joiner = group.combinator === "or" ? " OR " : " AND ";
+  return `(${sqls.join(joiner)})`;
 }
 
 export function buildFilterWhere(
   conditions: FilterCondition[],
   columnsConfig: ColumnConfig[],
-  schema: PgTable,
-): SQL | undefined {
+  columnMapping: ColumnMapping,
+  options?: BuildFilterOptions,
+): ParameterizedSql | undefined {
   const validated = validateConditions(conditions, columnsConfig);
   if (validated.length === 0) return;
 
   const group = groupConditions(validated);
-  return buildGroupSql(group, schema, columnsConfig);
+
+  const ctx: BuildContext = {
+    nextIdx: 0,
+    params: [],
+    placeholder: options?.placeholderStyle ?? "numbered",
+  };
+
+  const sql = buildGroupSql(
+    group,
+    columnMapping,
+    columnsConfig,
+    ctx,
+    options?.tableAlias,
+  );
+
+  if (!sql) return;
+
+  return { params: ctx.params, sql };
 }
