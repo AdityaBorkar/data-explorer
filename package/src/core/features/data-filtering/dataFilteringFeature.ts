@@ -2,6 +2,7 @@ import {
 	assignTableAPIs,
 	makeStateUpdater,
 	type TableFeature,
+	type Updater,
 } from "@tanstack/react-table";
 
 import "./dataFilteringFeature.types.ts";
@@ -37,7 +38,8 @@ export const dataFilteringFeature: TableFeature = {
 					),
 			},
 			table_setDataFilters: {
-				fn: (updater) => table.options.onDataFiltersChange?.(updater),
+				fn: (updater: Updater<DataFiltersState>) =>
+					table.options.onDataFiltersChange?.(updater),
 			},
 			table_updateDataFilter: {
 				fn: (id: string, updates: Partial<FilterCondition>) =>
@@ -55,7 +57,7 @@ export const dataFilteringFeature: TableFeature = {
 	}),
 	getInitialState: (initialState) => ({
 		...initialState,
-		dataFilters: [] as DataFiltersState,
+		dataFilters: (initialState.dataFilters ?? []) as DataFiltersState,
 	}),
 };
 

@@ -1,11 +1,11 @@
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { operatorSkipsValue } from "../../core/features/data-filtering/operators.ts";
+import { editorKind } from "../../core/features/data-filtering/filter-draft.ts";
 import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
-import { SEARCH_COLUMN_ID } from "../../core/types.ts";
 import {
 	Calendar,
+	Checkbox,
 	Input,
 	Popover,
 	PopoverContent,
@@ -21,6 +21,12 @@ interface ValueInputProps {
 	value: unknown;
 }
 
+function toNumberOrUndefined(raw: string): number | undefined {
+	if (raw === "") return undefined;
+	const n = Number(raw);
+	return Number.isNaN(n) ? undefined : n;
+}
+
 export function ValueInput({
 	column,
 	operator,
@@ -28,72 +34,107 @@ export function ValueInput({
 	onChange,
 	onCommit,
 }: ValueInputProps) {
-	if (operatorSkipsValue(operator)) {
+	const kind = editorKind(operator, column);
+
+	if (kind === "nullary") {
 		return null;
 	}
 
-	if (column.id === SEARCH_COLUMN_ID) {
+	if (kind === "search") {
 		return (
 			<StringInput
 				onChange={onChange}
 				onCommit={onCommit}
 				placeholder="Search..."
-				value={value as string}
+				value={typeof value === "string" ? value : undefined}
 			/>
 		);
 	}
 
-	if (column.type === "string") {
+	if (kind === "multi") {
 		return (
-			<StringInput
+			<MultiOptionInput
+				column={column}
 				onChange={onChange}
 				onCommit={onCommit}
-				placeholder="Value..."
-				value={value as string}
+				value={value}
 			/>
 		);
 	}
 
-	if (column.type === "number") {
-		if (operator === "between" || operator === "notBetween") {
+	switch (column.type) {
+		case "string":
 			return (
-				<NumberRangeInput
+				<StringInput
 					onChange={onChange}
-					value={value as [number, number] | undefined}
+					onCommit={onCommit}
+					placeholder="Value..."
+					value={typeof value === "string" ? value : undefined}
 				/>
 			);
-		}
-		return (
-			<NumberInput
-				onChange={onChange}
-				onCommit={onCommit}
-				value={value as number | undefined}
-			/>
-		);
-	}
-
-	if (column.type === "date") {
-		if (operator === "between" || operator === "notBetween") {
+		case "number":
+			if (operator === "between" || operator === "notBetween") {
+				return (
+					<NumberRangeInput
+						onChange={onChange}
+						value={
+							Array.isArray(value) ? (value as [number, number]) : undefined
+						}
+					/>
+				);
+			}
 			return (
-				<DateRangeInput
+				<NumberInput
 					onChange={onChange}
-					value={value as [string, string] | undefined}
+					onCommit={onCommit}
+					value={typeof value === "number" ? value : undefined}
 				/>
 			);
-		}
-		return (
-			<DateInput onChange={onChange} value={value as string | undefined} />
-		);
+		case "date":
+			if (operator === "between" || operator === "notBetween") {
+				return (
+					<DateRangeInput
+						onChange={onChange}
+						value={
+							Array.isArray(value) ? (value as [string, string]) : undefined
+						}
+					/>
+				);
+			}
+			return (
+				<DateInput
+					onChange={onChange}
+					value={typeof value === "string" ? value : undefined}
+				/>
+			);
+		case "boolean":
+			return (
+				<BooleanInput
+					onChange={onChange}
+					value={typeof value === "boolean" ? value : undefined}
+				/>
+			);
+		case "enum":
+			return (
+				<SingleOptionInput
+					column={column}
+					onChange={onChange}
+					onCommit={onCommit}
+					value={typeof value === "string" ? value : undefined}
+				/>
+			);
+		case "multiEnum":
+			return (
+				<MultiOptionInput
+					column={column}
+					onChange={onChange}
+					onCommit={onCommit}
+					value={value}
+				/>
+			);
+		default:
+			throw new Error(`Unhandled column type: ${String(column.type)}`);
 	}
-
-	if (column.type === "boolean") {
-		return (
-			<BooleanInput onChange={onChange} value={value as boolean | undefined} />
-		);
-	}
-
-	// enum / multiEnum values are picked from option lists, not typed.
-	return null;
 }
 
 function StringInput({
@@ -102,7 +143,7 @@ function StringInput({
 	onCommit,
 	placeholder,
 }: {
-	value: string;
+	value: string | undefined;
 	onChange: (v: unknown) => void;
 	onCommit: () => void;
 	placeholder: string;
@@ -116,7 +157,7 @@ function StringInput({
 				if (e.key === "Enter") onCommit();
 			}}
 			placeholder={placeholder}
-			value={value}
+			value={value ?? ""}
 		/>
 	);
 }
@@ -135,8 +176,7 @@ function NumberInput({
 			autoFocus={true}
 			className="h-8 text-sm"
 			onChange={(e) => {
-				const v = e.target.value;
-				onChange(v === "" ? undefined : Number(v));
+				onChange(toNumberOrUndefined(e.target.value));
 			}}
 			onKeyDown={(e) => {
 				if (e.key === "Enter") onCommit();
@@ -162,8 +202,7 @@ function NumberRangeInput({
 				autoFocus={true}
 				className="h-8 text-sm"
 				onChange={(e) => {
-					const v = e.target.value;
-					onChange([v === "" ? undefined : Number(v), max]);
+					onChange([toNumberOrUndefined(e.target.value), max]);
 				}}
 				placeholder="Min"
 				type="number"
@@ -173,8 +212,7 @@ function NumberRangeInput({
 			<Input
 				className="h-8 text-sm"
 				onChange={(e) => {
-					const v = e.target.value;
-					onChange([min, v === "" ? undefined : Number(v)]);
+					onChange([min, toNumberOrUndefined(e.target.value)]);
 				}}
 				placeholder="Max"
 				type="number"
@@ -182,6 +220,22 @@ function NumberRangeInput({
 			/>
 		</div>
 	);
+}
+
+export function toValidDate(value: string | undefined): Date | undefined {
+	if (!value) return undefined;
+	const d = new Date(value);
+	return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+export function parseDateValue(v: unknown): Date | null {
+	if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+	if (typeof v === "string" || typeof v === "number") {
+		if (v === "") return null;
+		const d = new Date(v);
+		return Number.isNaN(d.getTime()) ? null : d;
+	}
+	return null;
 }
 
 function DateInput({
@@ -192,7 +246,7 @@ function DateInput({
 	onChange: (v: unknown) => void;
 }) {
 	const [open, setOpen] = useState(false);
-	const dateValue = value ? new Date(value) : undefined;
+	const dateValue = toValidDate(value);
 
 	return (
 		<Popover onOpenChange={setOpen} open={open}>
@@ -232,8 +286,8 @@ function DateRangeInput({
 }) {
 	const [open, setOpen] = useState(false);
 	const [from, to] = value ?? [undefined, undefined];
-	const fromValue = from ? new Date(from) : undefined;
-	const toValue = to ? new Date(to) : undefined;
+	const fromValue = toValidDate(from);
+	const toValue = toValidDate(to);
 
 	return (
 		<Popover onOpenChange={setOpen} open={open}>
@@ -291,7 +345,114 @@ function BooleanInput({
 				checked={value ?? false}
 				onCheckedChange={(checked) => onChange(checked)}
 			/>
-			<span className="text-sm">{value ? "Yes" : "No"}</span>
+			<span className="text-sm">
+				{value === undefined ? "Select value..." : value ? "Yes" : "No"}
+			</span>
+		</div>
+	);
+}
+
+function SingleOptionInput({
+	column,
+	value,
+	onChange,
+	onCommit,
+}: {
+	column: ColumnConfig;
+	value: string | undefined;
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+}) {
+	const options = column.options ?? [];
+	if (options.length === 0) {
+		return (
+			<StringInput
+				onChange={onChange}
+				onCommit={onCommit}
+				placeholder="Value..."
+				value={value}
+			/>
+		);
+	}
+	return (
+		<div className="flex flex-col gap-1">
+			{options.map((opt) => (
+				<button
+					className={
+						value === opt.value
+							? "rounded-md bg-muted px-2 py-1 text-left text-sm font-medium"
+							: "rounded-md px-2 py-1 text-left text-sm hover:bg-muted/50"
+					}
+					key={opt.value}
+					onClick={() => onChange(opt.value)}
+					type="button"
+				>
+					{opt.label}
+				</button>
+			))}
+		</div>
+	);
+}
+
+function MultiOptionInput({
+	column,
+	value,
+	onChange,
+	onCommit,
+}: {
+	column: ColumnConfig;
+	value: unknown;
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+}) {
+	const options = column.options ?? [];
+	const selected = new Set(Array.isArray(value) ? value.map(String) : []);
+
+	function toggle(optValue: string) {
+		const next = new Set(selected);
+		if (next.has(optValue)) next.delete(optValue);
+		else next.add(optValue);
+		onChange([...next]);
+	}
+
+	if (options.length === 0) {
+		return (
+			<StringInput
+				onChange={(v) => {
+					const str = String(v ?? "");
+					onChange(
+						str === ""
+							? []
+							: str
+									.split(",")
+									.map((s) => s.trim())
+									.filter(Boolean),
+					);
+				}}
+				onCommit={onCommit}
+				placeholder="a, b, c..."
+				value={Array.isArray(value) ? value.join(", ") : undefined}
+			/>
+		);
+	}
+
+	return (
+		<div className="flex flex-col gap-1">
+			{options.map((opt) => (
+				<button
+					className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-left text-sm hover:bg-muted/50"
+					key={opt.value}
+					onClick={() => toggle(opt.value)}
+					type="button"
+				>
+					<Checkbox
+						checked={selected.has(opt.value)}
+						onCheckedChange={() => toggle(opt.value)}
+						tabIndex={-1}
+					/>
+					<span>{opt.label}</span>
+				</button>
+			))}
 		</div>
 	);
 }

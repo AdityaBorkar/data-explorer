@@ -3,23 +3,17 @@ import type {
 	UseQueryOptions,
 } from "@tanstack/react-query";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type {
-	ColumnDef,
-	ColumnVisibilityState,
-	GroupingState,
-	ReactTable,
-	SortingState,
-} from "@tanstack/react-table";
+import type { ColumnDef, ReactTable } from "@tanstack/react-table";
 import { useTable } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { DataExplorerContext } from "./context.tsx";
 import { extractColumnConfigs } from "./extract-column-config.ts";
+import { toInitialTableState } from "./features/display-snapshot.ts";
 import { TableFeatures } from "./features/index.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
 import type {
-	ColumnConfig,
 	ContextType,
 	FilterViewDisplay,
 	ListQueryResult,
@@ -28,27 +22,6 @@ import type {
 } from "./types.ts";
 
 const PAGE_SIZE = 20;
-
-function toInitialSorting(display: FilterViewDisplay): SortingState {
-	return display.orderBy
-		? [{ desc: display.orderType === "desc", id: display.orderBy }]
-		: [];
-}
-
-function toInitialColumnVisibility(
-	display: FilterViewDisplay,
-	columnsConfig: ColumnConfig[],
-): ColumnVisibilityState {
-	const state: ColumnVisibilityState = {};
-	for (const col of columnsConfig) {
-		state[col.id] = display.fields.includes(col.id);
-	}
-	return state;
-}
-
-function toInitialGrouping(display: FilterViewDisplay): GroupingState {
-	return display.groupBy ? [display.groupBy] : [];
-}
 
 export function Provider<TItem extends Record<string, unknown>>({
 	children,
@@ -77,62 +50,56 @@ export function Provider<TItem extends Record<string, unknown>>({
 	const columnsConfig = useMemo(() => extractColumnConfigs(columns), [columns]);
 	const initialState = useMemo(
 		() => ({
-			columnSizing: defaultDisplay.columnWidths,
-			columnVisibility: toInitialColumnVisibility(
-				defaultDisplay,
-				columnsConfig,
-			),
+			...toInitialTableState(defaultDisplay, columnsConfig),
 			dataFilters: [],
-			density: defaultDisplay.density,
-			grouping: toInitialGrouping(defaultDisplay),
-			sorting: toInitialSorting(defaultDisplay),
-			viewType: defaultDisplay.type,
 		}),
 		[defaultDisplay, columnsConfig],
 	);
 
-	const [data, setData] = useState<TItem[]>([]);
-
 	const table = useTable({
 		columns,
-		data,
+		data: [],
 		enableGrouping: true,
 		enableHiding: true,
 		enableSorting: true,
 		enableSortingRemoval: true,
 		features: TableFeatures,
-		getRowId: (row) => getRowId(row as TItem),
+		getRowId,
 		initialState,
 		manualGrouping: true,
 		manualSorting: true,
 	});
 
-	const orderBy = useMemo<RefineOptions["orderBy"]>(
-		() => ({
-			columnId: table.state.sorting[0]?.id ?? "",
-			direction: table.state.sorting[0]?.desc ? "desc" : "asc",
-		}),
-		[table.state.sorting],
-	);
+	const sorting = table.state.sorting;
+	const grouping = table.state.grouping;
+	const columnVisibility = table.state.columnVisibility;
+	const columnSizing = table.state.columnSizing;
+	const density = table.state.density;
+	const viewType = table.state.viewType;
+	const dataFilters = table.state.dataFilters ?? [];
 
 	const query = useInfiniteQuery({
-		getNextPageParam: (lastPage) => lastPage.nextCursor,
+		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
 		initialPageParam: undefined as string | undefined,
 		queryFn: ({
 			pageParam,
 			signal,
 		}: QueryFunctionContext<readonly unknown[], string | undefined>) => {
+			const firstSort = sorting[0];
 			const opts = queryBuilder({
-				columnSizing: table.state.columnSizing,
-				columnVisibility: table.state.columnVisibility,
+				columnSizing,
+				columnVisibility,
 				cursor: pageParam,
-				density: table.state.density ?? "comfortable",
-				filters: table.state.dataFilters ?? [],
-				grouping: table.state.grouping,
+				density,
+				filters: dataFilters,
+				grouping,
 				limit: PAGE_SIZE,
-				orderBy,
-				sorting: table.state.sorting,
-				viewType: table.state.viewType ?? "table",
+				orderBy: {
+					columnId: firstSort?.id ?? "",
+					direction: firstSort?.desc ? "desc" : "asc",
+				},
+				sorting,
+				viewType,
 			});
 			if (typeof opts.queryFn !== "function") {
 				throw new Error("buildQueryOptions must return a queryFn");
@@ -146,23 +113,23 @@ export function Provider<TItem extends Record<string, unknown>>({
 			"data-explorer",
 			domain,
 			{
-				columnVisibility: table.state.columnVisibility,
-				conditions: table.state.dataFilters ?? [],
-				density: table.state.density,
-				grouping: table.state.grouping,
-				orderBy,
-				sorting: table.state.sorting,
-				viewType: table.state.viewType,
+				columnSizing,
+				columnVisibility,
+				conditions: dataFilters,
+				density,
+				grouping,
+				sorting,
+				viewType,
 			},
 		],
 	});
 	const allItems = useMemo(
 		() => query.data?.pages.flatMap((p) => p.items) ?? [],
-		[query.data?.pages],
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[query.data],
 	);
-	if (allItems !== data) {
-		setData(allItems);
-	}
+	// Feed fresh pages directly into the table without a lagged useState copy.
+	(table.options as unknown as { data: TItem[] }).data = allItems;
 
 	const typedTable = table as unknown as ReactTable<
 		typeof TableFeatures,
@@ -183,21 +150,20 @@ export function Provider<TItem extends Record<string, unknown>>({
 		query.isFetchingNextPage,
 	);
 
-	const contextValue = useMemo(
-		() =>
-			({
-				columnsConfig,
-				data: {
-					hasMore: query.hasNextPage ?? false,
-					isLoading: query.isLoading,
-					isLoadingMore: query.isFetchingNextPage,
-					items: allItems,
-					loadMoreRef: triggerRef,
-				},
-				onMove,
-				table: typedTable,
-				view: viewHook,
-			}) as unknown as ContextType,
+	const contextValue: ContextType = useMemo(
+		() => ({
+			columnsConfig,
+			data: {
+				hasMore: query.hasNextPage ?? false,
+				isLoading: query.isLoading,
+				isLoadingMore: query.isFetchingNextPage,
+				items: allItems,
+				loadMoreRef: triggerRef,
+			},
+			onMove,
+			table: typedTable,
+			view: viewHook,
+		}),
 		[
 			columnsConfig,
 			query.hasNextPage,

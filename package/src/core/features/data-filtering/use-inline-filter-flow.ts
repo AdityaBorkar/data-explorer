@@ -1,12 +1,16 @@
-import { nanoid } from "nanoid";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type {
 	ColumnConfig,
 	FilterCondition,
 	FilterOperator,
 } from "../../types.ts";
-import { SEARCH_COLUMN_ID } from "../../types.ts";
+import {
+	buildDraftCondition,
+	commitDraft,
+	isSearchDraft,
+} from "./filter-draft.ts";
+import { requiresValue } from "./filter-semantics.ts";
 import { getDefaultOperator, operatorSkipsValue } from "./operators.ts";
 
 type Phase = "idle" | "column" | "operator" | "value";
@@ -34,7 +38,8 @@ export function useInlineFilterFlow(opts: {
 		[selectedColumnId, getColumn],
 	);
 
-	const needsNullValue = operatorSkipsValue(selectedOperator ?? "eq");
+	const needsNullValue =
+		selectedOperator !== null && !requiresValue(selectedOperator);
 
 	const reset = useCallback(() => {
 		setPhase("idle");
@@ -47,35 +52,32 @@ export function useInlineFilterFlow(opts: {
 	const commit = useCallback(() => {
 		if (!(selectedColumnId && selectedOperator)) return;
 
-		const value = needsNullValue ? null : pendingValue;
-		const hasValue =
-			needsNullValue || (value !== undefined && value !== null && value !== "");
+		const result = commitDraft(
+			selectedColumnId,
+			selectedOperator,
+			pendingValue,
+			getColumn(selectedColumnId)?.type,
+		);
+		if (!result.ok) return;
 
-		if (!hasValue) return;
-
-		onAdd({
-			columnId: selectedColumnId,
-			combinator: "and",
-			id: nanoid(),
-			operator: selectedOperator,
-			value,
-		});
+		onAdd(result.condition);
 		reset();
 	}, [
 		selectedColumnId,
 		selectedOperator,
-		needsNullValue,
 		pendingValue,
+		getColumn,
 		onAdd,
 		reset,
 	]);
 
-	// Auto-commit for isEmpty/isNotEmpty operators
-	useEffect(() => {
-		if (phase === "value" && needsNullValue) {
-			commit();
-		}
-	}, [phase, needsNullValue, commit]);
+	const commitNullary = useCallback(
+		(columnId: string, operator: FilterOperator) => {
+			onAdd(buildDraftCondition(columnId, operator, null));
+			reset();
+		},
+		[onAdd, reset],
+	);
 
 	const handleInputChange = useCallback(
 		(value: string) => {
@@ -91,20 +93,13 @@ export function useInlineFilterFlow(opts: {
 		[phase],
 	);
 
-	const enterNullValuePhase = useCallback((operator: FilterOperator) => {
-		setSelectedOperator(operator);
-		setPendingValue(null);
-		setPhase("value");
-		setInputValue("");
-	}, []);
-
 	const handleColumnSelect = useCallback(
 		(columnId: string) => {
 			setSelectedColumnId(columnId);
 			const col = getColumn(columnId);
 			if (!col) return;
 
-			if (columnId === SEARCH_COLUMN_ID) {
+			if (isSearchDraft(columnId)) {
 				setSelectedOperator("contains");
 				setPhase("value");
 				setInputValue("");
@@ -114,7 +109,7 @@ export function useInlineFilterFlow(opts: {
 			const defaultOp = col.operators?.[0] ?? getDefaultOperator(col.type);
 
 			if (operatorSkipsValue(defaultOp)) {
-				enterNullValuePhase(defaultOp);
+				commitNullary(columnId, defaultOp);
 				return;
 			}
 
@@ -122,7 +117,7 @@ export function useInlineFilterFlow(opts: {
 			setPhase("operator");
 			setInputValue("");
 		},
-		[getColumn, enterNullValuePhase],
+		[getColumn, commitNullary],
 	);
 
 	const handleQuickValueSelect = useCallback(
@@ -130,14 +125,10 @@ export function useInlineFilterFlow(opts: {
 			const col = getColumn(columnId);
 			if (!col) return;
 
-			onAdd({
-				columnId,
-				combinator: "and",
-				id: nanoid(),
-				operator: col.type === "multiEnum" ? "includeAny" : "eq",
-				value:
-					col.type === "enum" || col.type === "multiEnum" ? [value] : value,
-			});
+			const operator: FilterOperator =
+				col.type === "multiEnum" ? "includeAny" : "eq";
+			const commitValue = operator === "includeAny" ? [value] : value;
+			onAdd(buildDraftCondition(columnId, operator, commitValue));
 			reset();
 		},
 		[getColumn, onAdd, reset],
@@ -145,8 +136,9 @@ export function useInlineFilterFlow(opts: {
 
 	const handleOperatorSelect = useCallback(
 		(operator: FilterOperator) => {
+			if (!selectedColumnId) return;
 			if (operatorSkipsValue(operator)) {
-				enterNullValuePhase(operator);
+				commitNullary(selectedColumnId, operator);
 				return;
 			}
 
@@ -155,7 +147,7 @@ export function useInlineFilterFlow(opts: {
 			setPhase("value");
 			setInputValue("");
 		},
-		[enterNullValuePhase],
+		[selectedColumnId, commitNullary],
 	);
 
 	return {

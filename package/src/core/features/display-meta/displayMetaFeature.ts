@@ -50,8 +50,8 @@ export const displayMetaFeature: TableFeature = {
 	}),
 	getInitialState: (initialState) => ({
 		...initialState,
-		density: DEFAULT_DENSITY,
-		viewType: DEFAULT_VIEW_TYPE,
+		density: initialState.density ?? DEFAULT_DENSITY,
+		viewType: initialState.viewType ?? DEFAULT_VIEW_TYPE,
 	}),
 };
 

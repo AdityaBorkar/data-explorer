@@ -1,6 +1,6 @@
 import { filterConditionSchema } from "../core/features/data-filtering/filter-condition-schema.ts";
 import { groupConditions } from "../core/features/data-filtering/filter-grouping.ts";
-import { validateOperatorValue } from "../core/features/data-filtering/filter-validation.ts";
+import { validateFilterValue } from "../core/features/data-filtering/filter-semantics.ts";
 import { getOperatorsForType } from "../core/features/data-filtering/operators.ts";
 import type {
 	ColumnConfig,
@@ -8,7 +8,7 @@ import type {
 	FilterGroup,
 	FilterOperator,
 } from "../core/types.ts";
-import { SEARCH_COLUMN_ID } from "../core/types.ts";
+import { isFilterGroup, isSearchColumn } from "../core/types.ts";
 
 export interface ParameterizedSql {
 	params: unknown[];
@@ -44,6 +44,15 @@ function colRef(columnName: string, tableAlias: string | undefined): string {
 	return tableAlias ? `${quoteIdent(tableAlias)}.${quoted}` : quoted;
 }
 
+/** Escape LIKE wildcards so user input matches literally. */
+function escapeLikePattern(value: string): string {
+	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function likePattern(value: string, wrap: (v: string) => string): string {
+	return wrap(escapeLikePattern(value));
+}
+
 function validateConditions(
 	conditions: FilterCondition[],
 	columnsConfig: ColumnConfig[],
@@ -54,6 +63,16 @@ function validateConditions(
 		const parsed = filterConditionSchema.safeParse(cond);
 		if (!parsed.success) {
 			throw new Error(`Invalid filter condition: ${parsed.error.message}`);
+		}
+
+		if (isSearchColumn(cond.columnId)) {
+			if (cond.operator !== "contains") {
+				throw new Error(`Invalid operator "${cond.operator}" for search`);
+			}
+			if (typeof cond.value !== "string" || cond.value.length === 0) {
+				throw new Error(`Search filter requires a non-empty string value`);
+			}
+			continue;
 		}
 
 		const colConfig = columnMap.get(cond.columnId);
@@ -69,14 +88,20 @@ function validateConditions(
 			);
 		}
 
-		validateOperatorValue(cond.operator, cond.value, colConfig.type);
+		const error = validateFilterValue(
+			cond.operator,
+			cond.value,
+			colConfig.type,
+		);
+		if (error) throw new Error(error);
 	}
 }
 
 type SqlBuilder = (col: string, value: unknown, ctx: BuildContext) => string;
 
 function arrayPlaceholders(value: unknown, ctx: BuildContext): string {
-	return (value as string[]).map((v) => pushParam(ctx, v)).join(", ");
+	const arr = value as unknown[];
+	return arr.map((v) => pushParam(ctx, v)).join(", ");
 }
 
 function arrayOp(
@@ -85,6 +110,7 @@ function arrayOp(
 	ctx: BuildContext,
 	op: "@>" | "&&",
 ): string {
+	// Postgres text[] containment/overlap.
 	return `${col} ${op} ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
 }
 
@@ -103,7 +129,7 @@ function betweenOp(
 	ctx: BuildContext,
 	not: boolean,
 ): string {
-	const [min, max] = value as [number | string, number | string];
+	const [min, max] = value as [unknown, unknown];
 	const keyword = not ? "NOT BETWEEN" : "BETWEEN";
 	return `${col} ${keyword} ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
 }
@@ -116,7 +142,29 @@ function likeOp(
 	not: boolean,
 ): string {
 	const keyword = not ? "NOT ILIKE" : "ILIKE";
-	return `${col} ${keyword} ${pushParam(ctx, pattern(value as string))}`;
+	return `${col} ${keyword} ${pushParam(ctx, likePattern(value as string, pattern))} ESCAPE '\\'`;
+}
+
+const COMPARISON_OPS: Record<string, string> = {
+	eq: "=",
+	gt: ">",
+	gte: ">=",
+	lt: "<",
+	lte: "<=",
+	neq: "!=",
+};
+
+const ARRAY_OPS: Record<string, "@>" | "&&"> = {
+	exclude: "@>",
+	excludeAll: "@>",
+	excludeAny: "&&",
+	include: "@>",
+	includeAll: "@>",
+	includeAny: "&&",
+};
+
+function comparisonBuilder(op: string): SqlBuilder {
+	return (col, value, ctx) => `${col} ${op} ${pushParam(ctx, value)}`;
 }
 
 const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
@@ -124,21 +172,27 @@ const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
 	contains: (col, value, ctx) =>
 		likeOp(col, value, ctx, (v) => `%${v}%`, false),
 	endsWith: (col, value, ctx) => likeOp(col, value, ctx, (v) => `%${v}`, false),
-	eq: (col, value, ctx) => `${col} = ${pushParam(ctx, value)}`,
-	exclude: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
-	excludeAll: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
-	excludeAny: (col, value, ctx) => notArrayOp(col, value, ctx, "&&"),
-	gt: (col, value, ctx) => `${col} > ${pushParam(ctx, value)}`,
-	gte: (col, value, ctx) => `${col} >= ${pushParam(ctx, value)}`,
+	eq: comparisonBuilder(COMPARISON_OPS["eq"] as string),
+	exclude: (col, value, ctx) =>
+		notArrayOp(col, value, ctx, ARRAY_OPS["exclude"] as "@>"),
+	excludeAll: (col, value, ctx) =>
+		notArrayOp(col, value, ctx, ARRAY_OPS["excludeAll"] as "@>"),
+	excludeAny: (col, value, ctx) =>
+		notArrayOp(col, value, ctx, ARRAY_OPS["excludeAny"] as "&&"),
+	gt: comparisonBuilder(COMPARISON_OPS["gt"] as string),
+	gte: comparisonBuilder(COMPARISON_OPS["gte"] as string),
 	in: (col, value, ctx) => `${col} IN (${arrayPlaceholders(value, ctx)})`,
-	include: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
-	includeAll: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
-	includeAny: (col, value, ctx) => arrayOp(col, value, ctx, "&&"),
+	include: (col, value, ctx) =>
+		arrayOp(col, value, ctx, ARRAY_OPS["include"] as "@>"),
+	includeAll: (col, value, ctx) =>
+		arrayOp(col, value, ctx, ARRAY_OPS["includeAll"] as "@>"),
+	includeAny: (col, value, ctx) =>
+		arrayOp(col, value, ctx, ARRAY_OPS["includeAny"] as "&&"),
 	isEmpty: (col) => `${col} IS NULL`,
 	isNotEmpty: (col) => `${col} IS NOT NULL`,
-	lt: (col, value, ctx) => `${col} < ${pushParam(ctx, value)}`,
-	lte: (col, value, ctx) => `${col} <= ${pushParam(ctx, value)}`,
-	neq: (col, value, ctx) => `${col} != ${pushParam(ctx, value)}`,
+	lt: comparisonBuilder(COMPARISON_OPS["lt"] as string),
+	lte: comparisonBuilder(COMPARISON_OPS["lte"] as string),
+	neq: comparisonBuilder(COMPARISON_OPS["neq"] as string),
 	notBetween: (col, value, ctx) => betweenOp(col, value, ctx, true),
 	notContains: (col, value, ctx) =>
 		likeOp(col, value, ctx, (v) => `%${v}%`, true),
@@ -154,11 +208,8 @@ function buildConditionSql(
 	columnsConfig: ColumnConfig[],
 	ctx: BuildContext,
 	tableAlias: string | undefined,
-): string | undefined {
-	const colConfig = columnsConfig.find((c) => c.id === condition.columnId);
-	if (!colConfig) return undefined;
-
-	if (condition.columnId === SEARCH_COLUMN_ID) {
+): string {
+	if (isSearchColumn(condition.columnId)) {
 		return buildSearchSql(
 			condition.value as string,
 			columnMapping,
@@ -169,7 +220,9 @@ function buildConditionSql(
 	}
 
 	const columnName = columnMapping[condition.columnId];
-	if (!columnName) return undefined;
+	if (!columnName) {
+		throw new Error(`Missing column mapping for "${condition.columnId}"`);
+	}
 
 	const col = colRef(columnName, tableAlias);
 	const builder = OPERATOR_SQL_BUILDERS[condition.operator];
@@ -188,25 +241,28 @@ function buildSearchSql(
 	tableAlias: string | undefined,
 ): string {
 	const searchableCols = columnsConfig.filter(
-		(c) => c.searchable && c.id !== SEARCH_COLUMN_ID,
+		(c) => c.searchable && !isSearchColumn(c.id),
 	);
 
-	const conditions = searchableCols.flatMap((colConfig) => {
+	const conditions = searchableCols.map((colConfig) => {
 		const columnName = columnMapping[colConfig.id];
-		if (!columnName) return [];
+		if (!columnName) {
+			throw new Error(`Missing column mapping for "${colConfig.id}"`);
+		}
 		const col = colRef(columnName, tableAlias);
-		return [`${col} ILIKE ${pushParam(ctx, `%${searchTerm}%`)}`];
+		return `${col} ILIKE ${pushParam(
+			ctx,
+			likePattern(searchTerm, (v) => `%${v}%`),
+		)} ESCAPE '\\'`;
 	});
 
 	if (conditions.length === 0) {
-		return "1 = 0";
+		throw new Error(`Search filter requires at least one searchable column`);
 	}
 
-	if (conditions.length === 1) {
-		return conditions[0] as string;
-	}
-
-	return `(${conditions.join(" OR ")})`;
+	return conditions.length === 1
+		? (conditions[0] as string)
+		: `(${conditions.join(" OR ")})`;
 }
 
 function buildGroupSql(
@@ -215,25 +271,18 @@ function buildGroupSql(
 	columnsConfig: ColumnConfig[],
 	ctx: BuildContext,
 	tableAlias: string | undefined,
-): string | undefined {
+): string {
 	const sqls: string[] = [];
 
 	for (const item of group.conditions) {
-		const sub =
-			"conditions" in item
-				? buildGroupSql(item, columnMapping, columnsConfig, ctx, tableAlias)
-				: buildConditionSql(
-						item,
-						columnMapping,
-						columnsConfig,
-						ctx,
-						tableAlias,
-					);
-		if (sub) sqls.push(sub);
+		const sub = isFilterGroup(item)
+			? buildGroupSql(item, columnMapping, columnsConfig, ctx, tableAlias)
+			: buildConditionSql(item, columnMapping, columnsConfig, ctx, tableAlias);
+		sqls.push(sub);
 	}
 
-	if (sqls.length === 0) return undefined;
-	if (sqls.length === 1) return sqls[0];
+	if (sqls.length === 0) throw new Error(`Empty filter group`);
+	if (sqls.length === 1) return sqls[0] as string;
 
 	const joiner = group.combinator === "or" ? " OR " : " AND ";
 	return `(${sqls.join(joiner)})`;
@@ -264,8 +313,6 @@ export function buildFilterWhere(
 		ctx,
 		tableAlias,
 	);
-
-	if (!sql) return undefined;
 
 	return { params: [...ctx.params], sql };
 }

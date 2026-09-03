@@ -31,7 +31,7 @@ export function useView({
 	const queryClient = useQueryClient();
 	const [activeViewId, setActiveViewId] = useState<string | null>(null);
 
-	const { data: views } = useQuery({
+	const { data: views, isLoading: viewsLoading } = useQuery({
 		enabled: !!viewAdapter,
 		queryFn: () => viewAdapter?.listViews(domain) ?? [],
 		queryKey: ["data-explorer", "views", domain],
@@ -49,6 +49,8 @@ export function useView({
 
 	const applySnapshot = useCallback(
 		(refine: FilterCondition[], display: FilterViewDisplay) => {
+			// One logical transaction: filters + all display slices together so
+			// subscribers never observe a torn intermediate state.
 			table.setDataFilters(refine);
 			applyDisplaySnapshot(
 				mergeDisplay(defaultDisplay, display),
@@ -62,42 +64,54 @@ export function useView({
 	const applyView = useCallback(
 		(viewId: string | null) => {
 			setActiveViewId(viewId);
-			const view = viewId ? views?.find((v) => v.id === viewId) : undefined;
-			if (!view) {
+			if (!viewId) {
 				resetToDefault();
+				return;
+			}
+			// Never wipe unpersisted work while views are still loading.
+			if (viewAdapter && views === undefined) return;
+			const view = views?.find((v) => v.id === viewId);
+			if (!view) {
+				// Unknown id after load: reset; during load we already returned.
+				if (!viewsLoading) resetToDefault();
 				return;
 			}
 			applySnapshot(view.refine, view.display);
 		},
-		[views, resetToDefault, applySnapshot],
+		[views, viewsLoading, viewAdapter, resetToDefault, applySnapshot],
 	);
 
-	const saveView = useCallback(async () => {
-		if (!(activeViewId && viewAdapter)) return;
+	const saveView = useCallback(async (): Promise<boolean> => {
+		if (!(activeViewId && viewAdapter)) return false;
 		const display = toDisplaySnapshot(table, columnsConfig);
 		await viewAdapter.updateView(activeViewId, {
 			display,
 			refine: table.state.dataFilters,
 		});
-		queryClient.invalidateQueries({
+		await queryClient.invalidateQueries({
 			queryKey: ["data-explorer", "views", domain],
 		});
+		return true;
 	}, [activeViewId, columnsConfig, domain, queryClient, table, viewAdapter]);
 
 	const resetToSaved = useCallback(() => {
 		if (!activeView) {
+			if (viewAdapter && views === undefined) return;
 			resetToDefault();
 			return;
 		}
 		applySnapshot(activeView.refine, activeView.display);
-	}, [activeView, resetToDefault, applySnapshot]);
+	}, [activeView, views, viewAdapter, resetToDefault, applySnapshot]);
 
-	return {
-		activeView,
-		activeViewId,
-		applyView,
-		resetToSaved,
-		saveView,
-		views,
-	};
+	return useMemo(
+		() => ({
+			activeView,
+			activeViewId,
+			applyView,
+			resetToSaved,
+			saveView,
+			views,
+		}),
+		[activeView, activeViewId, applyView, resetToSaved, saveView, views],
+	);
 }

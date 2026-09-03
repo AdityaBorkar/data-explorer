@@ -62,8 +62,10 @@ export type FilterOperator =
 
 export const SEARCH_COLUMN_ID = "_search" as const;
 
-export function isSearchColumn(col: { id: string }): boolean {
-	return col.id === SEARCH_COLUMN_ID;
+export function isSearchColumn(col: { id: string } | string): boolean {
+	return typeof col === "string"
+		? col === SEARCH_COLUMN_ID
+		: col.id === SEARCH_COLUMN_ID;
 }
 
 export interface DataExplorerColumnMeta<TIcon = unknown> {
@@ -98,6 +100,17 @@ export interface FilterGroup {
 	id: string;
 }
 
+export function isFilterGroup(
+	item: FilterCondition | FilterGroup,
+): item is FilterGroup {
+	return (
+		typeof item === "object" &&
+		item !== null &&
+		"conditions" in item &&
+		Array.isArray((item as FilterGroup).conditions)
+	);
+}
+
 export interface FilterViewDisplay {
 	columnWidths: Record<string, number>;
 	density: Density;
@@ -124,10 +137,12 @@ export interface DataExplorerContextType<TItem = unknown> {
 		columnId: string;
 	}) => void;
 	view: {
+		activeView?: View | null;
 		activeViewId: string | null;
 		applyView: (viewId: string | null) => void;
 		resetToSaved: () => void;
-		saveView: () => void;
+		saveView: () => Promise<boolean>;
+		views?: View[];
 	};
 }
 
@@ -144,19 +159,23 @@ export interface ListQueryResult<TItem> {
 export interface SerializedFilterCondition {
 	b: "and" | "or";
 	c: string;
-	o: string;
+	i: string;
+	o: FilterOperator;
 	v: unknown;
 }
 
-export type RefineOptions = {
-	columnSizing: ColumnSizingState;
-	columnVisibility: ColumnVisibilityState;
+export type DataRefineOptions = {
 	cursor?: string;
-	density: Density;
 	filters: FilterCondition[];
 	grouping: GroupingState;
 	limit: number;
 	orderBy: { columnId: string; direction: "asc" | "desc" };
 	sorting: SortingState;
+};
+
+export type RefineOptions = DataRefineOptions & {
+	columnSizing: ColumnSizingState;
+	columnVisibility: ColumnVisibilityState;
+	density: Density;
 	viewType: ViewType;
 };

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import type { FilterOperator } from "../../types.ts";
-import { isValidOperatorValue } from "./filter-validation.ts";
+import { validateFilterValue } from "./filter-semantics.ts";
 import { FILTER_OPERATORS } from "./operators.ts";
 
 export const filterConditionSchema = z
@@ -13,7 +12,10 @@ export const filterConditionSchema = z
 		value: z.unknown(),
 	})
 	.refine(
-		(data: { operator: string; value: unknown }) =>
-			isValidOperatorValue(data.operator as FilterOperator, data.value),
-		{ message: "Invalid value for operator" },
+		// Typeless check: column-type-specific rules (e.g. number tuples)
+		// are enforced by `validateFilterValue` callers that know the type.
+		(data) => validateFilterValue(data.operator, data.value) === undefined,
+		{
+			message: "Invalid value for operator",
+		},
 	);

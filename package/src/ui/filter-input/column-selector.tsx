@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { ColumnConfig } from "../../core/types.ts";
-import { SEARCH_COLUMN_ID } from "../../core/types.ts";
+import { isSearchColumn } from "../../core/types.ts";
 import {
 	Command,
 	CommandEmpty,
@@ -101,7 +101,7 @@ export function ColumnSelector({
 										<Icon className="size-4 shrink-0" strokeWidth={2.25} />
 									)}
 									<span>{col.displayName}</span>
-									{col.id === SEARCH_COLUMN_ID && (
+									{isSearchColumn(col) && (
 										<span className="ml-auto text-muted-foreground text-xs">
 											Search all
 										</span>

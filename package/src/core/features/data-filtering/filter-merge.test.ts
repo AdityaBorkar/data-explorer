@@ -14,19 +14,46 @@ function cond(
 	operator: "eq" | "contains",
 	value: unknown,
 	combinator: "and" | "or",
+	id?: string,
 ): FilterCondition {
 	return {
 		columnId,
 		combinator,
-		id: `${columnId}-${operator}`,
+		id: id ?? `${columnId}-${operator}-${String(value)}`,
 		operator,
 		value,
 	};
 }
 
 describe("filterKey", () => {
-	it("returns columnId::operator", () => {
-		expect(filterKey(cond("name", "eq", "foo", "and"))).toBe("name::eq");
+	it("includes column, operator, combinator, and stable value hash", () => {
+		expect(filterKey(cond("name", "eq", "foo", "and"))).toBe(
+			'name::eq::and::"foo"',
+		);
+	});
+
+	it("distinguishes different values", () => {
+		expect(filterKey(cond("name", "eq", "foo", "and"))).not.toBe(
+			filterKey(cond("name", "eq", "bar", "and")),
+		);
+	});
+
+	it("is key-order stable for object values", () => {
+		const a: FilterCondition = {
+			columnId: "meta",
+			combinator: "and",
+			id: "a",
+			operator: "eq",
+			value: { x: 1, y: 2 },
+		};
+		const b: FilterCondition = {
+			columnId: "meta",
+			combinator: "and",
+			id: "b",
+			operator: "eq",
+			value: { x: 1, y: 2 },
+		};
+		expect(filterKey(a)).toBe(filterKey(b));
 	});
 });
 
@@ -76,9 +103,9 @@ describe("mergeFilters", () => {
 		expect(result[0]?.columnId).toBe("name");
 	});
 
-	it("overrides matching key", () => {
-		const base = [cond("name", "eq", "foo", "and")];
-		const overrides = [cond("name", "eq", "bar", "and")];
+	it("overrides by id", () => {
+		const base = [cond("name", "eq", "foo", "and", "same-id")];
+		const overrides = [cond("name", "eq", "bar", "and", "same-id")];
 		const result = mergeFilters(base, overrides);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.value).toBe("bar");
@@ -98,6 +125,16 @@ describe("mergeFilters", () => {
 		expect(result).toHaveLength(1);
 		expect(result[0]?.value).toBe("foo");
 	});
+
+	it("preserves duplicate column+operator conditions", () => {
+		const base = [
+			cond("name", "eq", "foo", "and", "id-1"),
+			cond("name", "eq", "bar", "and", "id-2"),
+		];
+		const result = mergeFilters(base, []);
+		expect(result).toHaveLength(2);
+		expect(result.map((c) => c.value)).toEqual(["foo", "bar"]);
+	});
 });
 
 describe("computeOverrides", () => {
@@ -109,8 +146,8 @@ describe("computeOverrides", () => {
 	});
 
 	it("returns changed conditions", () => {
-		const base = [cond("name", "eq", "foo", "and")];
-		const effective = [cond("name", "eq", "bar", "and")];
+		const base = [cond("name", "eq", "foo", "and", "same-id")];
+		const effective = [cond("name", "eq", "bar", "and", "same-id")];
 		const result = computeOverrides(base, effective);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.value).toBe("bar");
@@ -150,5 +187,11 @@ describe("mergeDisplay", () => {
 		expect(result.orderBy).toBe("name");
 		expect(result.orderType).toBe("desc");
 		expect(result.type).toBe("table");
+	});
+
+	it("respects type and groupBy overrides", () => {
+		const result = mergeDisplay(base, { groupBy: "status", type: "board" });
+		expect(result.type).toBe("board");
+		expect(result.groupBy).toBe("status");
 	});
 });

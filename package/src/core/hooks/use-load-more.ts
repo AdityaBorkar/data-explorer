@@ -8,34 +8,41 @@ export function useLoadMore(
 ) {
 	const threshold = options?.threshold ?? 200;
 	const observerRef = useRef<IntersectionObserver | null>(null);
+	const flagsRef = useRef({ fetchNextPage, hasNextPage, isFetchingNextPage });
+	flagsRef.current = { fetchNextPage, hasNextPage, isFetchingNextPage };
 
 	const triggerRef = useCallback(
 		(el: Element | null) => {
 			if (observerRef.current) {
 				observerRef.current.disconnect();
+				observerRef.current = null;
 			}
 
-			if (!(el && hasNextPage)) {
-				return;
-			}
+			if (!el) return;
 
 			observerRef.current = new IntersectionObserver(
 				(entries) => {
 					const entry = entries[0];
-					if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-						fetchNextPage();
+					const flags = flagsRef.current;
+					if (
+						entry?.isIntersecting &&
+						flags.hasNextPage &&
+						!flags.isFetchingNextPage
+					) {
+						flags.fetchNextPage();
 					}
 				},
-				{ rootMargin: `${threshold}px` },
+				{ rootMargin: `${threshold}px`, threshold: 0 },
 			);
 			observerRef.current.observe(el);
 		},
-		[fetchNextPage, hasNextPage, isFetchingNextPage, threshold],
+		[threshold],
 	);
 
 	useEffect(
 		() => () => {
 			observerRef.current?.disconnect();
+			observerRef.current = null;
 		},
 		[],
 	);

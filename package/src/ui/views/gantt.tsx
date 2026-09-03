@@ -1,27 +1,21 @@
 import { useMemo, useState } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
+import { parseDateValue } from "../filter-input/value-input.tsx";
 import { cn } from "../primitives/index.ts";
 
 type ZoomLevel = "day" | "week" | "month";
 
-const DAY_WIDTHS: Record<ZoomLevel, number> = {
-	day: 40,
-	month: 8,
-	week: 20,
+const ZOOM_CONFIG: Record<
+	ZoomLevel,
+	{ dayWidth: number; segmentDays: number; prefix: string }
+> = {
+	day: { dayWidth: 40, prefix: "D", segmentDays: 1 },
+	month: { dayWidth: 8, prefix: "M", segmentDays: 30 },
+	week: { dayWidth: 20, prefix: "W", segmentDays: 7 },
 };
 
-const SEGMENT_DAYS: Record<ZoomLevel, number> = {
-	day: 1,
-	month: 30,
-	week: 7,
-};
-
-const SEGMENT_PREFIX: Record<ZoomLevel, string> = {
-	day: "D",
-	month: "M",
-	week: "W",
-};
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 interface TimelineViewProps<TItem> {
 	getRowId: (item: TItem) => string;
@@ -29,16 +23,6 @@ interface TimelineViewProps<TItem> {
 		item: TItem,
 		meta: { width: number; left: number },
 	) => React.ReactNode;
-}
-
-function parseDate(v: unknown): Date | null {
-	if (!v) return null;
-	if (v instanceof Date) return v;
-	if (typeof v === "string" || typeof v === "number") {
-		const d = new Date(v);
-		return Number.isNaN(d.getTime()) ? null : d;
-	}
-	return null;
 }
 
 export function TimelineView<TItem>({
@@ -65,9 +49,9 @@ export function TimelineView<TItem>({
 			return { items: [], range: { end: new Date(), start: new Date() } };
 
 		const parsed = items.map((item) => {
-			const rec = item as Record<string, unknown>;
-			const start = parseDate(rec[startCol.id]);
-			const end = parseDate(rec[endCol.id]);
+			const rec = item as unknown as Record<string, unknown>;
+			const start = parseDateValue(rec[startCol.id]);
+			const end = parseDateValue(rec[endCol.id]);
 			return { end, item, start };
 		});
 
@@ -87,12 +71,17 @@ export function TimelineView<TItem>({
 		if (allDates.length === 0)
 			return { items: [], range: { end: new Date(), start: new Date() } };
 
-		const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
-		const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())));
+		let minTime = allDates[0]?.getTime() ?? 0;
+		let maxTime = minTime;
+		for (const d of allDates) {
+			const t = d.getTime();
+			if (t < minTime) minTime = t;
+			if (t > maxTime) maxTime = t;
+		}
 
-		const start = new Date(minDate);
+		const start = new Date(minTime);
 		start.setDate(start.getDate() - 7);
-		const end = new Date(maxDate);
+		const end = new Date(maxTime);
 		end.setDate(end.getDate() + 7);
 
 		const timelineItems = [
@@ -114,15 +103,14 @@ export function TimelineView<TItem>({
 	}, [items, startCol, endCol]);
 
 	const totalDays = Math.ceil(
-		(range.end.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24),
+		(range.end.getTime() - range.start.getTime()) / MS_PER_DAY,
 	);
-	const dayWidth = DAY_WIDTHS[zoom];
-	const segmentDays = SEGMENT_DAYS[zoom];
+	const { dayWidth, segmentDays, prefix } = ZOOM_CONFIG[zoom];
 	const segmentCount = Math.ceil(totalDays / segmentDays);
+	const rangeStart = range.start.getTime();
 
 	function getPosition(date: Date): number {
-		const days =
-			(date.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24);
+		const days = (date.getTime() - rangeStart) / MS_PER_DAY;
 		return days * dayWidth;
 	}
 
@@ -166,7 +154,7 @@ export function TimelineView<TItem>({
 								key={i}
 								style={{ width: segmentDays * dayWidth }}
 							>
-								{SEGMENT_PREFIX[zoom]}
+								{prefix}
 								{i + 1}
 							</div>
 						))}

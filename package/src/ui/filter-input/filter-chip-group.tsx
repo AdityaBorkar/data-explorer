@@ -1,16 +1,26 @@
+import { useMemo } from "react";
+
 import { groupConditions } from "../../core/features/data-filtering/filter-grouping.ts";
-import type { ColumnConfig, FilterCondition } from "../../core/types.ts";
+import type {
+	ColumnConfig,
+	FilterCondition,
+	FilterGroup,
+} from "../../core/types.ts";
+import { isFilterGroup } from "../../core/types.ts";
 import { FilterChip } from "./filter-chip.tsx";
 import { FilterCombinatorToggle } from "./filter-combinator-toggle.tsx";
 
-interface FilterChipGroupProps {
-	columnsConfig: ColumnConfig[];
-	conditions: FilterCondition[];
-	focusedChipIndex: number | null;
+export interface FilterChipGroupCallbacks {
 	handleCombinatorChange: (id: string, combinator: "and" | "or") => void;
 	removeCondition: (id: string) => void;
 	setFocusedChipIndex: (index: number | null) => void;
 	updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
+}
+
+interface FilterChipGroupProps extends FilterChipGroupCallbacks {
+	columnsConfig: ColumnConfig[];
+	conditions: FilterCondition[];
+	focusedChipIndex: number | null;
 }
 
 export function FilterChipGroup({
@@ -22,10 +32,13 @@ export function FilterChipGroup({
 	setFocusedChipIndex,
 	handleCombinatorChange,
 }: FilterChipGroupProps) {
-	if (conditions.length === 0) return null;
+	const group = useMemo(() => groupConditions(conditions), [conditions]);
+	const indexById = useMemo(
+		() => new Map(conditions.map((c, i) => [c.id, i] as const)),
+		[conditions],
+	);
 
-	const group = groupConditions(conditions);
-	const indexById = new Map(conditions.map((c, i) => [c.id, i] as const));
+	if (conditions.length === 0) return null;
 
 	if (group.conditions.length <= 1 || group.combinator === "and") {
 		return (
@@ -58,31 +71,20 @@ export function FilterChipGroup({
 						</span>
 					) : null;
 
-				if ("conditions" in item) {
-					const bracketConditions = item.conditions.filter(
-						(c): c is FilterCondition => !("conditions" in c),
-					);
-
+				if (isFilterGroup(item)) {
 					return (
-						<span key={`group-${item.id}`}>
-							{orSeparator}
-							<span className="text-muted-foreground text-xs">(</span>
-							{bracketConditions.map((cond, i) => (
-								<ChipWithCombinator
-									chipIndex={indexById.get(cond.id) ?? -1}
-									columnsConfig={columnsConfig}
-									condition={cond}
-									focusedChipIndex={focusedChipIndex}
-									handleCombinatorChange={handleCombinatorChange}
-									key={cond.id}
-									removeCondition={removeCondition}
-									setFocusedChipIndex={setFocusedChipIndex}
-									showCombinator={i > 0}
-									updateCondition={updateCondition}
-								/>
-							))}
-							<span className="text-muted-foreground text-xs">)</span>
-						</span>
+						<AndBracket
+							columnsConfig={columnsConfig}
+							focusedChipIndex={focusedChipIndex}
+							group={item}
+							handleCombinatorChange={handleCombinatorChange}
+							indexById={indexById}
+							key={item.id}
+							orSeparator={orSeparator}
+							removeCondition={removeCondition}
+							setFocusedChipIndex={setFocusedChipIndex}
+							updateCondition={updateCondition}
+						/>
 					);
 				}
 
@@ -104,6 +106,64 @@ export function FilterChipGroup({
 				);
 			})}
 		</>
+	);
+}
+
+function AndBracket({
+	group,
+	columnsConfig,
+	focusedChipIndex,
+	handleCombinatorChange,
+	indexById,
+	orSeparator,
+	removeCondition,
+	setFocusedChipIndex,
+	updateCondition,
+}: FilterChipGroupCallbacks & {
+	columnsConfig: ColumnConfig[];
+	focusedChipIndex: number | null;
+	group: FilterGroup;
+	indexById: Map<string, number>;
+	orSeparator: React.ReactNode;
+}) {
+	return (
+		<span>
+			{orSeparator}
+			<span className="text-muted-foreground text-xs">(</span>
+			{group.conditions.map((child, i) => {
+				if (isFilterGroup(child)) {
+					return (
+						<AndBracket
+							columnsConfig={columnsConfig}
+							focusedChipIndex={focusedChipIndex}
+							group={child}
+							handleCombinatorChange={handleCombinatorChange}
+							indexById={indexById}
+							key={child.id}
+							orSeparator={null}
+							removeCondition={removeCondition}
+							setFocusedChipIndex={setFocusedChipIndex}
+							updateCondition={updateCondition}
+						/>
+					);
+				}
+				return (
+					<ChipWithCombinator
+						chipIndex={indexById.get(child.id) ?? -1}
+						columnsConfig={columnsConfig}
+						condition={child}
+						focusedChipIndex={focusedChipIndex}
+						handleCombinatorChange={handleCombinatorChange}
+						key={child.id}
+						removeCondition={removeCondition}
+						setFocusedChipIndex={setFocusedChipIndex}
+						showCombinator={i > 0}
+						updateCondition={updateCondition}
+					/>
+				);
+			})}
+			<span className="text-muted-foreground text-xs">)</span>
+		</span>
 	);
 }
 

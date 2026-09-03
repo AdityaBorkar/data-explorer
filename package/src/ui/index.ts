@@ -16,4 +16,5 @@ export {
 	SelectionCheckbox,
 } from "./selection-checkbox.tsx";
 export { BoardView } from "./views/board";
+export { TimelineView } from "./views/gantt";
 export { VirtualTable } from "./views/table";

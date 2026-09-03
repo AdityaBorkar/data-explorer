@@ -40,8 +40,15 @@ describe("serializeFilters / deserializeFilters", () => {
 		const json = serializeFilters(conditions);
 		const result = deserializeFilters(json);
 
-		expect(result[0]?.id).not.toBe("test-id");
-		expect(result[0]?.id).toBeTruthy();
+		// ids are preserved when serialized
+		expect(result[0]?.id).toBe("test-id");
+
+		const withoutId = JSON.stringify([
+			{ b: "and", c: "name", o: "eq", v: "foo" },
+		]);
+		const fallback = deserializeFilters(withoutId);
+		expect(fallback[0]?.id).toBeTruthy();
+		expect(fallback[0]?.id).not.toBe("test-id");
 	});
 
 	it("handles null values (isEmpty)", () => {
@@ -134,6 +141,8 @@ describe("serializeDisplay / deserializeDisplay", () => {
 		expect(result.orderType).toBe("desc");
 		expect(result.fields).toEqual(["name", "slug"]);
 		expect(result.density).toBe("comfortable");
+		expect(result.type).toBe("table");
+		expect(result.groupBy).toBeNull();
 	});
 
 	it("overrides individual display params", () => {
@@ -143,6 +152,8 @@ describe("serializeDisplay / deserializeDisplay", () => {
 		params.set("cols", "name,legalName,slug");
 		params.set("density", "compact");
 		params.set("widths", JSON.stringify({ name: 200 }));
+		params.set("type", "board");
+		params.set("groupBy", "status");
 
 		const result = deserializeDisplay(params, defaults);
 
@@ -151,6 +162,8 @@ describe("serializeDisplay / deserializeDisplay", () => {
 		expect(result.fields).toEqual(["name", "legalName", "slug"]);
 		expect(result.density).toBe("compact");
 		expect(result.columnWidths).toEqual({ name: 200 });
+		expect(result.type).toBe("board");
+		expect(result.groupBy).toBe("status");
 	});
 
 	it("falls back to defaults for missing params", () => {

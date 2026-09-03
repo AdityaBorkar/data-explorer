@@ -1,12 +1,26 @@
 import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { type CSSProperties, useCallback, useMemo } from "react";
+import type { CSSProperties } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
 
 interface BoardViewProps<TItem> {
 	getRowId: (item: TItem) => string;
 	renderCard?: (item: TItem, meta: { isDragging: boolean }) => React.ReactNode;
+}
+
+const UNGROUPED_KEY = "__ungrouped";
+
+function readGroupValue<TItem>(
+	item: TItem,
+	groupBy: string | null,
+): string | null {
+	if (!groupBy) return null;
+	const rec = item as unknown as Record<string, unknown>;
+	const v = rec[groupBy];
+	if (v === null || v === undefined) return null;
+	return String(v);
 }
 
 export function BoardView<TItem>({
@@ -27,18 +41,23 @@ export function BoardView<TItem>({
 	const columns = useMemo(() => groupByColumn?.options ?? [], [groupByColumn]);
 
 	const groupedItems = useMemo(() => {
-		const groups: Record<string, TItem[]> = {};
-		for (const col of columns) {
-			groups[col.value] = [];
-		}
+		const groups = new Map<string, TItem[]>();
+		for (const col of columns) groups.set(col.value, []);
+		groups.set(UNGROUPED_KEY, []);
 		for (const item of items) {
-			const groupValue = (item as Record<string, unknown>)[groupBy ?? ""];
-			const key = String(groupValue ?? "");
-			if (!groups[key]) groups[key] = [];
-			groups[key].push(item);
+			const key = readGroupValue(item, groupBy) ?? UNGROUPED_KEY;
+			const list = groups.get(key);
+			if (list) list.push(item);
+			else groups.set(key, [item]);
 		}
 		return groups;
 	}, [items, columns, groupBy]);
+
+	const visibleColumns = useMemo(() => {
+		const ungrouped = groupedItems.get(UNGROUPED_KEY) ?? [];
+		if (ungrouped.length === 0) return columns;
+		return [...columns, { label: "Ungrouped", value: UNGROUPED_KEY }];
+	}, [columns, groupedItems]);
 
 	const handleDragEnd = useCallback(
 		(result: DropResult) => {
@@ -69,7 +88,7 @@ export function BoardView<TItem>({
 	return (
 		<DragDropContext onDragEnd={handleDragEnd}>
 			<div className="flex h-full gap-4 overflow-x-auto p-4">
-				{columns.map((col) => (
+				{visibleColumns.map((col) => (
 					<div className="flex w-72 shrink-0 flex-col" key={col.value}>
 						<div className="mb-2 font-medium text-sm">{col.label}</div>
 						<Droppable droppableId={col.value}>
@@ -84,7 +103,7 @@ export function BoardView<TItem>({
 											: undefined,
 									}}
 								>
-									{(groupedItems[col.value] ?? []).map((item, index) => {
+									{(groupedItems.get(col.value) ?? []).map((item, index) => {
 										const id = getRowId(item);
 										return (
 											<Draggable draggableId={id} index={index} key={id}>
@@ -96,7 +115,7 @@ export function BoardView<TItem>({
 															ref={dragProvided.innerRef}
 															{...draggableProps}
 															{...dragProvided.dragHandleProps}
-															style={style as CSSProperties}
+															style={style as CSSProperties | undefined}
 														>
 															{renderCard ? (
 																renderCard(item, {
@@ -105,9 +124,8 @@ export function BoardView<TItem>({
 															) : (
 																<div className="rounded-md border bg-card p-3 text-sm shadow-xs">
 																	{String(
-																		(item as Record<string, unknown>)[
-																			groupByColumn.id
-																		] ?? id,
+																		readGroupValue(item, groupByColumn.id) ??
+																			id,
 																	)}
 																</div>
 															)}

@@ -1,0 +1,122 @@
+import { describe, expect, it } from "vitest";
+
+import type { ColumnConfig } from "../../types.ts";
+import {
+	buildDraftCondition,
+	commitDraft,
+	editorKind,
+	formatFilterValue,
+	isSearchDraft,
+} from "./filter-draft.ts";
+
+function column(overrides: Partial<ColumnConfig> = {}): ColumnConfig {
+	return { displayName: "Name", id: "name", type: "string", ...overrides };
+}
+
+describe("commitDraft", () => {
+	it("commits valued operators with column type validation", () => {
+		const result = commitDraft("age", "between", [1, 2], "number");
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.condition.columnId).toBe("age");
+			expect(result.condition.operator).toBe("between");
+			expect(result.condition.value).toEqual([1, 2]);
+			expect(result.condition.combinator).toBe("and");
+			expect(result.condition.id).toBeTruthy();
+		}
+	});
+
+	it("blocks blank values", () => {
+		expect(commitDraft("name", "eq", "").ok).toBe(false);
+		expect(commitDraft("name", "eq", undefined).ok).toBe(false);
+		expect(commitDraft("tags", "in", []).ok).toBe(false);
+	});
+
+	it("blocks values that fail type validation", () => {
+		const result = commitDraft("age", "between", ["a", "b"], "number");
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toMatch(/number, number/);
+	});
+
+	it("commits nullary operators to null", () => {
+		const result = commitDraft("name", "isEmpty", undefined, "string");
+		expect(result.ok).toBe(true);
+		if (result.ok) expect(result.condition.value).toBeNull();
+	});
+});
+
+describe("buildDraftCondition", () => {
+	it("builds an and-combined condition with an id", () => {
+		const cond = buildDraftCondition("name", "eq", "x");
+		expect(cond).toMatchObject({
+			columnId: "name",
+			combinator: "and",
+			operator: "eq",
+			value: "x",
+		});
+		expect(cond.id).toBeTruthy();
+	});
+});
+
+describe("isSearchDraft", () => {
+	it("detects the global search column without string compares at call sites", () => {
+		expect(isSearchDraft("_search")).toBe(true);
+		expect(isSearchDraft("name")).toBe(false);
+	});
+});
+
+describe("editorKind", () => {
+	it("routes nullary, search, range, multi, single", () => {
+		expect(editorKind("isEmpty", column())).toBe("nullary");
+		expect(
+			editorKind("contains", column({ id: "_search", type: "string" })),
+		).toBe("search");
+		expect(editorKind("between", column({ type: "number" }))).toBe("range");
+		expect(editorKind("in", column({ type: "enum" }))).toBe("multi");
+		expect(editorKind("includeAny", column({ type: "multiEnum" }))).toBe(
+			"multi",
+		);
+		expect(editorKind("eq", column())).toBe("single");
+		expect(editorKind("eq", column({ type: "boolean" }))).toBe("single");
+	});
+});
+
+describe("formatFilterValue", () => {
+	it("returns null for nullary and empty values", () => {
+		expect(formatFilterValue("x", "isEmpty", column())).toBeNull();
+		expect(formatFilterValue(null, "eq", column())).toBeNull();
+		expect(formatFilterValue(undefined, "eq", column())).toBeNull();
+		expect(formatFilterValue([], "in", column())).toBeNull();
+	});
+
+	it("formats ranges", () => {
+		expect(formatFilterValue([1, 2], "between", column())).toBe("1 – 2");
+		expect(formatFilterValue("x", "between", column())).toBeNull();
+	});
+
+	it("formats option sets with labels and truncation", () => {
+		const col = column({
+			options: [
+				{ label: "One", value: "1" },
+				{ label: "Two", value: "2" },
+				{ label: "Three", value: "3" },
+			],
+			type: "enum",
+		});
+		expect(formatFilterValue(["1", "2"], "in", col)).toBe("One, Two");
+		expect(formatFilterValue(["1", "2", "3"], "in", col)).toBe("One, Two...");
+		expect(formatFilterValue(["9"], "in", col)).toBe("9");
+	});
+
+	it("formats booleans and truncates long strings", () => {
+		expect(formatFilterValue(true, "eq", column({ type: "boolean" }))).toBe(
+			"Yes",
+		);
+		expect(formatFilterValue(false, "eq", column({ type: "boolean" }))).toBe(
+			"No",
+		);
+		expect(formatFilterValue("x".repeat(30), "eq", column())).toBe(
+			`${"x".repeat(20)}...`,
+		);
+	});
+});

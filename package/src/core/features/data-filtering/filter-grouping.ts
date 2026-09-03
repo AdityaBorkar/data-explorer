@@ -1,67 +1,57 @@
-import { nanoid } from "nanoid";
-
 import type { FilterCondition, FilterGroup } from "../../types.ts";
 
+function stableGroupId(
+	combinator: "and" | "or",
+	members: FilterCondition[],
+	segment: number,
+): string {
+	const fingerprint = members.map((c) => c.id).join("+");
+	return `group-${combinator}-${segment}-${members.length}-${fingerprint}`;
+}
+
+/**
+ * Fold a flat condition list into an AND-precedence tree with an OR root.
+ * Ids are deterministic derivations of member ids so repeated calls with
+ * the same input produce stable keys across renders.
+ */
 export function groupConditions(conditions: FilterCondition[]): FilterGroup {
-	const [first] = conditions;
-	if (!first) {
-		return { combinator: "and", conditions: [], id: nanoid() };
+	if (conditions.length === 0) {
+		return { combinator: "and", conditions: [], id: "group-empty" };
 	}
 
-	if (conditions.length === 1) {
-		return {
-			combinator: first.combinator,
-			conditions: [first],
-			id: nanoid(),
-		};
-	}
-
-	const rest = conditions.slice(1);
-	const hasOr = rest.some((c) => c.combinator === "or");
-	const hasAnd = rest.some((c) => c.combinator === "and");
-
-	if (!hasOr) {
-		return {
-			combinator: "and",
-			conditions: [...conditions],
-			id: nanoid(),
-		};
-	}
-
-	if (!hasAnd) {
-		return {
-			combinator: "or",
-			conditions: [...conditions],
-			id: nanoid(),
-		};
-	}
-
-	const orRoot: FilterGroup = {
-		combinator: "or",
-		conditions: [],
-		id: nanoid(),
-	};
-
-	let currentAndGroup: FilterGroup = {
-		combinator: "and",
-		conditions: [first],
-		id: nanoid(),
-	};
-
-	for (const cond of rest) {
+	const first = conditions[0] as FilterCondition;
+	const segments: FilterCondition[][] = [[first]];
+	for (const cond of conditions.slice(1)) {
 		if (cond.combinator === "or") {
-			orRoot.conditions.push(currentAndGroup);
-			currentAndGroup = {
-				combinator: "and",
-				conditions: [cond],
-				id: nanoid(),
-			};
+			segments.push([cond]);
 		} else {
-			currentAndGroup.conditions.push(cond);
+			const current = segments[segments.length - 1];
+			if (current) current.push(cond);
 		}
 	}
 
-	orRoot.conditions.push(currentAndGroup);
+	if (segments.length === 1) {
+		const only = segments[0] as FilterCondition[];
+		const root: "and" | "or" =
+			conditions.length === 1
+				? "and"
+				: conditions.slice(1).every((c) => c.combinator === "or")
+					? "or"
+					: "and";
+		return {
+			combinator: root,
+			conditions: [...only],
+			id: stableGroupId(root, only, 0),
+		};
+	}
 
-	return orRoot;
+	return {
+		combinator: "or",
+		conditions: segments.map((members, i) => ({
+			combinator: "and" as const,
+			conditions: [...members],
+			id: stableGroupId("and", members, i),
+		})),
+		id: stableGroupId("or", segments.flat(), segments.length),
+	};
 }

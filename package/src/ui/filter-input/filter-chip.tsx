@@ -1,10 +1,9 @@
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 
-import {
-	getOperatorLabel,
-	operatorSkipsValue,
-} from "../../core/features/data-filtering/operators.ts";
+import { formatFilterValue } from "../../core/features/data-filtering/filter-draft.ts";
+import { coerceFilterValue } from "../../core/features/data-filtering/filter-semantics.ts";
+import { getOperatorLabel } from "../../core/features/data-filtering/operators.ts";
 import type {
 	ColumnConfig,
 	FilterCondition,
@@ -52,20 +51,17 @@ export function FilterChip({
 
 	const handleOperatorChange = useCallback(
 		(operator: FilterOperator) => {
-			if (operatorSkipsValue(operator)) {
-				onUpdate(condition.id, { operator, value: null });
-			} else {
-				onUpdate(condition.id, { operator });
-			}
+			const { value } = coerceFilterValue(operator, condition.value);
+			onUpdate(condition.id, { operator, value });
 		},
-		[onUpdate, condition.id],
+		[onUpdate, condition.id, condition.value],
 	);
 
 	const handleValueChange = (value: unknown) => {
 		onUpdate(condition.id, { value });
 	};
 
-	const displayValue = formatDisplayValue(
+	const displayValue = formatFilterValue(
 		condition.value,
 		condition.operator,
 		column,
@@ -74,7 +70,7 @@ export function FilterChip({
 	return (
 		<Popover onOpenChange={setEditOpen} open={editOpen}>
 			<PopoverTrigger asChild={true}>
-				<button
+				<span
 					className={cn(
 						"inline-flex h-7 items-center gap-1 rounded-md border px-1.5 text-xs transition-colors",
 						selected
@@ -82,28 +78,33 @@ export function FilterChip({
 							: "border-border bg-background hover:bg-muted/50",
 					)}
 					data-filter-chip={condition.id}
-					onClick={onSelect}
-					type="button"
 				>
-					{!!Icon && (
-						<Icon
-							className="size-3.5 shrink-0 text-muted-foreground"
-							strokeWidth={2.25}
-						/>
-					)}
-					<span className="font-medium">{column.displayName}</span>
-					<span className="text-muted-foreground">{operatorLabel}</span>
-					{displayValue !== null && (
-						<span className="max-w-24 truncate">{displayValue}</span>
-					)}
 					<button
+						className="flex min-w-0 cursor-pointer items-center gap-1 bg-transparent"
+						onClick={onSelect}
+						type="button"
+					>
+						{!!Icon && (
+							<Icon
+								className="size-3.5 shrink-0 text-muted-foreground"
+								strokeWidth={2.25}
+							/>
+						)}
+						<span className="font-medium">{column.displayName}</span>
+						<span className="text-muted-foreground">{operatorLabel}</span>
+						{displayValue !== null && (
+							<span className="max-w-24 truncate">{displayValue}</span>
+						)}
+					</button>
+					<button
+						aria-label={`Remove ${column.displayName} filter`}
 						className="ml-0.5 shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
 						onClick={handleRemove}
 						type="button"
 					>
 						<IconX className="size-3" />
 					</button>
-				</button>
+				</span>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-64 p-2">
 				<div className="flex flex-col gap-2">
@@ -127,34 +128,4 @@ export function FilterChip({
 			</PopoverContent>
 		</Popover>
 	);
-}
-
-function formatDisplayValue(
-	value: unknown,
-	operator: FilterOperator,
-	column: ColumnConfig,
-): string | null {
-	if (operatorSkipsValue(operator)) return null;
-	if (value === null || value === undefined) return null;
-
-	if (operator === "between" || operator === "notBetween") {
-		if (!Array.isArray(value)) return null;
-		const [min, max] = value as [unknown, unknown];
-		return `${String(min)} – ${String(max)}`;
-	}
-
-	if (operator === "in" || operator === "notIn") {
-		if (!Array.isArray(value)) return null;
-		const vals = value as string[];
-		return vals.length > 2
-			? `${vals.slice(0, 2).join(", ")}...`
-			: vals.join(", ");
-	}
-
-	if (column.type === "boolean") {
-		return value ? "Yes" : "No";
-	}
-
-	const str = String(value);
-	return str.length > 20 ? `${str.slice(0, 20)}...` : str;
 }
