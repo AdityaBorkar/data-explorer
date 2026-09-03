@@ -1,6 +1,8 @@
 import type { FilterCondition } from "@adistack/data-explorer";
-import { useDataExplorerContext } from "@adistack/data-explorer";
-import { buildFilterWhere } from "@adistack/data-explorer/sql";
+import {
+	buildFilterWhere,
+	useDataExplorerContext,
+} from "@adistack/data-explorer";
 import { FilterBar, VirtualTable } from "@adistack/data-explorer-ui";
 import { useMemo } from "react";
 
@@ -54,7 +56,7 @@ function SqlPreview() {
 /**
  * 8 · SQL preview — every keystroke in the `FilterBar` rebuilds a
  * parameterized Postgres `WHERE` clause via `buildFilterWhere`
- * (`@adistack/data-explorer/sql`).
+ * (`@adistack/data-explorer`).
  */
 export function SqlPreviewExample() {
 	return (

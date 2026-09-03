@@ -1,3 +1,4 @@
+export { cn } from "../lib/utils.ts";
 export { Button, buttonVariants } from "./button.tsx";
 export { Calendar, CalendarDayButton } from "./calendar.tsx";
 export { Checkbox } from "./checkbox.tsx";
@@ -34,4 +35,3 @@ export {
 	SelectValue,
 } from "./select.tsx";
 export { Switch } from "./switch.tsx";
-export { cn } from "./utils.ts";

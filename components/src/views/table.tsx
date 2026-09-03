@@ -5,11 +5,11 @@ import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-import { cn } from "#/lib/utils";
+import { cn } from "@/lib/utils";
 import {
 	SelectAllCheckbox,
 	SelectionCheckbox,
-} from "../selection-checkbox.tsx";
+} from "../batch-menu/selection-checkbox.tsx";
 
 const DENSITY_ROW_HEIGHTS: Record<Density, number> = {
 	comfortable: 36,

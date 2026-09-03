@@ -11,8 +11,8 @@ import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "#/components/ui/popover";
-import { cn } from "#/lib/utils";
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { ColumnSelector } from "./column-selector.tsx";
 import { FilterChipGroup } from "./filter-chip-group.tsx";
 import { OperatorSelector } from "./operator-selector.tsx";

@@ -1,5 +1,9 @@
 export { BatchMenuBar } from "./batch-menu/batch-menu-bar.tsx";
 export { SelectedCount } from "./batch-menu/selected-count.tsx";
+export {
+	SelectAllCheckbox,
+	SelectionCheckbox,
+} from "./batch-menu/selection-checkbox.tsx";
 export { DisplayColumnSelector } from "./display-dropdown/display-column-selector.tsx";
 export { DisplayComponent } from "./display-dropdown/display-component.tsx";
 export { SortingSelector } from "./display-dropdown/sorting-selector.tsx";
@@ -11,10 +15,6 @@ export { FilterCombinatorToggle } from "./filter-input/filter-combinator-toggle.
 export { FilterBar } from "./filter-input/index.tsx";
 export { OperatorSelector } from "./filter-input/operator-selector.tsx";
 export { ValueInput } from "./filter-input/value-input.tsx";
-export {
-	SelectAllCheckbox,
-	SelectionCheckbox,
-} from "./selection-checkbox.tsx";
 export { BoardView } from "./views/board";
 export { TimelineView } from "./views/gantt";
 export { VirtualTable } from "./views/table";

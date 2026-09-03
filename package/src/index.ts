@@ -54,4 +54,5 @@ export {
 export { useLoadMore } from "./hooks/use-load-more.ts";
 export { useView } from "./hooks/use-view.ts";
 export { Provider, Provider as DataExplorerProvider } from "./provider.tsx";
+export * from "./sql/index.ts";
 export * from "./types.ts";

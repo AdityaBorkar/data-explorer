@@ -4,7 +4,7 @@ import { IconCheck } from "@tabler/icons-react";
 import { Checkbox as CheckboxPrimitive } from "radix-ui";
 import type * as React from "react";
 
-import { cn } from "./utils.ts";
+import { cn } from "../lib/utils.ts";
 
 function Checkbox({
 	className,

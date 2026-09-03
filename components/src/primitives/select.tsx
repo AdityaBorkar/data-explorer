@@ -4,7 +4,7 @@ import { IconCheck, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { Select as SelectPrimitive } from "radix-ui";
 import type * as React from "react";
 
-import { cn } from "./utils.ts";
+import { cn } from "../lib/utils.ts";
 
 function Select({
 	...props

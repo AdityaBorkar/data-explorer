@@ -3,7 +3,7 @@ import { useDataExplorerContext } from "@adistack/data-explorer";
 import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { Checkbox } from "#/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function SelectionCheckbox<TItem extends Record<string, unknown>>({
 	row,

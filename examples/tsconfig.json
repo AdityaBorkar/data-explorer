@@ -4,8 +4,8 @@
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"paths": {
 			"#/*": ["./src/*"],
-			"#/components/ui/*": ["../components/primitives/*"],
-			"#/lib/utils": ["../components/primitives/utils.ts"]
+			"#/components/ui/*": ["../components/src/primitives/*"],
+			"#/lib/utils": ["../components/src/lib/utils.ts"]
 		},
 		"target": "ES2022"
 	},

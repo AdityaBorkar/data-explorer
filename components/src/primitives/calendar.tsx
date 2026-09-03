@@ -8,8 +8,8 @@ import {
 import * as React from "react";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
 
+import { cn } from "../lib/utils.ts";
 import { Button, buttonVariants } from "./button.tsx";
-import { cn } from "./utils.ts";
 
 type CalendarComponents = NonNullable<
 	React.ComponentProps<typeof DayPicker>["components"]

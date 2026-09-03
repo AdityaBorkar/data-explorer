@@ -4,7 +4,7 @@ import { IconSearch } from "@tabler/icons-react";
 import { Command as CommandPrimitive } from "cmdk";
 import type * as React from "react";
 
-import { cn } from "./utils.ts";
+import { cn } from "../lib/utils.ts";
 
 function Command({
 	className,

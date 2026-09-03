@@ -3,15 +3,15 @@ import { editorKind } from "@adistack/data-explorer";
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { Calendar } from "#/components/ui/calendar";
-import { Checkbox } from "#/components/ui/checkbox";
-import { Input } from "#/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "#/components/ui/popover";
-import { Switch } from "#/components/ui/switch";
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 
 interface ValueInputProps {
 	column: ColumnConfig;
