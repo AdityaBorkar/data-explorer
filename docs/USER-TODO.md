@@ -1,10 +1,9 @@
 # TODO
 
-- Create examples with bun (to directly start using bun)
-/init
-/grill-with-docs
-deslop
 thermo-nuclear
+thermo-nuclear file structure
+
+- Publish to NPM
 
 - Completely Headless Design
 
@@ -22,24 +21,29 @@ thermo-nuclear
 - Row Selection
 - Virtualization
 
-## Phase 1
-
-- Review
-  - improve-codebase-arch
-  - thermo-nuclear
-  - grill-with-docs
-  - security-audit
-- Publish to NPM
+- Turn repository to ShadCN Registry for components.
 
 ## Phase 2
 
-- Write Unit Tests and Integration Tests
-- Turn repository to ShadCN Registry for components.
+- Map View
+- Table View with Tree Tables
+
+- Transform `examples` using Fumadocs+Wrangler. Also write documentation in this file itself.
 - @abstack/conform
   - Write a README
   - GitHub Actions
-- Map View
-- Table View with Tree Tables
+  - GitHub Repository Settings
+  - Auto-Publishing using Branches & PRs
+    - Documentation Publishing
+    - Package Publishing
+- Skills and Checks for
+  - security-audit
+  - vulnerabilities
+  - bug-finder
+  - performance-optimizations
+- Write tests
+  - E2E
+  - Unit
 
 ## Features not supported / planned:
 
