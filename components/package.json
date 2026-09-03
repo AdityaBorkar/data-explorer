@@ -1,0 +1,56 @@
+{
+	"name": "@adistack/data-explorer-ui",
+	"version": "0.0.1-alpha.0",
+	"private": true,
+	"description": "Data Explorer UI blocks (shadcn registry source). Requires @adistack/data-explorer and a QueryClientProvider ancestor.",
+	"type": "module",
+	"exports": {
+		".": "./index.ts"
+	},
+	"files": [
+		"batch-menu",
+		"display-dropdown",
+		"filter-input",
+		"primitives",
+		"views",
+		"index.ts",
+		"selection-checkbox.tsx"
+	],
+	"scripts": {
+		"check:lint": "biome check --fix .",
+		"check:types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@adistack/data-explorer": "workspace:*",
+		"@hello-pangea/dnd": "^18.0.1",
+		"@tabler/icons-react": "^3.46.0",
+		"@tanstack/react-table": "^9.2.4",
+		"@tanstack/react-virtual": "^3.14.10",
+		"class-variance-authority": "^0.7.1",
+		"cmdk": "^1.1.1",
+		"cn": "^0.2.4",
+		"radix-ui": "^1.6.7",
+		"react-day-picker": "^10.0.1"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.5",
+		"typescript": "^7.0.2"
+	},
+	"peerDependencies": {
+		"@tanstack/react-query": ">=5",
+		"@tanstack/react-table": ">=9.0.0-beta.1",
+		"@tanstack/react-virtual": ">=3",
+		"react": ">=18",
+		"react-day-picker": ">=9",
+		"react-dom": ">=18"
+	},
+	"peerDependenciesMeta": {
+		"@tanstack/react-virtual": {
+			"optional": true
+		},
+		"react-day-picker": {
+			"optional": true
+		}
+	}
+}

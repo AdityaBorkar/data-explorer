@@ -5,8 +5,8 @@ import type {
 	ListQueryResult,
 	RefineOptions,
 	TableFeatures,
-} from "@adityab/data-explorer";
-import { SEARCH_COLUMN_ID } from "@adityab/data-explorer";
+} from "@adistack/data-explorer";
+import { SEARCH_COLUMN_ID } from "@adistack/data-explorer";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 

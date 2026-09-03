@@ -1,5 +1,5 @@
-import { useDataExplorerContext } from "@adityab/data-explorer";
-import { FilterBar, VirtualTable } from "@adityab/data-explorer/ui";
+import { useDataExplorerContext } from "@adistack/data-explorer";
+import { FilterBar, VirtualTable } from "@adistack/data-explorer-ui";
 
 import { ExplorerShell } from "#/components/explorer-shell";
 import { BIG_TASKS, type Task } from "#/lib/tasks";

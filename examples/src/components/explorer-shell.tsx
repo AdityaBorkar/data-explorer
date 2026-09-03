@@ -3,7 +3,7 @@ import {
 	Provider,
 	type TableFeatures,
 	type ViewAdapter,
-} from "@adityab/data-explorer";
+} from "@adistack/data-explorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { type ReactNode, useMemo, useState } from "react";

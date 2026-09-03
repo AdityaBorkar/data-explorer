@@ -3,6 +3,10 @@
 thermo-nuclear
 thermo-nuclear file structure
 
+Optimize react performance
+
+flatten core
+
 - Publish to NPM
 
 - Completely Headless Design

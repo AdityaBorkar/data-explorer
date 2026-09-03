@@ -1,4 +1,4 @@
-import { FilterBar, VirtualTable } from "@adityab/data-explorer/ui";
+import { FilterBar, VirtualTable } from "@adistack/data-explorer-ui";
 
 import { ExplorerShell } from "#/components/explorer-shell";
 import { TASKS } from "#/lib/tasks";

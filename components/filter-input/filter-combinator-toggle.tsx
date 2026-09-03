@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import { cn } from "../primitives/index.ts";
+import { cn } from "@/lib/utils";
 
 interface FilterCombinatorToggleProps {
 	combinator: "and" | "or";

@@ -1,4 +1,4 @@
-import { useSelectionContext } from "../../core/context.tsx";
+import { useSelectionContext } from "@adistack/data-explorer";
 
 export function SelectedCount() {
 	const { selectedRowIds } = useSelectionContext();

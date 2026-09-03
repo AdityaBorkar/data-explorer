@@ -1,3 +1,4 @@
+import { useDataExplorerContext } from "@adistack/data-explorer";
 import {
 	IconArrowsSort,
 	IconSortAscending,
@@ -5,7 +6,6 @@ import {
 } from "@tabler/icons-react";
 import { useCallback } from "react";
 
-import { useDataExplorerContext } from "../../core/context.tsx";
 import {
 	Select,
 	SelectContent,
@@ -14,7 +14,7 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "../primitives/index.ts";
+} from "@/components/ui/select";
 
 export function SortingSelector() {
 	const { table } = useDataExplorerContext();

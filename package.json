@@ -1,7 +1,8 @@
 {
 	"workspaces": [
 		"./package",
-		"./examples"
+		"./examples",
+		"./components"
 	],
 	"scripts": {
 		"analyze:packages": "bun audit",

@@ -26,5 +26,9 @@
 		"verbatimModuleSyntax": true
 	},
 	"exclude": ["**/node_modules", "**/.output", "**/.tanstack"],
-	"references": [{ "path": "./package" }, { "path": "./examples" }]
+	"references": [
+		{ "path": "./package" },
+		{ "path": "./examples" },
+		{ "path": "./components" }
+	]
 }

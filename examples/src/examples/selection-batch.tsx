@@ -1,10 +1,10 @@
-import { useSelectionContext } from "@adityab/data-explorer";
+import { useSelectionContext } from "@adistack/data-explorer";
 import {
 	BatchMenuBar,
 	FilterBar,
 	SelectedCount,
 	VirtualTable,
-} from "@adityab/data-explorer/ui";
+} from "@adistack/data-explorer-ui";
 import { useState } from "react";
 
 import { ExplorerShell } from "#/components/explorer-shell";

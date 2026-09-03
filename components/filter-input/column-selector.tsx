@@ -1,7 +1,7 @@
+import type { ColumnConfig } from "@adistack/data-explorer";
+import { isSearchColumn } from "@adistack/data-explorer";
 import { useMemo } from "react";
 
-import type { ColumnConfig } from "../../core/types.ts";
-import { isSearchColumn } from "../../core/types.ts";
 import {
 	Command,
 	CommandEmpty,
@@ -9,7 +9,7 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "../primitives/index.ts";
+} from "@/components/ui/command";
 
 interface ColumnSelectorProps {
 	columns: ColumnConfig[];

@@ -1,8 +1,6 @@
-import {
-	getOperatorLabel,
-	getOperatorsForType,
-} from "../../core/features/data-filtering/operators.ts";
-import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
+import type { ColumnConfig, FilterOperator } from "@adistack/data-explorer";
+import { getOperatorLabel, getOperatorsForType } from "@adistack/data-explorer";
+
 import {
 	Command,
 	CommandEmpty,
@@ -10,7 +8,7 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "../primitives/index.ts";
+} from "@/components/ui/command";
 
 interface OperatorSelectorProps {
 	column: ColumnConfig;

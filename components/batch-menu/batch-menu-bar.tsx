@@ -1,7 +1,6 @@
+import { useSelectionContext } from "@adistack/data-explorer";
 import { IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
-
-import { useSelectionContext } from "../../core/context.tsx";
 
 export function BatchMenuBar({ children }: { children: React.ReactNode }) {
 	const { clearSelection, selectedRowIds } = useSelectionContext();

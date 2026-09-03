@@ -1,4 +1,4 @@
-import { BoardView, FilterBar } from "@adityab/data-explorer/ui";
+import { BoardView, FilterBar } from "@adistack/data-explorer-ui";
 import { useState } from "react";
 
 import { ExplorerShell } from "#/components/explorer-shell";

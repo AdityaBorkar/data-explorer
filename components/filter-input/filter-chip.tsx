@@ -1,20 +1,22 @@
-import { IconX } from "@tabler/icons-react";
-import { useCallback, useState } from "react";
-
-import { formatFilterValue } from "../../core/features/data-filtering/filter-draft.ts";
-import { coerceFilterValue } from "../../core/features/data-filtering/filter-semantics.ts";
-import { getOperatorLabel } from "../../core/features/data-filtering/operators.ts";
 import type {
 	ColumnConfig,
 	FilterCondition,
 	FilterOperator,
-} from "../../core/types.ts";
+} from "@adistack/data-explorer";
 import {
-	cn,
+	coerceFilterValue,
+	formatFilterValue,
+	getOperatorLabel,
+} from "@adistack/data-explorer";
+import { IconX } from "@tabler/icons-react";
+import { useCallback, useState } from "react";
+
+import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../primitives/index.ts";
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { OperatorSelector } from "./operator-selector.tsx";
 import { ValueInput } from "./value-input.tsx";
 

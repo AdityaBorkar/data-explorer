@@ -4,8 +4,8 @@ import {
 	useDataExplorerContext,
 	type View,
 	type ViewAdapter,
-} from "@adityab/data-explorer";
-import { FilterBar, VirtualTable } from "@adityab/data-explorer/ui";
+} from "@adistack/data-explorer";
+import { FilterBar, VirtualTable } from "@adistack/data-explorer-ui";
 import { useMemo } from "react";
 
 import { ExplorerShell } from "#/components/explorer-shell";

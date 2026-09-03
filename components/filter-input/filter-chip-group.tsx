@@ -1,12 +1,11 @@
-import { useMemo } from "react";
-
-import { groupConditions } from "../../core/features/data-filtering/filter-grouping.ts";
 import type {
 	ColumnConfig,
 	FilterCondition,
 	FilterGroup,
-} from "../../core/types.ts";
-import { isFilterGroup } from "../../core/types.ts";
+} from "@adistack/data-explorer";
+import { groupConditions, isFilterGroup } from "@adistack/data-explorer";
+import { useMemo } from "react";
+
 import { FilterChip } from "./filter-chip.tsx";
 import { FilterCombinatorToggle } from "./filter-combinator-toggle.tsx";
 

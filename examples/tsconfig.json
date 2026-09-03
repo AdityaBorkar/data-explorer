@@ -3,11 +3,13 @@
 		"declarationDir": "../.local/types/examples",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"paths": {
+			"@/components/ui/*": ["../components/primitives/*"],
+			"@/lib/utils": ["../components/primitives/utils.ts"],
 			"#/*": ["./src/*"]
 		},
 		"target": "ES2022"
 	},
 	"extends": "../tsconfig.json",
 	"include": ["**/*.ts", "**/*.tsx"],
-	"references": [{ "path": "../package" }]
+	"references": [{ "path": "../package" }, { "path": "../components" }]
 }

@@ -1,8 +1,8 @@
 import {
 	type FilterCondition,
 	useDataExplorerContext,
-} from "@adityab/data-explorer";
-import { FilterBar } from "@adityab/data-explorer/ui";
+} from "@adistack/data-explorer";
+import { FilterBar } from "@adistack/data-explorer-ui";
 
 import { ExplorerShell } from "#/components/explorer-shell";
 import { TASKS, type Task } from "#/lib/tasks";

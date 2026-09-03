@@ -1,17 +1,17 @@
+import type { ColumnConfig, FilterOperator } from "@adistack/data-explorer";
+import { editorKind } from "@adistack/data-explorer";
 import { IconChevronDown } from "@tabler/icons-react";
 import { useState } from "react";
 
-import { editorKind } from "../../core/features/data-filtering/filter-draft.ts";
-import type { ColumnConfig, FilterOperator } from "../../core/types.ts";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
-	Calendar,
-	Checkbox,
-	Input,
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-	Switch,
-} from "../primitives/index.ts";
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 
 interface ValueInputProps {
 	column: ColumnConfig;

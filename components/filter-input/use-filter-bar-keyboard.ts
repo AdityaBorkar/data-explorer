@@ -1,6 +1,5 @@
+import type { FilterCondition } from "@adistack/data-explorer";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-import type { FilterCondition } from "../../core/types.ts";
 
 export function useFilterBarKeyboard(opts: {
 	conditions: FilterCondition[];

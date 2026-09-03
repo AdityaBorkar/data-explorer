@@ -1,13 +1,13 @@
 # AGENTS.md
 
-A React library (`@adityab/data-explorer`): headless core (`.`) + prebuilt UI (`./ui`) + filter→SQL helper (`./sql`). Not a runnable app; consumers provide peer deps. Core table layer is `@tanstack/react-table` v9 beta.
+A React library (`@adistack/data-explorer`): headless core (`.`) + filter→SQL helper (`./sql`). UI blocks live in `components/` (`@adistack/data-explorer-ui`, private workspace) and ship via `registry.json` (shadcn). Not a runnable app; consumers provide peer deps. Core table layer is `@tanstack/react-table` v9 beta.
 
 ## Layout
 
-- Library lives in `package/` (`src/core/`, `src/ui/`, `src/sql/`). All library commands run from `package/`, not root.
-- Root workspaces: `package`, `examples` only (`www/` is an empty stub). Root `package.json` holds biome/commitlint/husky/taze tooling.
-- Exports: `.` → `src/core/index.ts`, `./sql` → `src/sql/index.ts` (`buildFilterWhere`), `./ui` → `src/ui/index.ts`. One-way deps: `ui → core`, `sql → core`, never reverse. (`module`/`types` still point at non-existent `src/index.ts` — stale; trust the `exports` map.)
-- `./ui` exports 17 symbols only: `BatchMenuBar`, `SelectedCount`, display-dropdown (`DisplayColumnSelector`, `DisplayComponent`, `SortingSelector`, `SpacingDensitySelector`), filter-input (`ColumnSelector`, `FilterChip`, `FilterChipGroup`, `FilterCombinatorToggle`, `FilterBar`, `OperatorSelector`, `ValueInput`), `SelectAllCheckbox`/`SelectionCheckbox`, `BoardView` (`views/board.tsx`), `VirtualTable` (`views/table.tsx`). `views/{calendar,canvas-heirarchy,gantt,grid,list,map}.tsx` exist but are NOT re-exported; `primitives/` is vendored but NOT re-exported via `./ui`.
+- Headless package lives in `package/` (`src/core/`, `src/sql/`). All library commands run from `package/`, not root. UI blocks live in `components/` (flat: `batch-menu/`, `display-dropdown/`, `filter-input/`, `primitives/`, `views/`, `index.ts`, `selection-checkbox.tsx`) and import core from `@adistack/data-explorer` — never relative.
+- Root workspaces: `package`, `examples`, `components` (`www/` is an empty stub). Root `package.json` holds biome/commitlint/husky/taze tooling.
+- Exports: `.` → `src/core/index.ts`, `./sql` → `src/sql/index.ts` (`buildFilterWhere`). One-way deps: `components → package`, `sql → core`, never reverse.
+- `components/` (`@adistack/data-explorer-ui`, private) exports the same 17 symbols as the old `./ui`: `BatchMenuBar`, `SelectedCount`, display-dropdown (`DisplayColumnSelector`, `DisplayComponent`, `SortingSelector`, `SpacingDensitySelector`), filter-input (`ColumnSelector`, `FilterChip`, `FilterChipGroup`, `FilterCombinatorToggle`, `FilterBar`, `OperatorSelector`, `ValueInput`), `SelectAllCheckbox`/`SelectionCheckbox`, `BoardView` (`views/board.tsx`), `VirtualTable` (`views/table.tsx`). `primitives/` is vendored shadcn for local dev only — registry consumers use their own `calendar`/`checkbox`/`command`/`input`/`popover`/`select`/`switch`/`utils` (see `registryDependencies` in `registry.json`).
 - `examples/` is the dev/test app (`bun --hot server.ts` from `examples/`); see `examples/src/components/explorer-shell.tsx` for canonical `Provider` wiring. 8 demos in `examples/src/examples/index.ts`: `simple-table`, `filter-bar`, `display-options`, `selection-batch`, `board-view`, `infinite-scroll`, `saved-views`, `sql-preview`.
 
 ## Commands
@@ -26,7 +26,7 @@ Verify in order: lint → types → test.
 - Bun for install/scripts. TypeScript 7, strict, `noEmit`.
 - Biome v2 config at root `biome.json` (`files.includes: ["**"]`, no-scope excludes apply). Conventional commits via husky + commitlint (`build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|wip`).
 - `verbatimModuleSyntax: true` — type imports need `import type`; relative imports keep `.ts`/`.tsx` extensions. `noUncheckedIndexedAccess: true`. `noUnusedLocals`/`noUnusedParameters` on.
-- `@/*` → `./src/*` alias exists (`package/tsconfig.json`) but is used in only a couple `ui/` files; most code uses relative imports. `package.json` `imports` `#/*` is unused.
+- `@/components/ui/*` → `./primitives/*` and `@/lib/utils` → `./primitives/utils.ts` shadcn aliases live in `components/tsconfig.json` (mirrored to `../components/primitives/*` in `examples/tsconfig.json`); most code uses relative imports. `package.json` `imports` `#/*` is unused.
 
 ## Architecture
 

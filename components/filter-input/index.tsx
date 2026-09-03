@@ -1,16 +1,18 @@
+import {
+	isSearchColumn,
+	requiresValue,
+	useDataExplorerContext,
+	useInlineFilterFlow,
+} from "@adistack/data-explorer";
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 
-import { useDataExplorerContext } from "../../core/context.tsx";
-import { requiresValue } from "../../core/features/data-filtering/filter-semantics.ts";
-import { useInlineFilterFlow } from "../../core/features/data-filtering/use-inline-filter-flow.ts";
-import { isSearchColumn } from "../../core/types.ts";
 import {
-	cn,
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../primitives/index.ts";
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { ColumnSelector } from "./column-selector.tsx";
 import { FilterChipGroup } from "./filter-chip-group.tsx";
 import { OperatorSelector } from "./operator-selector.tsx";

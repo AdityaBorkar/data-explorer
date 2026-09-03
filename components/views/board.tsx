@@ -1,9 +1,8 @@
+import { useDataExplorerContext } from "@adistack/data-explorer";
 import type { DropResult } from "@hello-pangea/dnd";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { CSSProperties } from "react";
 import { useCallback, useMemo } from "react";
-
-import { useDataExplorerContext } from "../../core/context.tsx";
 
 interface BoardViewProps<TItem> {
 	getRowId: (item: TItem) => string;

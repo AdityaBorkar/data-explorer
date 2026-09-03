@@ -5,7 +5,7 @@ import {
 	SortingSelector,
 	SpacingDensitySelector,
 	VirtualTable,
-} from "@adityab/data-explorer/ui";
+} from "@adistack/data-explorer-ui";
 
 import { ExplorerShell } from "#/components/explorer-shell";
 import { TASKS } from "#/lib/tasks";

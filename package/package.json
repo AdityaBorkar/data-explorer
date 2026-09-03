@@ -1,5 +1,5 @@
 {
-	"name": "@adityab/data-explorer",
+	"name": "@adistack/data-explorer",
 	"version": "0.0.1-alpha.0",
 	"description": "Data Explorer",
 	"keywords": [
@@ -21,11 +21,10 @@
 	},
 	"exports": {
 		".": "./src/core/index.ts",
-		"./sql": "./src/sql/index.ts",
-		"./ui": "./src/ui/index.ts"
+		"./sql": "./src/sql/index.ts"
 	},
-	"module": "src/index.ts",
-	"types": "src/index.ts",
+	"module": "src/core/index.ts",
+	"types": "src/core/index.ts",
 	"files": [
 		"src"
 	],
@@ -34,25 +33,17 @@
 		"check:types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@hello-pangea/dnd": "^18.0.1",
-		"@tabler/icons-react": "^3.46.0",
-		"class-variance-authority": "^0.7.1",
-		"cmdk": "^1.1.1",
-		"cn": "^0.2.4",
 		"nanoid": "^5.1.16",
-		"radix-ui": "^1.6.7",
 		"zod": "^4.5.4"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.11",
 		"@commitlint/config-conventional": "^21.2.2",
 		"@tanstack/react-table": "^9.2.4",
-		"@tanstack/react-virtual": "^3.14.10",
 		"@types/bun": "^1.4.0",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.5",
 		"husky": "^9.1.7",
-		"react-day-picker": "^10.0.1",
 		"taze": "^19.17.2",
 		"typescript": "^7.0.2",
 		"vitest": "^2.1.9"
@@ -60,18 +51,8 @@
 	"peerDependencies": {
 		"@tanstack/react-query": ">=5",
 		"@tanstack/react-table": ">=9.0.0-beta.1",
-		"@tanstack/react-virtual": ">=3",
 		"react": ">=18",
-		"react-day-picker": ">=9",
 		"react-dom": ">=18"
-	},
-	"peerDependenciesMeta": {
-		"@tanstack/react-virtual": {
-			"optional": true
-		},
-		"react-day-picker": {
-			"optional": true
-		}
 	},
 	"publishConfig": {
 		"access": "public"

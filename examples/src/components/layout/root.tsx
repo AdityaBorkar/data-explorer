@@ -17,7 +17,7 @@ export function RootLayout({
 		<div className="flex min-h-screen">
 			<aside className="w-64 shrink-0 border-border border-r bg-sidebar p-4 text-sidebar-foreground">
 				<a className="mb-1 block font-semibold text-lg" href="/">
-					@adityab/data-explorer
+					@adistack/data-explorer
 				</a>
 				<p className="mb-6 text-muted-foreground text-xs">Bun + React</p>
 				<nav className="grid gap-1">

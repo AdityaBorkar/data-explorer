@@ -1,11 +1,11 @@
+import type { Density } from "@adistack/data-explorer";
+import { useDataExplorerContext } from "@adistack/data-explorer";
 import { IconLoader2 } from "@tabler/icons-react";
 import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-import { useDataExplorerContext } from "../../core/context.tsx";
-import type { Density } from "../../core/types.ts";
-import { cn } from "../primitives/index.ts";
+import { cn } from "@/lib/utils";
 import {
 	SelectAllCheckbox,
 	SelectionCheckbox,

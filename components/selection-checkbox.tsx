@@ -1,9 +1,9 @@
+import type { TableFeatures } from "@adistack/data-explorer";
+import { useDataExplorerContext } from "@adistack/data-explorer";
 import type { Row } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { useDataExplorerContext } from "../core/context.tsx";
-import type { TableFeatures } from "../core/types.ts";
-import { Checkbox } from "./primitives/index.ts";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function SelectionCheckbox<TItem extends Record<string, unknown>>({
 	row,
