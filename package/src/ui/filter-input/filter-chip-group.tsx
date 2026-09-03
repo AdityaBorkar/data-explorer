@@ -7,7 +7,7 @@ interface FilterChipGroupProps {
 	columnsConfig: ColumnConfig[];
 	conditions: FilterCondition[];
 	focusedChipIndex: number | null;
-	handleCombinatorChange: (index: number, combinator: "and" | "or") => void;
+	handleCombinatorChange: (id: string, combinator: "and" | "or") => void;
 	removeCondition: (id: string) => void;
 	setFocusedChipIndex: (index: number | null) => void;
 	updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
@@ -26,15 +26,14 @@ export function FilterChipGroup({
 
 	const group = groupConditions(conditions);
 	const indexById = new Map(conditions.map((c, i) => [c.id, i] as const));
-	const combinatorIndexOf = (id: string): number => indexById.get(id) ?? -1;
 
 	if (group.conditions.length <= 1 || group.combinator === "and") {
 		return (
 			<>
 				{conditions.map((cond, i) => (
 					<ChipWithCombinator
+						chipIndex={i}
 						columnsConfig={columnsConfig}
-						combinatorIndex={i}
 						condition={cond}
 						focusedChipIndex={focusedChipIndex}
 						handleCombinatorChange={handleCombinatorChange}
@@ -54,7 +53,9 @@ export function FilterChipGroup({
 			{group.conditions.map((item, g) => {
 				const orSeparator =
 					g > 0 ? (
-						<FilterCombinatorToggle combinator="or" onChange={() => {}} />
+						<span className="px-1 font-medium text-[10px] text-orange-600 uppercase">
+							or
+						</span>
 					) : null;
 
 				if ("conditions" in item) {
@@ -68,8 +69,8 @@ export function FilterChipGroup({
 							<span className="text-muted-foreground text-xs">(</span>
 							{bracketConditions.map((cond, i) => (
 								<ChipWithCombinator
+									chipIndex={indexById.get(cond.id) ?? -1}
 									columnsConfig={columnsConfig}
-									combinatorIndex={combinatorIndexOf(cond.id)}
 									condition={cond}
 									focusedChipIndex={focusedChipIndex}
 									handleCombinatorChange={handleCombinatorChange}
@@ -89,8 +90,8 @@ export function FilterChipGroup({
 					<span key={item.id}>
 						{orSeparator}
 						<ChipWithCombinator
+							chipIndex={indexById.get(item.id) ?? -1}
 							columnsConfig={columnsConfig}
-							combinatorIndex={combinatorIndexOf(item.id)}
 							condition={item}
 							focusedChipIndex={focusedChipIndex}
 							handleCombinatorChange={handleCombinatorChange}
@@ -107,8 +108,8 @@ export function FilterChipGroup({
 }
 
 function ChipWithCombinator({
+	chipIndex,
 	condition,
-	combinatorIndex,
 	columnsConfig,
 	focusedChipIndex,
 	handleCombinatorChange,
@@ -117,11 +118,11 @@ function ChipWithCombinator({
 	showCombinator,
 	updateCondition,
 }: {
+	chipIndex: number;
 	condition: FilterCondition;
-	combinatorIndex: number;
 	columnsConfig: ColumnConfig[];
 	focusedChipIndex: number | null;
-	handleCombinatorChange: (index: number, combinator: "and" | "or") => void;
+	handleCombinatorChange: (id: string, combinator: "and" | "or") => void;
 	removeCondition: (id: string) => void;
 	setFocusedChipIndex: (index: number | null) => void;
 	showCombinator: boolean;
@@ -131,21 +132,21 @@ function ChipWithCombinator({
 	if (!col) return null;
 
 	return (
-		<span>
+		<>
 			{!!showCombinator && (
 				<FilterCombinatorToggle
 					combinator={condition.combinator}
-					onChange={(c) => handleCombinatorChange(combinatorIndex, c)}
+					onChange={(c) => handleCombinatorChange(condition.id, c)}
 				/>
 			)}
 			<FilterChip
 				column={col}
 				condition={condition}
 				onRemove={removeCondition}
-				onSelect={() => setFocusedChipIndex(combinatorIndex)}
+				onSelect={() => setFocusedChipIndex(chipIndex)}
 				onUpdate={updateCondition}
-				selected={focusedChipIndex === combinatorIndex}
+				selected={focusedChipIndex === chipIndex}
 			/>
-		</span>
+		</>
 	);
 }

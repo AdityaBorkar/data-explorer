@@ -52,20 +52,18 @@ export function FilterChip({
 
 	const handleOperatorChange = useCallback(
 		(operator: FilterOperator) => {
-			onUpdate(condition.id, {
-				operator,
-				...(operatorSkipsValue(operator) ? { value: null } : {}),
-			});
+			if (operatorSkipsValue(operator)) {
+				onUpdate(condition.id, { operator, value: null });
+			} else {
+				onUpdate(condition.id, { operator });
+			}
 		},
 		[onUpdate, condition.id],
 	);
 
-	const handleValueChange = useCallback(
-		(value: unknown) => {
-			onUpdate(condition.id, { value });
-		},
-		[onUpdate, condition.id],
-	);
+	const handleValueChange = (value: unknown) => {
+		onUpdate(condition.id, { value });
+	};
 
 	const displayValue = formatDisplayValue(
 		condition.value,
@@ -101,12 +99,6 @@ export function FilterChip({
 					<button
 						className="ml-0.5 shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
 						onClick={handleRemove}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
-								e.preventDefault();
-								handleRemove(e);
-							}
-						}}
 						type="button"
 					>
 						<IconX className="size-3" />
@@ -146,11 +138,13 @@ function formatDisplayValue(
 	if (value === null || value === undefined) return null;
 
 	if (operator === "between" || operator === "notBetween") {
+		if (!Array.isArray(value)) return null;
 		const [min, max] = value as [unknown, unknown];
 		return `${String(min)} – ${String(max)}`;
 	}
 
 	if (operator === "in" || operator === "notIn") {
+		if (!Array.isArray(value)) return null;
 		const vals = value as string[];
 		return vals.length > 2
 			? `${vals.slice(0, 2).join(", ")}...`

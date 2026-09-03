@@ -1,5 +1,5 @@
 import { IconFilterX, IconSearch } from "@tabler/icons-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
 import { operatorSkipsValue } from "../../core/features/data-filtering/operators.ts";
@@ -60,6 +60,20 @@ export function FilterBar({ className }: { className?: string }) {
 		flow.commit();
 		closeAndFocus();
 	}, [flow.commit, closeAndFocus]);
+
+	const focusChipById = useCallback(
+		(id: string | undefined, action: "click" | "focus") => {
+			if (!id) return;
+			const chipEl = containerRef.current?.querySelector(
+				`[data-filter-chip="${id}"]`,
+			);
+			if (chipEl instanceof HTMLElement) {
+				if (action === "click") chipEl.click();
+				else chipEl.focus();
+			}
+		},
+		[],
+	);
 
 	const handleInputKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -122,10 +136,7 @@ export function FilterBar({ className }: { className?: string }) {
 
 			if (e.key === "Enter" && focusedChipIndex !== null) {
 				e.preventDefault();
-				const chipEl = containerRef.current?.querySelector(
-					`[data-filter-chip="${filterConditions[focusedChipIndex]?.id}"]`,
-				);
-				if (chipEl instanceof HTMLElement) chipEl.click();
+				focusChipById(filterConditions[focusedChipIndex]?.id, "click");
 				return;
 			}
 
@@ -150,6 +161,7 @@ export function FilterBar({ className }: { className?: string }) {
 			popoverOpen,
 			resetFlow,
 			focusInput,
+			focusChipById,
 		],
 	);
 
@@ -168,15 +180,12 @@ export function FilterBar({ className }: { className?: string }) {
 
 	useEffect(() => {
 		if (focusedChipIndex !== null) {
-			const chipEl = containerRef.current?.querySelector(
-				`[data-filter-chip="${filterConditions[focusedChipIndex]?.id}"]`,
-			);
-			if (chipEl instanceof HTMLElement) chipEl.focus();
+			focusChipById(filterConditions[focusedChipIndex]?.id, "focus");
 		}
-	}, [focusedChipIndex, filterConditions]);
+	}, [focusedChipIndex, filterConditions, focusChipById]);
 
 	const handleClearAll = useCallback(
-		(e: React.MouseEvent | React.KeyboardEvent) => {
+		(e: React.MouseEvent) => {
 			e.stopPropagation();
 			clearDataFilters();
 			setFocusedChipIndex(null);
@@ -187,7 +196,7 @@ export function FilterBar({ className }: { className?: string }) {
 
 	const handleContainerClick = useCallback(
 		(e: React.MouseEvent) => {
-			if (e.target === e.currentTarget || e.target === containerRef.current) {
+			if (e.target === e.currentTarget) {
 				focusInput();
 				setFocusedChipIndex(null);
 			}
@@ -196,103 +205,77 @@ export function FilterBar({ className }: { className?: string }) {
 	);
 
 	const handleCombinatorChange = useCallback(
-		(index: number, combinator: "and" | "or") => {
-			const cond = filterConditions[index];
-			if (cond) {
-				updateDataFilter(cond.id, { combinator });
-			}
+		(id: string, combinator: "and" | "or") => {
+			updateDataFilter(id, { combinator });
 		},
-		[filterConditions, updateDataFilter],
+		[updateDataFilter],
 	);
 
-	const popoverContent = useMemo(() => {
-		if (flow.phase === "column") {
-			return (
-				<ColumnSelector
-					columns={columnsConfig}
-					onQuickValueSelect={(colId, val) => {
-						flow.handleQuickValueSelect(colId, val);
+	let popoverContent: React.ReactNode = null;
+	if (flow.phase === "column") {
+		popoverContent = (
+			<ColumnSelector
+				columns={columnsConfig}
+				onQuickValueSelect={(colId, val) => {
+					flow.handleQuickValueSelect(colId, val);
+					closeAndFocus();
+				}}
+				onSearchChange={flow.setInputValue}
+				onSelect={(colId) => {
+					flow.handleColumnSelect(colId);
+					if (colId === SEARCH_COLUMN_ID) setPopoverOpen(false);
+				}}
+				search={flow.inputValue}
+			/>
+		);
+	} else if (flow.phase === "operator" && flow.selectedColumn) {
+		popoverContent = (
+			<OperatorSelector
+				column={flow.selectedColumn}
+				onSearchChange={flow.setInputValue}
+				onSelect={(op) => {
+					flow.handleOperatorSelect(op);
+					if (operatorSkipsValue(op)) {
 						closeAndFocus();
-					}}
-					onSearchChange={flow.setInputValue}
-					onSelect={(colId) => {
-						flow.handleColumnSelect(colId);
-						if (colId === SEARCH_COLUMN_ID) setPopoverOpen(false);
-					}}
-					search={flow.inputValue}
-				/>
-			);
-		}
-
-		if (flow.phase === "operator" && flow.selectedColumn) {
-			return (
-				<OperatorSelector
-					column={flow.selectedColumn}
-					onSearchChange={flow.setInputValue}
-					onSelect={(op) => {
-						flow.handleOperatorSelect(op);
-						if (operatorSkipsValue(op)) {
-							closeAndFocus();
-						}
-					}}
-					search={flow.inputValue}
-				/>
-			);
-		}
-
-		if (
-			flow.phase === "value" &&
-			flow.selectedColumn &&
-			flow.selectedOperator &&
-			!flow.needsNullValue
-		) {
-			const isGlobalSearch =
-				flow.selectedOperator === "contains" &&
-				flow.selectedColumnId === SEARCH_COLUMN_ID;
-			return (
-				<div className="p-2">
-					<div className="mb-2 text-muted-foreground text-xs">
-						{flow.selectedColumn.displayName}{" "}
-						{isGlobalSearch ? "contains" : "— enter value"}
-					</div>
-					<ValueInput
-						column={flow.selectedColumn}
-						onChange={flow.setPendingValue}
-						onCommit={commitCondition}
-						operator={flow.selectedOperator}
-						value={flow.pendingValue}
-					/>
-					<div className="mt-2 flex justify-end">
-						<button
-							className="rounded-md bg-primary px-3 py-1 text-primary-foreground text-xs"
-							onClick={commitCondition}
-							type="button"
-						>
-							Apply
-						</button>
-					</div>
+					}
+				}}
+				search={flow.inputValue}
+			/>
+		);
+	} else if (
+		flow.phase === "value" &&
+		flow.selectedColumn &&
+		flow.selectedOperator &&
+		!flow.needsNullValue
+	) {
+		const isGlobalSearch =
+			flow.selectedOperator === "contains" &&
+			flow.selectedColumnId === SEARCH_COLUMN_ID;
+		popoverContent = (
+			<div className="p-2">
+				<div className="mb-2 text-muted-foreground text-xs">
+					{flow.selectedColumn.displayName}{" "}
+					{isGlobalSearch ? "contains" : "— enter value"}
 				</div>
-			);
-		}
-
-		return null;
-	}, [
-		flow.phase,
-		flow.selectedColumn,
-		flow.selectedOperator,
-		flow.needsNullValue,
-		flow.selectedColumnId,
-		flow.inputValue,
-		flow.pendingValue,
-		flow.setPendingValue,
-		flow.setInputValue,
-		flow.handleColumnSelect,
-		flow.handleOperatorSelect,
-		flow.handleQuickValueSelect,
-		columnsConfig,
-		commitCondition,
-		closeAndFocus,
-	]);
+				<ValueInput
+					column={flow.selectedColumn}
+					onChange={flow.setPendingValue}
+					onCommit={commitCondition}
+					operator={flow.selectedOperator}
+					value={flow.pendingValue}
+				/>
+				<div className="mt-2 flex justify-end">
+					<button
+						className="rounded-md bg-primary px-3 py-1 text-primary-foreground text-xs"
+						onClick={commitCondition}
+						type="button"
+					>
+						Apply
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className={className}>
@@ -346,12 +329,6 @@ export function FilterBar({ className }: { className?: string }) {
 						aria-label="Clear all filters"
 						className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
 						onClick={handleClearAll}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
-								e.preventDefault();
-								handleClearAll(e);
-							}
-						}}
 						type="button"
 					>
 						<IconFilterX className="size-4" />

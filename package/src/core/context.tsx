@@ -29,7 +29,7 @@ export function useSelectionContext(): SelectionState {
 
 	return useMemo(() => {
 		const selectedRowIds = new Set(
-			Object.keys(rowSelection).filter((id) => rowSelection[id] === true),
+			Object.keys(rowSelection).filter((id) => rowSelection[id]),
 		);
 		const allRowIds = table.getRowModel().flatRows.map((row) => row.id);
 

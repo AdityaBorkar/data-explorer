@@ -18,13 +18,10 @@ const DENSITY_ROW_HEIGHTS: Record<Density, number> = {
 };
 const SELECT_COLUMN_WIDTH = 32;
 
-function getAriaSort(
-	sorted: false | "asc" | "desc",
-): "ascending" | "descending" | "none" {
-	if (sorted === "asc") return "ascending";
-	if (sorted === "desc") return "descending";
-	return "none";
-}
+const ARIA_SORT = {
+	asc: "ascending",
+	desc: "descending",
+} as const;
 
 function MessageRow({
 	colSpan,
@@ -112,7 +109,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 							style={{
 								height: `${virtualRow.size}px`,
 								transform: `translateY(${virtualRow.start}px)`,
-								width: totalWidth || "100%",
+								width: totalWidth,
 							}}
 							tabIndex={0}
 						>
@@ -141,7 +138,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 	return (
 		<div className="h-full rounded-lg border bg-card">
 			<div className="h-full overflow-auto rounded-t-lg" ref={scrollRef}>
-				<table className="w-full" style={{ minWidth: totalWidth || undefined }}>
+				<table className="w-full" style={{ minWidth: totalWidth }}>
 					<thead className="sticky top-0 z-10 bg-card">
 						<tr className="border-b">
 							<th className="h-10 w-8 min-w-8">
@@ -151,7 +148,7 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 								const sorted = header.column.getIsSorted();
 								return (
 									<th
-										aria-sort={getAriaSort(sorted)}
+										aria-sort={sorted ? ARIA_SORT[sorted] : "none"}
 										className="h-10 whitespace-nowrap px-2 text-left font-medium text-foreground text-sm"
 										key={header.id}
 										scope="col"

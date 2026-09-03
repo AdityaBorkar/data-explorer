@@ -1,5 +1,4 @@
 import { IconLineHeight } from "@tabler/icons-react";
-import { useCallback } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
 import { cn } from "../primitives/index.ts";
@@ -13,13 +12,6 @@ const DENSITY_OPTIONS = [
 export function SpacingDensitySelector() {
 	const { table } = useDataExplorerContext();
 	const density = table.state.density ?? "comfortable";
-
-	const handleDensityChange = useCallback(
-		(value: "compact" | "comfortable" | "spacious") => {
-			table.setDensity(value);
-		},
-		[table],
-	);
 
 	return (
 		<div className="p-3">
@@ -37,7 +29,7 @@ export function SpacingDensitySelector() {
 								: "border-input text-muted-foreground hover:bg-muted hover:text-foreground",
 						)}
 						key={opt.value}
-						onClick={() => handleDensityChange(opt.value)}
+						onClick={() => table.setDensity(opt.value)}
 						type="button"
 					>
 						{opt.label}

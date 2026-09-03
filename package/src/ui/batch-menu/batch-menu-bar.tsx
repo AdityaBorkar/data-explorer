@@ -1,21 +1,18 @@
 import { IconX } from "@tabler/icons-react";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 
 import { useSelectionContext } from "../../core/context.tsx";
 
 export function BatchMenuBar({ children }: { children: React.ReactNode }) {
 	const { clearSelection, selectedRowIds } = useSelectionContext();
 
-	const handleEscape = useCallback(
-		(e: KeyboardEvent) => {
-			if (e.key === "Escape") clearSelection();
-		},
-		[clearSelection],
-	);
 	useEffect(() => {
+		const handleEscape = (e: KeyboardEvent) => {
+			if (e.key === "Escape") clearSelection();
+		};
 		document.addEventListener("keydown", handleEscape);
 		return () => document.removeEventListener("keydown", handleEscape);
-	}, [handleEscape]);
+	}, [clearSelection]);
 
 	if (selectedRowIds.size === 0) return null;
 

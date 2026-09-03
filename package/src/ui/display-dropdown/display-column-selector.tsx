@@ -63,7 +63,6 @@ function ColumnVisibilityRow({
 		<div
 			aria-checked={isVisible}
 			className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted"
-			key={column.id}
 			onClick={toggle}
 			onKeyDown={handleKeyDown}
 			role="checkbox"

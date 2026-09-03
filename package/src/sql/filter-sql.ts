@@ -32,10 +32,7 @@ interface BuildContext {
 
 function pushParam(ctx: BuildContext, value: unknown): string {
 	ctx.params.push(value);
-	if (ctx.placeholder === "positional") {
-		return "?";
-	}
-	return `$${ctx.nextIdx++ + 1}`;
+	return ctx.placeholder === "positional" ? "?" : `$${ctx.nextIdx++}`;
 }
 
 function quoteIdent(name: string): string {
@@ -50,7 +47,7 @@ function colRef(columnName: string, tableAlias: string | undefined): string {
 function validateConditions(
 	conditions: FilterCondition[],
 	columnsConfig: ColumnConfig[],
-): FilterCondition[] {
+): void {
 	const columnMap = new Map(columnsConfig.map((c) => [c.id, c]));
 
 	for (const cond of conditions) {
@@ -74,8 +71,6 @@ function validateConditions(
 
 		validateOperatorValue(cond.operator, cond.value, colConfig.type);
 	}
-
-	return conditions;
 }
 
 type SqlBuilder = (col: string, value: unknown, ctx: BuildContext) => string;
@@ -84,48 +79,73 @@ function arrayPlaceholders(value: unknown, ctx: BuildContext): string {
 	return (value as string[]).map((v) => pushParam(ctx, v)).join(", ");
 }
 
-function arrayContains(col: string, value: unknown, ctx: BuildContext): string {
-	return `${col} @> ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
+function arrayOp(
+	col: string,
+	value: unknown,
+	ctx: BuildContext,
+	op: "@>" | "&&",
+): string {
+	return `${col} ${op} ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
 }
 
-function arrayOverlaps(col: string, value: unknown, ctx: BuildContext): string {
-	return `${col} && ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
+function notArrayOp(
+	col: string,
+	value: unknown,
+	ctx: BuildContext,
+	op: "@>" | "&&",
+): string {
+	return `NOT (${arrayOp(col, value, ctx, op)})`;
+}
+
+function betweenOp(
+	col: string,
+	value: unknown,
+	ctx: BuildContext,
+	not: boolean,
+): string {
+	const [min, max] = value as [number | string, number | string];
+	const keyword = not ? "NOT BETWEEN" : "BETWEEN";
+	return `${col} ${keyword} ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
+}
+
+function likeOp(
+	col: string,
+	value: unknown,
+	ctx: BuildContext,
+	pattern: (v: string) => string,
+	not: boolean,
+): string {
+	const keyword = not ? "NOT ILIKE" : "ILIKE";
+	return `${col} ${keyword} ${pushParam(ctx, pattern(value as string))}`;
 }
 
 const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
-	between: (col, value, ctx) => {
-		const [min, max] = value as [number | string, number | string];
-		return `${col} BETWEEN ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
-	},
+	between: (col, value, ctx) => betweenOp(col, value, ctx, false),
 	contains: (col, value, ctx) =>
-		`${col} ILIKE ${pushParam(ctx, `%${value as string}%`)}`,
-	endsWith: (col, value, ctx) =>
-		`${col} ILIKE ${pushParam(ctx, `%${value as string}`)}`,
+		likeOp(col, value, ctx, (v) => `%${v}%`, false),
+	endsWith: (col, value, ctx) => likeOp(col, value, ctx, (v) => `%${v}`, false),
 	eq: (col, value, ctx) => `${col} = ${pushParam(ctx, value)}`,
-	exclude: (col, value, ctx) => `NOT (${arrayContains(col, value, ctx)})`,
-	excludeAll: (col, value, ctx) => `NOT (${arrayContains(col, value, ctx)})`,
-	excludeAny: (col, value, ctx) => `NOT (${arrayOverlaps(col, value, ctx)})`,
+	exclude: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
+	excludeAll: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
+	excludeAny: (col, value, ctx) => notArrayOp(col, value, ctx, "&&"),
 	gt: (col, value, ctx) => `${col} > ${pushParam(ctx, value)}`,
 	gte: (col, value, ctx) => `${col} >= ${pushParam(ctx, value)}`,
 	in: (col, value, ctx) => `${col} IN (${arrayPlaceholders(value, ctx)})`,
-	include: arrayContains,
-	includeAll: arrayContains,
-	includeAny: arrayOverlaps,
+	include: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
+	includeAll: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
+	includeAny: (col, value, ctx) => arrayOp(col, value, ctx, "&&"),
 	isEmpty: (col) => `${col} IS NULL`,
 	isNotEmpty: (col) => `${col} IS NOT NULL`,
 	lt: (col, value, ctx) => `${col} < ${pushParam(ctx, value)}`,
 	lte: (col, value, ctx) => `${col} <= ${pushParam(ctx, value)}`,
 	neq: (col, value, ctx) => `${col} != ${pushParam(ctx, value)}`,
-	notBetween: (col, value, ctx) => {
-		const [min, max] = value as [number | string, number | string];
-		return `${col} NOT BETWEEN ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
-	},
+	notBetween: (col, value, ctx) => betweenOp(col, value, ctx, true),
 	notContains: (col, value, ctx) =>
-		`${col} NOT ILIKE ${pushParam(ctx, `%${value as string}%`)}`,
+		likeOp(col, value, ctx, (v) => `%${v}%`, true),
 	notIn: (col, value, ctx) =>
 		`${col} NOT IN (${arrayPlaceholders(value, ctx)})`,
 	startsWith: (col, value, ctx) =>
-		`${col} ILIKE ${pushParam(ctx, `${value as string}%`)}`,
+		likeOp(col, value, ctx, (v) => `${v}%`, false),
 };
 
 function buildConditionSql(
@@ -136,7 +156,7 @@ function buildConditionSql(
 	tableAlias: string | undefined,
 ): string | undefined {
 	const colConfig = columnsConfig.find((c) => c.id === condition.columnId);
-	if (!colConfig) return;
+	if (!colConfig) return undefined;
 
 	if (condition.columnId === SEARCH_COLUMN_ID) {
 		return buildSearchSql(
@@ -149,7 +169,7 @@ function buildConditionSql(
 	}
 
 	const columnName = columnMapping[condition.columnId];
-	if (!columnName) return;
+	if (!columnName) return undefined;
 
 	const col = colRef(columnName, tableAlias);
 	const builder = OPERATOR_SQL_BUILDERS[condition.operator];
@@ -171,22 +191,19 @@ function buildSearchSql(
 		(c) => c.searchable && c.id !== SEARCH_COLUMN_ID,
 	);
 
-	const conditions = searchableCols
-		.map((colConfig) => {
-			const columnName = columnMapping[colConfig.id];
-			if (!columnName) return undefined;
-			const col = colRef(columnName, tableAlias);
-			return `${col} ILIKE ${pushParam(ctx, `%${searchTerm}%`)}`;
-		})
-		.filter((c): c is string => c !== undefined);
+	const conditions = searchableCols.flatMap((colConfig) => {
+		const columnName = columnMapping[colConfig.id];
+		if (!columnName) return [];
+		const col = colRef(columnName, tableAlias);
+		return [`${col} ILIKE ${pushParam(ctx, `%${searchTerm}%`)}`];
+	});
 
 	if (conditions.length === 0) {
 		return "1 = 0";
 	}
 
-	const [only] = conditions;
 	if (conditions.length === 1) {
-		return only ?? "1 = 0";
+		return conditions[0] as string;
 	}
 
 	return `(${conditions.join(" OR ")})`;
@@ -202,28 +219,20 @@ function buildGroupSql(
 	const sqls: string[] = [];
 
 	for (const item of group.conditions) {
-		if ("conditions" in item) {
-			const subSql = buildGroupSql(
-				item,
-				columnMapping,
-				columnsConfig,
-				ctx,
-				tableAlias,
-			);
-			if (subSql) sqls.push(subSql);
-		} else {
-			const condSql = buildConditionSql(
-				item,
-				columnMapping,
-				columnsConfig,
-				ctx,
-				tableAlias,
-			);
-			if (condSql) sqls.push(condSql);
-		}
+		const sub =
+			"conditions" in item
+				? buildGroupSql(item, columnMapping, columnsConfig, ctx, tableAlias)
+				: buildConditionSql(
+						item,
+						columnMapping,
+						columnsConfig,
+						ctx,
+						tableAlias,
+					);
+		if (sub) sqls.push(sub);
 	}
 
-	if (sqls.length === 0) return;
+	if (sqls.length === 0) return undefined;
 	if (sqls.length === 1) return sqls[0];
 
 	const joiner = group.combinator === "or" ? " OR " : " AND ";
@@ -236,15 +245,16 @@ export function buildFilterWhere(
 	columnMapping: ColumnMapping,
 	options?: BuildFilterOptions,
 ): ParameterizedSql | undefined {
-	const validated = validateConditions(conditions, columnsConfig);
-	if (validated.length === 0) return;
+	validateConditions(conditions, columnsConfig);
+	if (conditions.length === 0) return undefined;
 
-	const group = groupConditions(validated);
+	const group = groupConditions(conditions);
+	const { placeholderStyle = "numbered", tableAlias } = options ?? {};
 
 	const ctx: BuildContext = {
-		nextIdx: 0,
+		nextIdx: 1,
 		params: [],
-		placeholder: options?.placeholderStyle ?? "numbered",
+		placeholder: placeholderStyle,
 	};
 
 	const sql = buildGroupSql(
@@ -252,10 +262,10 @@ export function buildFilterWhere(
 		columnMapping,
 		columnsConfig,
 		ctx,
-		options?.tableAlias,
+		tableAlias,
 	);
 
-	if (!sql) return;
+	if (!sql) return undefined;
 
-	return { params: ctx.params, sql };
+	return { params: [...ctx.params], sql };
 }

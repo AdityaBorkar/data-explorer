@@ -23,6 +23,8 @@ thermo-nuclear file structure
 
 - Turn repository to ShadCN Registry for components.
 
+Perform the code and API analysis of the entire codebase and write a better-dx.md report with the list of suggestions with examples. Make sure it covers all the aspects for a better Developer Experience while maintaining highly performant code.
+
 ## Phase 2
 
 - Map View

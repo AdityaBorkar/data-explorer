@@ -8,7 +8,6 @@ export function useLoadMore(
 ) {
 	const threshold = options?.threshold ?? 200;
 	const observerRef = useRef<IntersectionObserver | null>(null);
-	const sentinelRef = useRef<Element | null>(null);
 
 	const triggerRef = useCallback(
 		(el: Element | null) => {
@@ -17,11 +16,9 @@ export function useLoadMore(
 			}
 
 			if (!(el && hasNextPage)) {
-				sentinelRef.current = null;
 				return;
 			}
 
-			sentinelRef.current = el;
 			observerRef.current = new IntersectionObserver(
 				(entries) => {
 					const entry = entries[0];
