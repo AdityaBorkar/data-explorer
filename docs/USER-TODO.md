@@ -1,35 +1,45 @@
 # TODO
 
+/init
+/grill-with-docs
+deslop
+thermo-nuclear
+
 - Create examples with bun (to directly start using bun)
+- Completely Headless Design
+
 - Integrations
   - display-dropdown
   - filter-bar
   - icons in data-config
   - virtual-table
 
-- thermonuclear
-- grill-with-docs
-  - Write instructions for AI -> CONTEXT.md GLOSSARY.md
-
 - Remove cmdk references
 
-- Grouping
-- Column Filtering
 - Global Filtering
 - Fuzzy Filtering
+- Fauceting
 - Row Selection
-- Sorting
 - Virtualization
-- CUSTOM FEATURES
-- 
-- Expanding
+
+## Phase 1
+
+- Review
+  - improve-codebase-arch
+  - thermo-nuclear
+  - grill-with-docs
+  - security-audit
+- Publish to NPM
 
 ## Phase 2
 
 - Write Unit Tests and Integration Tests
 - Turn repository to ShadCN Registry for components.
+- @abstack/conform
+  - Write a README
+  - GitHub Actions
 - Map View
-- Write documentation in README.md
+- Table View with Tree Tables
 
 ## Features not supported / planned:
 

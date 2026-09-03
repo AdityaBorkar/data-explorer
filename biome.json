@@ -1,0 +1,106 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							":URL:",
+							":BLANK_LINE:",
+							":NODE:",
+							":BUN:",
+							":PACKAGE_WITH_PROTOCOL:",
+							":BLANK_LINE:",
+							":PACKAGE:",
+							":BLANK_LINE:",
+							":ALIAS:",
+							":PATH:"
+						]
+					}
+				},
+				"preset": "all"
+			}
+		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": true,
+			"tailwindDirectives": true
+		}
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": ["**"]
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"html": {
+		"formatter": {
+			"selfCloseVoidElements": "always"
+		}
+	},
+	"linter": {
+		"domains": {
+			"react": "all",
+			"tailwind": "all",
+			"types": "all"
+		},
+		"enabled": true,
+		"rules": {
+			"preset": "recommended"
+		}
+	},
+	"overrides": [
+		{
+			"assist": { "actions": { "source": { "useSortedKeys": "off" } } },
+			"includes": ["**/package.json"]
+		},
+		{
+			"includes": ["**/*.test.*"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					},
+					"suspicious": {
+						"noUnnecessaryConditions": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["examples/src/components/ui/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noLabelWithoutControl": "off"
+					},
+					"style": {
+						"useComponentExportOnlyModules": "off"
+					},
+					"suspicious": {
+						"noArrayIndexKey": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["examples/src/**"],
+			"linter": {
+				"rules": {
+					"performance": {
+						"noJsxPropsBind": "off"
+					}
+				}
+			}
+		}
+	],
+	"vcs": {
+		"clientKind": "git",
+		"enabled": true,
+		"useIgnoreFile": true
+	}
+}
