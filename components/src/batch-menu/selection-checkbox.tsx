@@ -1,42 +1,37 @@
 import type { TableFeatures } from "@adistack/data-explorer";
 import { useDataExplorerContext } from "@adistack/data-explorer";
 import type { Row } from "@tanstack/react-table";
-import { useCallback } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
+interface SelectionCheckboxProps<TItem extends Record<string, unknown>> {
+	row: Row<TableFeatures, TItem>;
+}
+
 export function SelectionCheckbox<TItem extends Record<string, unknown>>({
 	row,
-}: {
-	row: Row<TableFeatures, TItem>;
-}) {
-	const checked = row.getIsSelected();
-
-	const handleChange = useCallback(() => row.toggleSelected(), [row]);
-
+}: SelectionCheckboxProps<TItem>): React.JSX.Element {
 	return (
 		<div className="flex items-center justify-center">
-			<Checkbox checked={checked} onCheckedChange={handleChange} />
+			<Checkbox
+				checked={row.getIsSelected()}
+				onCheckedChange={() => row.toggleSelected()}
+			/>
 		</div>
 	);
 }
 
-export function SelectAllCheckbox() {
+export function SelectAllCheckbox(): React.JSX.Element {
 	const { table } = useDataExplorerContext();
 
 	const checked = table.getIsAllRowsSelected();
 	const indeterminate = table.getIsSomeRowsSelected() && !checked;
 
-	const handleChange = useCallback(
-		() => table.toggleAllRowsSelected(!checked),
-		[table, checked],
-	);
-
 	return (
 		<div className="flex items-center justify-center">
 			<Checkbox
 				checked={indeterminate ? "indeterminate" : checked}
-				onCheckedChange={handleChange}
+				onCheckedChange={() => table.toggleAllRowsSelected(!checked)}
 			/>
 		</div>
 	);

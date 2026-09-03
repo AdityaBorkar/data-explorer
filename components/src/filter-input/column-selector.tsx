@@ -25,7 +25,7 @@ export function ColumnSelector({
 	onSearchChange,
 	onSelect,
 	onQuickValueSelect,
-}: ColumnSelectorProps) {
+}: ColumnSelectorProps): React.JSX.Element {
 	const term = search.trim().toLowerCase();
 	const filteredColumns = useMemo(() => {
 		if (!term) return columns;
@@ -36,11 +36,6 @@ export function ColumnSelector({
 		);
 	}, [columns, term]);
 
-	const enumColumns = useMemo(
-		() => columns.filter((c) => c.type === "enum" || c.type === "multiEnum"),
-		[columns],
-	);
-
 	const quickMatches = useMemo(() => {
 		if (term.length < 2) return [];
 		const matches: {
@@ -49,8 +44,9 @@ export function ColumnSelector({
 			option: { label: string; value: string };
 		}[] = [];
 
-		for (const col of enumColumns) {
-			const opts: { label: string; value: string }[] = col.options ?? [];
+		for (const col of columns) {
+			if (col.type !== "enum" && col.type !== "multiEnum") continue;
+			const opts = col.options ?? [];
 			for (const opt of opts) {
 				if (
 					opt.label.toLowerCase().includes(term) ||
@@ -65,7 +61,7 @@ export function ColumnSelector({
 			}
 		}
 		return matches;
-	}, [term, enumColumns]);
+	}, [term, columns]);
 
 	return (
 		<Command

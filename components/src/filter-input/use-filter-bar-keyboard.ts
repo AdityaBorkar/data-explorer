@@ -1,13 +1,41 @@
 import type { FilterCondition } from "@adistack/data-explorer";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useFilterBarKeyboard(opts: {
+interface FilterBarKeyboardOptions {
 	conditions: FilterCondition[];
 	inputValue: string;
 	onRemove: (id: string) => void;
-	popoverOpen: boolean;
 	onResetFlow: () => void;
-}) {
+	popoverOpen: boolean;
+}
+
+interface FilterBarKeyboard {
+	containerRef: React.RefObject<HTMLDivElement | null>;
+	focusedChipIndex: number | null;
+	focusInput: () => void;
+	handleInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+	inputRef: React.RefObject<HTMLInputElement | null>;
+	setFocusedChipIndex: (index: number | null) => void;
+}
+
+function focusChip(
+	container: HTMLDivElement | null,
+	id: string | undefined,
+	action: "click" | "focus",
+): void {
+	if (!(container && id)) return;
+	const chipEl = container.querySelector(
+		`[data-filter-chip="${id}"] button:first-child`,
+	);
+	if (chipEl instanceof HTMLElement) {
+		if (action === "click") chipEl.click();
+		else chipEl.focus();
+	}
+}
+
+export function useFilterBarKeyboard(
+	opts: FilterBarKeyboardOptions,
+): FilterBarKeyboard {
 	const { conditions, inputValue, onRemove, popoverOpen, onResetFlow } = opts;
 	const containerRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -16,20 +44,6 @@ export function useFilterBarKeyboard(opts: {
 	const focusInput = useCallback(() => {
 		inputRef.current?.focus();
 	}, []);
-
-	const focusChipById = useCallback(
-		(id: string | undefined, action: "click" | "focus") => {
-			if (!id) return;
-			const chipEl = containerRef.current?.querySelector(
-				`[data-filter-chip="${id}"] button:first-child`,
-			);
-			if (chipEl instanceof HTMLElement) {
-				if (action === "click") chipEl.click();
-				else chipEl.focus();
-			}
-		},
-		[],
-	);
 
 	const handleInputKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -92,7 +106,11 @@ export function useFilterBarKeyboard(opts: {
 
 			if (e.key === "Enter" && focusedChipIndex !== null) {
 				e.preventDefault();
-				focusChipById(conditions[focusedChipIndex]?.id, "click");
+				focusChip(
+					containerRef.current,
+					conditions[focusedChipIndex]?.id,
+					"click",
+				);
 				return;
 			}
 
@@ -118,7 +136,6 @@ export function useFilterBarKeyboard(opts: {
 			popoverOpen,
 			onResetFlow,
 			focusInput,
-			focusChipById,
 		],
 	);
 
@@ -137,13 +154,16 @@ export function useFilterBarKeyboard(opts: {
 
 	useEffect(() => {
 		if (focusedChipIndex !== null) {
-			focusChipById(conditions[focusedChipIndex]?.id, "focus");
+			focusChip(
+				containerRef.current,
+				conditions[focusedChipIndex]?.id,
+				"focus",
+			);
 		}
-	}, [focusedChipIndex, conditions, focusChipById]);
+	}, [focusedChipIndex, conditions]);
 
 	return {
 		containerRef,
-		focusChipById,
 		focusedChipIndex,
 		focusInput,
 		handleInputKeyDown,

@@ -3,31 +3,22 @@
 thermo-nuclear
 thermo-nuclear file structure
 
-Optimize react performance
-
-flatten core
-
-- Publish to NPM
-
 - Completely Headless Design
+- Publish to NPM
 
 - Integrations
   - display-dropdown
   - filter-bar
   - icons in data-config
   - virtual-table
-
-- Remove cmdk references
-
-- Global Filtering
-- Fuzzy Filtering
-- Fauceting
-- Row Selection
-- Virtualization
-
-- Turn repository to ShadCN Registry for components.
-
-Perform the code and API analysis of the entire codebase and write a better-dx.md report with the list of suggestions with examples. Make sure it covers all the aspects for a better Developer Experience while maintaining highly performant code.
+- Table Features
+  - Global Filtering
+  - Fuzzy Filtering
+  - Fauceting
+  - Row Selection
+  - Virtualization
+- Optimize react performance
+- Perform the code and API analysis of the entire codebase and write a better-dx.md report with the list of suggestions with examples. Make sure it covers all the aspects for a better Developer Experience while maintaining highly performant code.
 
 ## Phase 2
 

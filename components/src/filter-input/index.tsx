@@ -19,7 +19,11 @@ import { OperatorSelector } from "./operator-selector.tsx";
 import { useFilterBarKeyboard } from "./use-filter-bar-keyboard.ts";
 import { ValueInput } from "./value-input.tsx";
 
-export function FilterBar({ className }: { className?: string }) {
+interface FilterBarProps {
+	className?: string;
+}
+
+export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 	const { columnsConfig, table } = useDataExplorerContext();
 	const filterConditions = table.state.dataFilters;
 	const {
@@ -177,17 +181,19 @@ export function FilterBar({ className }: { className?: string }) {
 	);
 }
 
+interface FilterPopoverContentProps {
+	columnsConfig: ReturnType<typeof useDataExplorerContext>["columnsConfig"];
+	flow: ReturnType<typeof useInlineFilterFlow>;
+	onCloseAndFocus: () => void;
+	onCommit: () => void;
+}
+
 function FilterPopoverContent({
 	flow,
 	columnsConfig,
 	onCloseAndFocus,
 	onCommit,
-}: {
-	flow: ReturnType<typeof useInlineFilterFlow>;
-	columnsConfig: ReturnType<typeof useDataExplorerContext>["columnsConfig"];
-	onCloseAndFocus: () => void;
-	onCommit: () => void;
-}) {
+}: FilterPopoverContentProps): React.JSX.Element | null {
 	if (flow.phase === "column") {
 		return (
 			<ColumnSelector

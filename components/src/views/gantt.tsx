@@ -1,8 +1,8 @@
 import { useDataExplorerContext } from "@adistack/data-explorer";
 import { useMemo, useState } from "react";
 
+import { parseDateValue } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { parseDateValue } from "../filter-input/value-input.tsx";
 
 type ZoomLevel = "day" | "week" | "month";
 
@@ -28,7 +28,7 @@ interface TimelineViewProps<TItem> {
 export function TimelineView<TItem>({
 	renderBar,
 	getRowId,
-}: TimelineViewProps<TItem>) {
+}: TimelineViewProps<TItem>): React.JSX.Element {
 	const {
 		data: { items },
 		columnsConfig,
@@ -109,10 +109,10 @@ export function TimelineView<TItem>({
 	const segmentCount = Math.ceil(totalDays / segmentDays);
 	const rangeStart = range.start.getTime();
 
-	function getPosition(date: Date): number {
+	const getPosition = (date: Date): number => {
 		const days = (date.getTime() - rangeStart) / MS_PER_DAY;
 		return days * dayWidth;
-	}
+	};
 
 	if (!(startCol && endCol)) {
 		return (
@@ -180,7 +180,7 @@ export function TimelineView<TItem>({
 												? "w-2 rotate-45 bg-primary"
 												: "bg-primary/70",
 										)}
-										style={{ left, width: tl.isMilestone ? 8 : width }}
+										style={{ left, width }}
 									/>
 								)}
 							</div>

@@ -9,7 +9,7 @@ const DENSITY_OPTIONS = [
 	{ label: "Spacious", value: "spacious" },
 ] as const;
 
-export function SpacingDensitySelector() {
+export function SpacingDensitySelector(): React.JSX.Element {
 	const { table } = useDataExplorerContext();
 	const density = table.state.density ?? "comfortable";
 

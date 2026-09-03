@@ -1,6 +1,6 @@
 import { useSelectionContext } from "@adistack/data-explorer";
 
-export function SelectedCount() {
+export function SelectedCount(): React.JSX.Element {
 	const { selectedRowIds } = useSelectionContext();
 
 	return (

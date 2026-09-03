@@ -16,13 +16,13 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
-export function SortingSelector() {
+export function SortingSelector(): React.JSX.Element {
 	const { table } = useDataExplorerContext();
 
 	const visibleColumns = table.getVisibleLeafColumns();
 	const sorting = table.state.sorting;
 	const current = sorting[0];
-	const orderType = current?.desc ? "desc" : "asc";
+	const isAscending = !(current?.desc ?? false);
 
 	const handleSortColumnChange = useCallback(
 		(value: string) => {
@@ -65,12 +65,12 @@ export function SortingSelector() {
 					</SelectContent>
 				</Select>
 				<button
-					aria-label={`Sort ${orderType === "asc" ? "ascending" : "descending"}`}
+					aria-label={`Sort ${isAscending ? "ascending" : "descending"}`}
 					className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input transition-colors hover:bg-muted"
 					onClick={toggleSortDirection}
 					type="button"
 				>
-					{orderType === "asc" ? (
+					{isAscending ? (
 						<IconSortAscending className="size-4" />
 					) : (
 						<IconSortDescending className="size-4" />

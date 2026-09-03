@@ -23,13 +23,12 @@ const ARIA_SORT = {
 	desc: "descending",
 } as const;
 
-function MessageRow({
-	colSpan,
-	children,
-}: {
-	colSpan: number;
+interface MessageRowProps {
 	children: React.ReactNode;
-}) {
+	colSpan: number;
+}
+
+function MessageRow({ colSpan, children }: MessageRowProps): React.JSX.Element {
 	return (
 		<tbody>
 			<tr>
@@ -43,13 +42,15 @@ function MessageRow({
 	);
 }
 
+interface VirtualTableProps<TItem> {
+	emptyMessage?: string;
+	onRowClick?: (row: TItem) => void;
+}
+
 export function VirtualTable<TItem extends Record<string, unknown>>({
 	onRowClick,
 	emptyMessage = "No items found",
-}: {
-	onRowClick?: (row: TItem) => void;
-	emptyMessage?: string;
-} = {}) {
+}: VirtualTableProps<TItem> = {}): React.JSX.Element {
 	const {
 		data: { hasMore, isLoading, isLoadingMore, items: data, loadMoreRef },
 		table,

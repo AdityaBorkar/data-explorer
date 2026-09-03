@@ -25,7 +25,7 @@ function readGroupValue<TItem>(
 export function BoardView<TItem>({
 	renderCard,
 	getRowId,
-}: BoardViewProps<TItem>) {
+}: BoardViewProps<TItem>): React.JSX.Element {
 	const { columnsConfig, data, onMove, table } =
 		useDataExplorerContext<TItem>();
 	const { items } = data;

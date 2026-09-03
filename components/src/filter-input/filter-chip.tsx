@@ -9,7 +9,7 @@ import {
 	getOperatorLabel,
 } from "@adistack/data-explorer";
 import { IconX } from "@tabler/icons-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import {
 	Popover,
@@ -36,31 +36,21 @@ export function FilterChip({
 	onRemove,
 	selected,
 	onSelect,
-}: FilterChipProps) {
+}: FilterChipProps): React.JSX.Element {
 	const [editOpen, setEditOpen] = useState(false);
 	const Icon = column.icon as
 		| React.ComponentType<{ className?: string; strokeWidth?: number }>
 		| undefined;
 	const operatorLabel = getOperatorLabel(condition.operator);
 
-	const handleRemove = useCallback(
-		(e: React.MouseEvent | React.KeyboardEvent) => {
-			e.stopPropagation();
-			onRemove(condition.id);
-		},
-		[onRemove, condition.id],
-	);
+	const handleRemove = (e: React.MouseEvent | React.KeyboardEvent): void => {
+		e.stopPropagation();
+		onRemove(condition.id);
+	};
 
-	const handleOperatorChange = useCallback(
-		(operator: FilterOperator) => {
-			const { value } = coerceFilterValue(operator, condition.value);
-			onUpdate(condition.id, { operator, value });
-		},
-		[onUpdate, condition.id, condition.value],
-	);
-
-	const handleValueChange = (value: unknown) => {
-		onUpdate(condition.id, { value });
+	const handleOperatorChange = (operator: FilterOperator): void => {
+		const { value } = coerceFilterValue(operator, condition.value);
+		onUpdate(condition.id, { operator, value });
 	};
 
 	const displayValue = formatFilterValue(
@@ -121,7 +111,7 @@ export function FilterChip({
 					/>
 					<ValueInput
 						column={column}
-						onChange={handleValueChange}
+						onChange={(value) => onUpdate(condition.id, { value })}
 						onCommit={() => setEditOpen(false)}
 						operator={condition.operator}
 						value={condition.value}

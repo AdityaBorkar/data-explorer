@@ -6,7 +6,13 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function DisplayComponent({ children }: { children: React.ReactNode }) {
+interface DisplayComponentProps {
+	children: React.ReactNode;
+}
+
+export function DisplayComponent({
+	children,
+}: DisplayComponentProps): React.JSX.Element {
 	return (
 		<Popover>
 			<PopoverTrigger asChild={true}>

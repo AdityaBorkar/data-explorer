@@ -2,11 +2,10 @@ import type { TableFeatures } from "@adistack/data-explorer";
 import { useDataExplorerContext } from "@adistack/data-explorer";
 import { IconLayoutList } from "@tabler/icons-react";
 import type { Column } from "@tanstack/react-table";
-import { useCallback } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
-export function DisplayColumnSelector() {
+export function DisplayColumnSelector(): React.JSX.Element {
 	const { table } = useDataExplorerContext();
 
 	const columns = table.getAllLeafColumns();
@@ -26,37 +25,33 @@ export function DisplayColumnSelector() {
 	);
 }
 
+interface ColumnVisibilityRowProps {
+	column: Column<TableFeatures, Record<string, unknown>>;
+}
+
 function ColumnVisibilityRow({
 	column,
-}: {
-	column: Column<TableFeatures, Record<string, unknown>>;
-}) {
+}: ColumnVisibilityRowProps): React.JSX.Element {
 	const isVisible = column.getIsVisible();
 	const meta = column.columnDef.meta;
 	const Icon = meta?.icon as
 		| React.ComponentType<{ className?: string }>
 		| undefined;
 
-	const toggle = useCallback(() => {
+	const toggle = (): void => {
 		column.toggleVisibility(!isVisible);
-	}, [column, isVisible]);
+	};
 
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
-			if (e.key === "Enter" || e.key === " ") {
-				e.preventDefault();
-				toggle();
-			}
-		},
-		[toggle],
-	);
+	const handleKeyDown = (e: React.KeyboardEvent): void => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			toggle();
+		}
+	};
 
-	const handleCheckedChange = useCallback(
-		(checked: boolean | "indeterminate") => {
-			column.toggleVisibility(checked !== false);
-		},
-		[column],
-	);
+	const handleCheckedChange = (checked: boolean | "indeterminate"): void => {
+		column.toggleVisibility(checked !== false);
+	};
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: ARIA checkbox wrapping a Radix Checkbox (button); native input not applicable

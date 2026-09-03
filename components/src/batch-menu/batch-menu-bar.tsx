@@ -2,7 +2,13 @@ import { useSelectionContext } from "@adistack/data-explorer";
 import { IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
 
-export function BatchMenuBar({ children }: { children: React.ReactNode }) {
+interface BatchMenuBarProps {
+	children: React.ReactNode;
+}
+
+export function BatchMenuBar({
+	children,
+}: BatchMenuBarProps): React.JSX.Element | null {
 	const { clearSelection, selectedRowIds } = useSelectionContext();
 
 	useEffect(() => {

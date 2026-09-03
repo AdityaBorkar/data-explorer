@@ -9,18 +9,25 @@ import { useMemo } from "react";
 import { FilterChip } from "./filter-chip.tsx";
 import { FilterCombinatorToggle } from "./filter-combinator-toggle.tsx";
 
-export interface FilterChipGroupCallbacks {
+interface FilterChipGroupProps {
+	columnsConfig: ColumnConfig[];
+	conditions: FilterCondition[];
+	focusedChipIndex: number | null;
 	handleCombinatorChange: (id: string, combinator: "and" | "or") => void;
 	removeCondition: (id: string) => void;
 	setFocusedChipIndex: (index: number | null) => void;
 	updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
 }
 
-interface FilterChipGroupProps extends FilterChipGroupCallbacks {
-	columnsConfig: ColumnConfig[];
-	conditions: FilterCondition[];
-	focusedChipIndex: number | null;
-}
+type SharedChipProps = Pick<
+	FilterChipGroupProps,
+	| "columnsConfig"
+	| "focusedChipIndex"
+	| "handleCombinatorChange"
+	| "removeCondition"
+	| "setFocusedChipIndex"
+	| "updateCondition"
+>;
 
 export function FilterChipGroup({
 	conditions,
@@ -30,7 +37,7 @@ export function FilterChipGroup({
 	focusedChipIndex,
 	setFocusedChipIndex,
 	handleCombinatorChange,
-}: FilterChipGroupProps) {
+}: FilterChipGroupProps): React.JSX.Element | null {
 	const group = useMemo(() => groupConditions(conditions), [conditions]);
 	const indexById = useMemo(
 		() => new Map(conditions.map((c, i) => [c.id, i] as const)),
@@ -39,21 +46,26 @@ export function FilterChipGroup({
 
 	if (conditions.length === 0) return null;
 
-	if (group.conditions.length <= 1 || group.combinator === "and") {
+	const shared: SharedChipProps = {
+		columnsConfig,
+		focusedChipIndex,
+		handleCombinatorChange,
+		removeCondition,
+		setFocusedChipIndex,
+		updateCondition,
+	};
+
+	const isFlat = group.conditions.length <= 1 || group.combinator === "and";
+	if (isFlat) {
 		return (
 			<>
 				{conditions.map((cond, i) => (
 					<ChipWithCombinator
 						chipIndex={i}
-						columnsConfig={columnsConfig}
 						condition={cond}
-						focusedChipIndex={focusedChipIndex}
-						handleCombinatorChange={handleCombinatorChange}
 						key={cond.id}
-						removeCondition={removeCondition}
-						setFocusedChipIndex={setFocusedChipIndex}
 						showCombinator={i > 0}
-						updateCondition={updateCondition}
+						{...shared}
 					/>
 				))}
 			</>
@@ -63,43 +75,26 @@ export function FilterChipGroup({
 	return (
 		<>
 			{group.conditions.map((item, g) => {
-				const orSeparator =
-					g > 0 ? (
-						<span className="px-1 font-medium text-[10px] text-orange-600 uppercase">
-							or
-						</span>
-					) : null;
-
 				if (isFilterGroup(item)) {
 					return (
 						<AndBracket
-							columnsConfig={columnsConfig}
-							focusedChipIndex={focusedChipIndex}
 							group={item}
-							handleCombinatorChange={handleCombinatorChange}
 							indexById={indexById}
 							key={item.id}
-							orSeparator={orSeparator}
-							removeCondition={removeCondition}
-							setFocusedChipIndex={setFocusedChipIndex}
-							updateCondition={updateCondition}
+							showOrSeparator={g > 0}
+							{...shared}
 						/>
 					);
 				}
 
 				return (
 					<span key={item.id}>
-						{orSeparator}
+						{g > 0 && <OrSeparator />}
 						<ChipWithCombinator
 							chipIndex={indexById.get(item.id) ?? -1}
-							columnsConfig={columnsConfig}
 							condition={item}
-							focusedChipIndex={focusedChipIndex}
-							handleCombinatorChange={handleCombinatorChange}
-							removeCondition={removeCondition}
-							setFocusedChipIndex={setFocusedChipIndex}
 							showCombinator={false}
-							updateCondition={updateCondition}
+							{...shared}
 						/>
 					</span>
 				);
@@ -108,56 +103,47 @@ export function FilterChipGroup({
 	);
 }
 
+function OrSeparator(): React.JSX.Element {
+	return (
+		<span className="px-1 font-medium text-[10px] text-orange-600 uppercase">
+			or
+		</span>
+	);
+}
+
 function AndBracket({
 	group,
-	columnsConfig,
-	focusedChipIndex,
-	handleCombinatorChange,
 	indexById,
-	orSeparator,
-	removeCondition,
-	setFocusedChipIndex,
-	updateCondition,
-}: FilterChipGroupCallbacks & {
-	columnsConfig: ColumnConfig[];
-	focusedChipIndex: number | null;
+	showOrSeparator,
+	...shared
+}: SharedChipProps & {
 	group: FilterGroup;
 	indexById: Map<string, number>;
-	orSeparator: React.ReactNode;
-}) {
+	showOrSeparator: boolean;
+}): React.JSX.Element {
 	return (
 		<span>
-			{orSeparator}
+			{!!showOrSeparator && <OrSeparator />}
 			<span className="text-muted-foreground text-xs">(</span>
 			{group.conditions.map((child, i) => {
 				if (isFilterGroup(child)) {
 					return (
 						<AndBracket
-							columnsConfig={columnsConfig}
-							focusedChipIndex={focusedChipIndex}
 							group={child}
-							handleCombinatorChange={handleCombinatorChange}
 							indexById={indexById}
 							key={child.id}
-							orSeparator={null}
-							removeCondition={removeCondition}
-							setFocusedChipIndex={setFocusedChipIndex}
-							updateCondition={updateCondition}
+							showOrSeparator={false}
+							{...shared}
 						/>
 					);
 				}
 				return (
 					<ChipWithCombinator
 						chipIndex={indexById.get(child.id) ?? -1}
-						columnsConfig={columnsConfig}
 						condition={child}
-						focusedChipIndex={focusedChipIndex}
-						handleCombinatorChange={handleCombinatorChange}
 						key={child.id}
-						removeCondition={removeCondition}
-						setFocusedChipIndex={setFocusedChipIndex}
 						showCombinator={i > 0}
-						updateCondition={updateCondition}
+						{...shared}
 					/>
 				);
 			})}
@@ -169,24 +155,18 @@ function AndBracket({
 function ChipWithCombinator({
 	chipIndex,
 	condition,
+	showCombinator,
 	columnsConfig,
 	focusedChipIndex,
 	handleCombinatorChange,
 	removeCondition,
 	setFocusedChipIndex,
-	showCombinator,
 	updateCondition,
-}: {
+}: SharedChipProps & {
 	chipIndex: number;
 	condition: FilterCondition;
-	columnsConfig: ColumnConfig[];
-	focusedChipIndex: number | null;
-	handleCombinatorChange: (id: string, combinator: "and" | "or") => void;
-	removeCondition: (id: string) => void;
-	setFocusedChipIndex: (index: number | null) => void;
 	showCombinator: boolean;
-	updateCondition: (id: string, updates: Partial<FilterCondition>) => void;
-}) {
+}): React.JSX.Element | null {
 	const col = columnsConfig.find((c) => c.id === condition.columnId);
 	if (!col) return null;
 

@@ -22,7 +22,7 @@ export function OperatorSelector({
 	onSelect,
 	search,
 	onSearchChange,
-}: OperatorSelectorProps) {
+}: OperatorSelectorProps): React.JSX.Element {
 	const operators = column.operators ?? getOperatorsForType(column.type);
 
 	const filteredOperators = operators.filter((op) => {

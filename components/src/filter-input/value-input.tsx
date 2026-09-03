@@ -12,6 +12,9 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { toValidDate } from "@/lib/dates";
+
+export { parseDateValue, toValidDate } from "@/lib/dates";
 
 interface ValueInputProps {
 	column: ColumnConfig;
@@ -33,7 +36,7 @@ export function ValueInput({
 	value,
 	onChange,
 	onCommit,
-}: ValueInputProps) {
+}: ValueInputProps): React.JSX.Element | null {
 	const kind = editorKind(operator, column);
 
 	if (kind === "nullary") {
@@ -137,17 +140,59 @@ export function ValueInput({
 	}
 }
 
+interface StringInputProps {
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+	placeholder: string;
+	value: string | undefined;
+}
+
+interface NumberInputProps {
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+	value: number | undefined;
+}
+
+interface NumberRangeInputProps {
+	onChange: (v: unknown) => void;
+	value: [number, number] | undefined;
+}
+
+interface DateInputProps {
+	onChange: (v: unknown) => void;
+	value: string | undefined;
+}
+
+interface DateRangeInputProps {
+	onChange: (v: unknown) => void;
+	value: [string, string] | undefined;
+}
+
+interface BooleanInputProps {
+	onChange: (v: unknown) => void;
+	value: boolean | undefined;
+}
+
+interface SingleOptionInputProps {
+	column: ColumnConfig;
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+	value: string | undefined;
+}
+
+interface MultiOptionInputProps {
+	column: ColumnConfig;
+	onChange: (v: unknown) => void;
+	onCommit: () => void;
+	value: unknown;
+}
+
 function StringInput({
 	value,
 	onChange,
 	onCommit,
 	placeholder,
-}: {
-	value: string | undefined;
-	onChange: (v: unknown) => void;
-	onCommit: () => void;
-	placeholder: string;
-}) {
+}: StringInputProps): React.JSX.Element {
 	return (
 		<Input
 			autoFocus={true}
@@ -166,11 +211,7 @@ function NumberInput({
 	value,
 	onChange,
 	onCommit,
-}: {
-	value: number | undefined;
-	onChange: (v: unknown) => void;
-	onCommit: () => void;
-}) {
+}: NumberInputProps): React.JSX.Element {
 	return (
 		<Input
 			autoFocus={true}
@@ -191,10 +232,7 @@ function NumberInput({
 function NumberRangeInput({
 	value,
 	onChange,
-}: {
-	value: [number, number] | undefined;
-	onChange: (v: unknown) => void;
-}) {
+}: NumberRangeInputProps): React.JSX.Element {
 	const [min, max] = value ?? [undefined, undefined];
 	return (
 		<div className="flex items-center gap-1">
@@ -222,29 +260,7 @@ function NumberRangeInput({
 	);
 }
 
-export function toValidDate(value: string | undefined): Date | undefined {
-	if (!value) return undefined;
-	const d = new Date(value);
-	return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-export function parseDateValue(v: unknown): Date | null {
-	if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
-	if (typeof v === "string" || typeof v === "number") {
-		if (v === "") return null;
-		const d = new Date(v);
-		return Number.isNaN(d.getTime()) ? null : d;
-	}
-	return null;
-}
-
-function DateInput({
-	value,
-	onChange,
-}: {
-	value: string | undefined;
-	onChange: (v: unknown) => void;
-}) {
+function DateInput({ value, onChange }: DateInputProps): React.JSX.Element {
 	const [open, setOpen] = useState(false);
 	const dateValue = toValidDate(value);
 
@@ -280,10 +296,7 @@ function DateInput({
 function DateRangeInput({
 	value,
 	onChange,
-}: {
-	value: [string, string] | undefined;
-	onChange: (v: unknown) => void;
-}) {
+}: DateRangeInputProps): React.JSX.Element {
 	const [open, setOpen] = useState(false);
 	const [from, to] = value ?? [undefined, undefined];
 	const fromValue = toValidDate(from);
@@ -335,10 +348,7 @@ function DateRangeInput({
 function BooleanInput({
 	value,
 	onChange,
-}: {
-	value: boolean | undefined;
-	onChange: (v: unknown) => void;
-}) {
+}: BooleanInputProps): React.JSX.Element {
 	return (
 		<div className="flex items-center gap-2">
 			<Switch
@@ -357,12 +367,7 @@ function SingleOptionInput({
 	value,
 	onChange,
 	onCommit,
-}: {
-	column: ColumnConfig;
-	value: string | undefined;
-	onChange: (v: unknown) => void;
-	onCommit: () => void;
-}) {
+}: SingleOptionInputProps): React.JSX.Element {
 	const options = column.options ?? [];
 	if (options.length === 0) {
 		return (
@@ -399,21 +404,16 @@ function MultiOptionInput({
 	value,
 	onChange,
 	onCommit,
-}: {
-	column: ColumnConfig;
-	value: unknown;
-	onChange: (v: unknown) => void;
-	onCommit: () => void;
-}) {
+}: MultiOptionInputProps): React.JSX.Element {
 	const options = column.options ?? [];
 	const selected = new Set(Array.isArray(value) ? value.map(String) : []);
 
-	function toggle(optValue: string) {
+	const toggle = (optValue: string): void => {
 		const next = new Set(selected);
 		if (next.has(optValue)) next.delete(optValue);
 		else next.add(optValue);
 		onChange([...next]);
-	}
+	};
 
 	if (options.length === 0) {
 		return (
