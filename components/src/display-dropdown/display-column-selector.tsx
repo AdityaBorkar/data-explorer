@@ -4,7 +4,7 @@ import { IconLayoutList } from "@tabler/icons-react";
 import type { Column } from "@tanstack/react-table";
 import { useCallback } from "react";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "#/components/ui/checkbox";
 
 export function DisplayColumnSelector() {
 	const { table } = useDataExplorerContext();

@@ -5,7 +5,7 @@ import { FlexRender } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "#/lib/utils";
 import {
 	SelectAllCheckbox,
 	SelectionCheckbox,

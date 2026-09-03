@@ -3,8 +3,6 @@
 		"declarationDir": "../.local/types/components",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"paths": {
-			"@/components/ui/*": ["./primitives/*"],
-			"@/lib/utils": ["./primitives/utils.ts"]
 		},
 		"target": "ES2022",
 		"types": ["react"]

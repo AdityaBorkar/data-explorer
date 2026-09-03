@@ -15,8 +15,8 @@ import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+} from "#/components/ui/popover";
+import { cn } from "#/lib/utils";
 import { OperatorSelector } from "./operator-selector.tsx";
 import { ValueInput } from "./value-input.tsx";
 

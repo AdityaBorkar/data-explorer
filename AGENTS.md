@@ -26,7 +26,7 @@ Verify in order: lint → types → test.
 - Bun for install/scripts. TypeScript 7, strict, `noEmit`.
 - Biome v2 config at root `biome.json` (`files.includes: ["**"]`, no-scope excludes apply). Conventional commits via husky + commitlint (`build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|wip`).
 - `verbatimModuleSyntax: true` — type imports need `import type`; relative imports keep `.ts`/`.tsx` extensions. `noUncheckedIndexedAccess: true`. `noUnusedLocals`/`noUnusedParameters` on.
-- `@/components/ui/*` → `./primitives/*` and `@/lib/utils` → `./primitives/utils.ts` shadcn aliases live in `components/tsconfig.json` (mirrored to `../components/primitives/*` in `examples/tsconfig.json`); most code uses relative imports. `package.json` `imports` `#/*` is unused.
+- `#/components/ui/*` → `./primitives/*` and `#/lib/utils` → `./primitives/utils.ts` shadcn aliases live in `components/tsconfig.json` (mirrored to `../components/primitives/*` in `examples/tsconfig.json`); most code uses relative imports. `package.json` `imports` `#/*` is unused.
 
 ## Architecture
 
@@ -37,4 +37,4 @@ Verify in order: lint → types → test.
 - Row selection is table-internal (`rowSelectionFeature`); `useSelectionContext()` derives `Set<string>` + helpers from `table.state.rowSelection`.
 - `useInlineFilterFlow` (`idle → column → operator → value`) builds a `FilterCondition` and calls `onAdd` (bind to `table.addDataFilter`). `SEARCH_COLUMN_ID` (`"_search"`) pins `contains` and skips to value; `isEmpty`/`isNotEmpty` auto-commit with `null`.
 - Views: `useView` persists via `ViewAdapter` (`listViews`/`updateView`). `saveView()` takes no args (saves active view only); `applyView(null)` / `resetToSaved()` with no active view resets to `defaultDisplay` + empty filters. Display round-trips via `toDisplaySnapshot`/`applyDisplaySnapshot` (`src/core/features/display-snapshot.ts`), merged with `mergeDisplay`. `ViewType` is `"table" | "board" | "timeline"` only (no `grid`/`list`/`calendar` despite `ui/views/` files); `mergeDisplay` ignores `overrides.type` — always returns `base.type` (`filter-merge.ts:73`).
-- `./ui` vendors its own shadcn/Radix primitives in `src/ui/primitives/` (`cn` is re-exported from the `cn` package via `primitives/utils.ts`); never import from consumer `@/` paths. `cmdk` still backs `primitives/command.tsx` + the column/operator selectors (not removed).
+- `./ui` vendors its own shadcn/Radix primitives in `src/ui/primitives/` (`cn` is re-exported from the `cn` package via `primitives/utils.ts`); never import from consumer `#/` paths. `cmdk` still backs `primitives/command.tsx` + the column/operator selectors (not removed).

@@ -3,7 +3,7 @@
 		"declarationDir": "../.local/types/package",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"paths": {
-			"@/*": ["./src/*"]
+			"#/*": ["./src/*"]
 		},
 		"target": "ES2022",
 		"types": ["react"]

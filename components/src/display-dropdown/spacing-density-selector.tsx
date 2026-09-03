@@ -1,7 +1,7 @@
 import { useDataExplorerContext } from "@adistack/data-explorer";
 import { IconLineHeight } from "@tabler/icons-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "#/lib/utils";
 
 const DENSITY_OPTIONS = [
 	{ label: "Compact", value: "compact" },

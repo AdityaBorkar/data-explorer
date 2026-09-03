@@ -1,7 +1,7 @@
 import { useDataExplorerContext } from "@adistack/data-explorer";
 import { useMemo, useState } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "#/lib/utils";
 import { parseDateValue } from "../filter-input/value-input.tsx";
 
 type ZoomLevel = "day" | "week" | "month";
