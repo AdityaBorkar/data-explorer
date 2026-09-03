@@ -1,9 +1,9 @@
 import { useSelectionContext } from "../../core/context.tsx";
 
 export function SelectedCount() {
-  const { selectedRowIds } = useSelectionContext();
+	const { selectedRowIds } = useSelectionContext();
 
-  return (
-    <span className="font-medium text-sm">{selectedRowIds.size} selected</span>
-  );
+	return (
+		<span className="font-medium text-sm">{selectedRowIds.size} selected</span>
+	);
 }

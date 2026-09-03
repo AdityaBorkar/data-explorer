@@ -7,53 +7,53 @@ import type { DataFiltersState } from "./dataFilteringFeature.types.ts";
 type AnyTable = any;
 
 export function getDefaultDataFiltersState(): DataFiltersState {
-  return [];
+	return [];
 }
 
 export function table_setDataFilters(
-  table: AnyTable,
-  updater: Updater<DataFiltersState>,
+	table: AnyTable,
+	updater: Updater<DataFiltersState>,
 ): void {
-  table.options.onDataFiltersChange?.(updater);
+	table.options.onDataFiltersChange?.(updater);
 }
 
 export function table_addDataFilter(
-  table: AnyTable,
-  condition: FilterCondition,
+	table: AnyTable,
+	condition: FilterCondition,
 ): void {
-  table.options.onDataFiltersChange?.((prev: DataFiltersState) => [
-    ...prev,
-    condition,
-  ]);
+	table.options.onDataFiltersChange?.((prev: DataFiltersState) => [
+		...prev,
+		condition,
+	]);
 }
 
 export function table_removeDataFilter(table: AnyTable, id: string): void {
-  table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
-    prev.filter((item) => item.id !== id),
-  );
+	table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
+		prev.filter((item) => item.id !== id),
+	);
 }
 
 export function table_updateDataFilter(
-  table: AnyTable,
-  id: string,
-  updates: Partial<FilterCondition>,
+	table: AnyTable,
+	id: string,
+	updates: Partial<FilterCondition>,
 ): void {
-  table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
-    prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-  );
+	table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
+		prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+	);
 }
 
 export function table_clearDataFilters(table: AnyTable): void {
-  table.options.onDataFiltersChange?.([]);
+	table.options.onDataFiltersChange?.([]);
 }
 
 export function table_resetDataFilters(
-  table: AnyTable,
-  defaultState?: boolean,
+	table: AnyTable,
+	defaultState?: boolean,
 ): void {
-  table.options.onDataFiltersChange?.(
-    defaultState
-      ? getDefaultDataFiltersState()
-      : (table.initialState.dataFilters ?? getDefaultDataFiltersState()),
-  );
+	table.options.onDataFiltersChange?.(
+		defaultState
+			? getDefaultDataFiltersState()
+			: (table.initialState.dataFilters ?? getDefaultDataFiltersState()),
+	);
 }

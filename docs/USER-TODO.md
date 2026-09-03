@@ -1,11 +1,11 @@
 # TODO
 
+- Create examples with bun (to directly start using bun)
 /init
 /grill-with-docs
 deslop
 thermo-nuclear
 
-- Create examples with bun (to directly start using bun)
 - Completely Headless Design
 
 - Integrations

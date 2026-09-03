@@ -1,13 +1,13 @@
 {
-  "compilerOptions": {
-    "declarationDir": "../.local/types/package",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "target": "ES2022",
-    "types": ["react"]
-  },
-  "extends": "../tsconfig.json",
-  "include": ["**/*.ts", "**/*.tsx"]
+	"compilerOptions": {
+		"declarationDir": "../.local/types/package",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"target": "ES2022",
+		"types": ["react"]
+	},
+	"extends": "../tsconfig.json",
+	"include": ["**/*.ts", "**/*.tsx"]
 }

@@ -12,9 +12,8 @@ export { FilterBar } from "./filter-input/index.tsx";
 export { OperatorSelector } from "./filter-input/operator-selector.tsx";
 export { ValueInput } from "./filter-input/value-input.tsx";
 export {
-  SelectAllCheckbox,
-  SelectionCheckbox,
+	SelectAllCheckbox,
+	SelectionCheckbox,
 } from "./selection-checkbox.tsx";
 export { BoardView } from "./views/board";
 export { VirtualTable } from "./views/table";
-export { TimelineView } from "./views/timeline";
