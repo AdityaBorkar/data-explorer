@@ -4,6 +4,9 @@
 	"private": true,
 	"description": "Data Explorer UI blocks (shadcn registry source). Requires @adistack/data-explorer and a QueryClientProvider ancestor.",
 	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
 	"exports": {
 		".": "./index.ts"
 	},

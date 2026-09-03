@@ -3,9 +3,9 @@
 		"declarationDir": "../.local/types/examples",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"paths": {
+			"#/*": ["./src/*"],
 			"#/components/ui/*": ["../components/primitives/*"],
-			"#/lib/utils": ["../components/primitives/utils.ts"],
-			"#/*": ["./src/*"]
+			"#/lib/utils": ["../components/primitives/utils.ts"]
 		},
 		"target": "ES2022"
 	},
