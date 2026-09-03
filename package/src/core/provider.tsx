@@ -107,12 +107,10 @@ export function Provider<TItem extends Record<string, unknown>>({
 		manualSorting: true,
 	});
 
-	const orderBy = useMemo(
+	const orderBy = useMemo<RefineOptions["orderBy"]>(
 		() => ({
 			columnId: table.state.sorting[0]?.id ?? "",
-			direction: (table.state.sorting[0]?.desc ? "desc" : "asc") as
-				| "asc"
-				| "desc",
+			direction: table.state.sorting[0]?.desc ? "desc" : "asc",
 		}),
 		[table.state.sorting],
 	);
@@ -166,14 +164,16 @@ export function Provider<TItem extends Record<string, unknown>>({
 		setData(allItems);
 	}
 
+	const typedTable = table as unknown as ReactTable<
+		typeof TableFeatures,
+		Record<string, unknown>
+	>;
+
 	const viewHook = useView({
 		columnsConfig,
 		defaultDisplay,
 		domain,
-		table: table as unknown as ReactTable<
-			typeof TableFeatures,
-			Record<string, unknown>
-		>,
+		table: typedTable,
 		viewAdapter,
 	});
 
@@ -195,10 +195,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 					loadMoreRef: triggerRef,
 				},
 				onMove,
-				table: table as unknown as ReactTable<
-					typeof TableFeatures,
-					Record<string, unknown>
-				>,
+				table: typedTable,
 				view: viewHook,
 			}) as unknown as ContextType,
 		[
@@ -210,7 +207,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 			triggerRef,
 			onMove,
 			viewHook,
-			table,
+			typedTable,
 		],
 	);
 

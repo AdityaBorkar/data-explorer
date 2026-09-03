@@ -24,7 +24,7 @@ export function FilterCombinatorToggle({
 			onClick={handleClick}
 			type="button"
 		>
-			{combinator === "and" ? "and" : "or"}
+			{combinator}
 		</button>
 	);
 }

@@ -7,7 +7,6 @@ import { useCallback } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
 import {
-	cn,
 	Select,
 	SelectContent,
 	SelectGroup,
@@ -67,9 +66,7 @@ export function SortingSelector() {
 				</Select>
 				<button
 					aria-label={`Sort ${orderType === "asc" ? "ascending" : "descending"}`}
-					className={cn(
-						"flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input transition-colors hover:bg-muted",
-					)}
+					className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-input transition-colors hover:bg-muted"
 					onClick={toggleSortDirection}
 					type="button"
 				>

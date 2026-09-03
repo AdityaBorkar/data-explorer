@@ -24,10 +24,7 @@ export function BoardView<TItem>({
 		[columnsConfig, groupBy],
 	);
 
-	const columns = useMemo(() => {
-		if (!groupByColumn?.options) return [];
-		return groupByColumn.options;
-	}, [groupByColumn]);
+	const columns = useMemo(() => groupByColumn?.options ?? [], [groupByColumn]);
 
 	const groupedItems = useMemo(() => {
 		const groups: Record<string, TItem[]> = {};
@@ -45,9 +42,7 @@ export function BoardView<TItem>({
 
 	const handleDragEnd = useCallback(
 		(result: DropResult) => {
-			if (!result.destination) return;
-			if (!onMove) return;
-			if (!groupByColumn) return;
+			if (!result.destination || !onMove || !groupByColumn) return;
 
 			const fromGroup = result.source.droppableId;
 			const toGroup = result.destination.droppableId;

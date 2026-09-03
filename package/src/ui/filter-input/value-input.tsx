@@ -52,7 +52,9 @@ export function ValueInput({
 				value={value as string}
 			/>
 		);
-	} else if (column.type === "number") {
+	}
+
+	if (column.type === "number") {
 		if (operator === "between" || operator === "notBetween") {
 			return (
 				<NumberRangeInput
@@ -68,7 +70,9 @@ export function ValueInput({
 				value={value as number | undefined}
 			/>
 		);
-	} else if (column.type === "date") {
+	}
+
+	if (column.type === "date") {
 		if (operator === "between" || operator === "notBetween") {
 			return (
 				<DateRangeInput
@@ -80,22 +84,16 @@ export function ValueInput({
 		return (
 			<DateInput onChange={onChange} value={value as string | undefined} />
 		);
-	} else if (column.type === "boolean") {
+	}
+
+	if (column.type === "boolean") {
 		return (
 			<BooleanInput onChange={onChange} value={value as boolean | undefined} />
 		);
-	} else if (column.type === "enum" || column.type === "multiEnum") {
-		return null;
-	} else {
-		return (
-			<StringInput
-				onChange={onChange}
-				onCommit={onCommit}
-				placeholder="Value..."
-				value={value as string}
-			/>
-		);
 	}
+
+	// enum / multiEnum values are picked from option lists, not typed.
+	return null;
 }
 
 function StringInput({

@@ -9,6 +9,7 @@ import {
 } from "../features/display-snapshot.ts";
 import type {
 	ColumnConfig,
+	FilterCondition,
 	FilterViewDisplay,
 	TableFeatures,
 	ViewAdapter,
@@ -41,24 +42,34 @@ export function useView({
 		[views, activeViewId],
 	);
 
-	const applyView = useCallback(
-		(viewId: string | null) => {
-			setActiveViewId(viewId);
-			if (!(viewId && views)) {
-				table.setDataFilters([]);
-				applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
-				return;
-			}
-			const view = views.find((v) => v.id === viewId);
-			if (!view) return;
-			table.setDataFilters(view.refine);
+	const resetToDefault = useCallback(() => {
+		table.setDataFilters([]);
+		applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
+	}, [table, defaultDisplay, columnsConfig]);
+
+	const applySnapshot = useCallback(
+		(refine: FilterCondition[], display: FilterViewDisplay) => {
+			table.setDataFilters(refine);
 			applyDisplaySnapshot(
-				mergeDisplay(defaultDisplay, view.display),
+				mergeDisplay(defaultDisplay, display),
 				table,
 				columnsConfig,
 			);
 		},
-		[views, defaultDisplay, table, columnsConfig],
+		[table, defaultDisplay, columnsConfig],
+	);
+
+	const applyView = useCallback(
+		(viewId: string | null) => {
+			setActiveViewId(viewId);
+			const view = viewId ? views?.find((v) => v.id === viewId) : undefined;
+			if (!view) {
+				resetToDefault();
+				return;
+			}
+			applySnapshot(view.refine, view.display);
+		},
+		[views, resetToDefault, applySnapshot],
 	);
 
 	const saveView = useCallback(async () => {
@@ -75,17 +86,11 @@ export function useView({
 
 	const resetToSaved = useCallback(() => {
 		if (!activeView) {
-			table.setDataFilters([]);
-			applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
+			resetToDefault();
 			return;
 		}
-		table.setDataFilters(activeView.refine);
-		applyDisplaySnapshot(
-			mergeDisplay(defaultDisplay, activeView.display),
-			table,
-			columnsConfig,
-		);
-	}, [activeView, defaultDisplay, table, columnsConfig]);
+		applySnapshot(activeView.refine, activeView.display);
+	}, [activeView, resetToDefault, applySnapshot]);
 
 	return {
 		activeView,

@@ -66,17 +66,13 @@ function validateConditions(
 
 		const validOperators =
 			colConfig.operators ?? getOperatorsForType(colConfig.type);
-		if (!validOperators.includes(cond.operator as FilterOperator)) {
+		if (!validOperators.includes(cond.operator)) {
 			throw new Error(
 				`Invalid operator "${cond.operator}" for column "${cond.columnId}" (type: ${colConfig.type})`,
 			);
 		}
 
-		validateOperatorValue(
-			cond.operator as FilterOperator,
-			cond.value,
-			colConfig.type,
-		);
+		validateOperatorValue(cond.operator, cond.value, colConfig.type);
 	}
 
 	return conditions;
@@ -84,8 +80,16 @@ function validateConditions(
 
 type SqlBuilder = (col: string, value: unknown, ctx: BuildContext) => string;
 
-function arrayPlaceholders(vals: string[], ctx: BuildContext): string {
-	return vals.map((v) => pushParam(ctx, v)).join(", ");
+function arrayPlaceholders(value: unknown, ctx: BuildContext): string {
+	return (value as string[]).map((v) => pushParam(ctx, v)).join(", ");
+}
+
+function arrayContains(col: string, value: unknown, ctx: BuildContext): string {
+	return `${col} @> ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
+}
+
+function arrayOverlaps(col: string, value: unknown, ctx: BuildContext): string {
+	return `${col} && ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
 }
 
 const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
@@ -98,22 +102,15 @@ const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
 	endsWith: (col, value, ctx) =>
 		`${col} ILIKE ${pushParam(ctx, `%${value as string}`)}`,
 	eq: (col, value, ctx) => `${col} = ${pushParam(ctx, value)}`,
-	exclude: (col, value, ctx) =>
-		`NOT (${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
-	excludeAll: (col, value, ctx) =>
-		`NOT (${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
-	excludeAny: (col, value, ctx) =>
-		`NOT (${col} && ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[])`,
+	exclude: (col, value, ctx) => `NOT (${arrayContains(col, value, ctx)})`,
+	excludeAll: (col, value, ctx) => `NOT (${arrayContains(col, value, ctx)})`,
+	excludeAny: (col, value, ctx) => `NOT (${arrayOverlaps(col, value, ctx)})`,
 	gt: (col, value, ctx) => `${col} > ${pushParam(ctx, value)}`,
 	gte: (col, value, ctx) => `${col} >= ${pushParam(ctx, value)}`,
-	in: (col, value, ctx) =>
-		`${col} IN (${arrayPlaceholders(value as string[], ctx)})`,
-	include: (col, value, ctx) =>
-		`${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
-	includeAll: (col, value, ctx) =>
-		`${col} @> ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
-	includeAny: (col, value, ctx) =>
-		`${col} && ARRAY[${arrayPlaceholders(value as string[], ctx)}]::text[]`,
+	in: (col, value, ctx) => `${col} IN (${arrayPlaceholders(value, ctx)})`,
+	include: arrayContains,
+	includeAll: arrayContains,
+	includeAny: arrayOverlaps,
 	isEmpty: (col) => `${col} IS NULL`,
 	isNotEmpty: (col) => `${col} IS NOT NULL`,
 	lt: (col, value, ctx) => `${col} < ${pushParam(ctx, value)}`,
@@ -126,7 +123,7 @@ const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
 	notContains: (col, value, ctx) =>
 		`${col} NOT ILIKE ${pushParam(ctx, `%${value as string}%`)}`,
 	notIn: (col, value, ctx) =>
-		`${col} NOT IN (${arrayPlaceholders(value as string[], ctx)})`,
+		`${col} NOT IN (${arrayPlaceholders(value, ctx)})`,
 	startsWith: (col, value, ctx) =>
 		`${col} ILIKE ${pushParam(ctx, `${value as string}%`)}`,
 };
@@ -155,7 +152,7 @@ function buildConditionSql(
 	if (!columnName) return;
 
 	const col = colRef(columnName, tableAlias);
-	const builder = OPERATOR_SQL_BUILDERS[condition.operator as FilterOperator];
+	const builder = OPERATOR_SQL_BUILDERS[condition.operator];
 	if (!builder) {
 		throw new Error(`Unhandled filter operator: ${condition.operator}`);
 	}
@@ -187,8 +184,9 @@ function buildSearchSql(
 		return "1 = 0";
 	}
 
+	const [only] = conditions;
 	if (conditions.length === 1) {
-		return conditions[0] ?? "1 = 0";
+		return only ?? "1 = 0";
 	}
 
 	return `(${conditions.join(" OR ")})`;
@@ -206,7 +204,7 @@ function buildGroupSql(
 	for (const item of group.conditions) {
 		if ("conditions" in item) {
 			const subSql = buildGroupSql(
-				item as FilterGroup,
+				item,
 				columnMapping,
 				columnsConfig,
 				ctx,
@@ -215,7 +213,7 @@ function buildGroupSql(
 			if (subSql) sqls.push(subSql);
 		} else {
 			const condSql = buildConditionSql(
-				item as FilterCondition,
+				item,
 				columnMapping,
 				columnsConfig,
 				ctx,

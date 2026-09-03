@@ -25,13 +25,8 @@ export function mergeFilters(
 
 	for (const b of base) {
 		const key = filterKey(b);
-		const override = overrideMap.get(key);
-		if (override === undefined) {
-			result.push(b);
-		} else {
-			result.push(override);
-			overrideMap.delete(key);
-		}
+		result.push(overrideMap.get(key) ?? b);
+		overrideMap.delete(key);
 	}
 
 	for (const o of overrideMap.values()) {
@@ -49,9 +44,8 @@ export function computeOverrides(
 	const baseMap = new Map(base.map((b) => [filterKey(b), b]));
 
 	for (const f of effective) {
-		const key = filterKey(f);
-		const baseFilter = baseMap.get(key);
-		if (!(baseFilter && conditionsEqual(baseFilter, f))) {
+		const baseFilter = baseMap.get(filterKey(f));
+		if (!baseFilter || !conditionsEqual(baseFilter, f)) {
 			overrides.push(f);
 		}
 	}

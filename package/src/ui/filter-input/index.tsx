@@ -20,10 +20,10 @@ export function FilterBar({ className }: { className?: string }) {
 	const { columnsConfig, table } = useDataExplorerContext();
 	const filterConditions = table.state.dataFilters;
 	const {
-		addDataFilter: addFilter,
-		clearDataFilters: clearFilters,
-		removeDataFilter: removeFilter,
-		updateDataFilter: updateFilter,
+		addDataFilter,
+		clearDataFilters,
+		removeDataFilter,
+		updateDataFilter,
 	} = table;
 
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -34,7 +34,7 @@ export function FilterBar({ className }: { className?: string }) {
 
 	const flow = useInlineFilterFlow({
 		columnsConfig,
-		onAdd: addFilter,
+		onAdd: addDataFilter,
 	});
 
 	useEffect(() => {
@@ -42,17 +42,24 @@ export function FilterBar({ className }: { className?: string }) {
 		if (flow.phase === "idle") setPopoverOpen(false);
 	}, [flow.phase]);
 
+	const focusInput = useCallback(() => {
+		inputRef.current?.focus();
+	}, []);
+
+	const closeAndFocus = useCallback(() => {
+		setPopoverOpen(false);
+		focusInput();
+	}, [focusInput]);
+
 	const resetFlow = useCallback(() => {
 		flow.reset();
-		setPopoverOpen(false);
-		inputRef.current?.focus();
-	}, [flow.reset]);
+		closeAndFocus();
+	}, [flow.reset, closeAndFocus]);
 
 	const commitCondition = useCallback(() => {
 		flow.commit();
-		setPopoverOpen(false);
-		inputRef.current?.focus();
-	}, [flow.commit]);
+		closeAndFocus();
+	}, [flow.commit, closeAndFocus]);
 
 	const handleInputKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -79,7 +86,7 @@ export function FilterBar({ className }: { className?: string }) {
 					setFocusedChipIndex(focusedChipIndex + 1);
 				} else {
 					setFocusedChipIndex(null);
-					inputRef.current?.focus();
+					focusInput();
 				}
 				return;
 			}
@@ -91,10 +98,10 @@ export function FilterBar({ className }: { className?: string }) {
 				e.preventDefault();
 				const cond = filterConditions[focusedChipIndex];
 				if (cond) {
-					removeFilter(cond.id);
+					removeDataFilter(cond.id);
 					if (filterConditions.length <= 1) {
 						setFocusedChipIndex(null);
-						inputRef.current?.focus();
+						focusInput();
 					} else if (focusedChipIndex >= filterConditions.length - 1) {
 						setFocusedChipIndex(filterConditions.length - 2);
 					}
@@ -137,11 +144,12 @@ export function FilterBar({ className }: { className?: string }) {
 		},
 		[
 			filterConditions,
-			removeFilter,
+			removeDataFilter,
 			focusedChipIndex,
 			flow.inputValue,
 			popoverOpen,
 			resetFlow,
+			focusInput,
 		],
 	);
 
@@ -170,28 +178,31 @@ export function FilterBar({ className }: { className?: string }) {
 	const handleClearAll = useCallback(
 		(e: React.MouseEvent | React.KeyboardEvent) => {
 			e.stopPropagation();
-			clearFilters();
+			clearDataFilters();
 			setFocusedChipIndex(null);
-			inputRef.current?.focus();
+			focusInput();
 		},
-		[clearFilters],
+		[clearDataFilters, focusInput],
 	);
 
-	const handleContainerClick = useCallback((e: React.MouseEvent) => {
-		if (e.target === e.currentTarget || e.target === containerRef.current) {
-			inputRef.current?.focus();
-			setFocusedChipIndex(null);
-		}
-	}, []);
+	const handleContainerClick = useCallback(
+		(e: React.MouseEvent) => {
+			if (e.target === e.currentTarget || e.target === containerRef.current) {
+				focusInput();
+				setFocusedChipIndex(null);
+			}
+		},
+		[focusInput],
+	);
 
 	const handleCombinatorChange = useCallback(
 		(index: number, combinator: "and" | "or") => {
 			const cond = filterConditions[index];
 			if (cond) {
-				updateFilter(cond.id, { combinator });
+				updateDataFilter(cond.id, { combinator });
 			}
 		},
-		[filterConditions, updateFilter],
+		[filterConditions, updateDataFilter],
 	);
 
 	const popoverContent = useMemo(() => {
@@ -201,8 +212,7 @@ export function FilterBar({ className }: { className?: string }) {
 					columns={columnsConfig}
 					onQuickValueSelect={(colId, val) => {
 						flow.handleQuickValueSelect(colId, val);
-						setPopoverOpen(false);
-						inputRef.current?.focus();
+						closeAndFocus();
 					}}
 					onSearchChange={flow.setInputValue}
 					onSelect={(colId) => {
@@ -222,8 +232,7 @@ export function FilterBar({ className }: { className?: string }) {
 					onSelect={(op) => {
 						flow.handleOperatorSelect(op);
 						if (operatorSkipsValue(op)) {
-							setPopoverOpen(false);
-							inputRef.current?.focus();
+							closeAndFocus();
 						}
 					}}
 					search={flow.inputValue}
@@ -237,14 +246,14 @@ export function FilterBar({ className }: { className?: string }) {
 			flow.selectedOperator &&
 			!flow.needsNullValue
 		) {
+			const isGlobalSearch =
+				flow.selectedOperator === "contains" &&
+				flow.selectedColumnId === SEARCH_COLUMN_ID;
 			return (
 				<div className="p-2">
 					<div className="mb-2 text-muted-foreground text-xs">
 						{flow.selectedColumn.displayName}{" "}
-						{flow.selectedOperator === "contains" &&
-						flow.selectedColumnId === SEARCH_COLUMN_ID
-							? "contains"
-							: "— enter value"}
+						{isGlobalSearch ? "contains" : "— enter value"}
 					</div>
 					<ValueInput
 						column={flow.selectedColumn}
@@ -282,6 +291,7 @@ export function FilterBar({ className }: { className?: string }) {
 		flow.handleQuickValueSelect,
 		columnsConfig,
 		commitCondition,
+		closeAndFocus,
 	]);
 
 	return (
@@ -313,9 +323,9 @@ export function FilterBar({ className }: { className?: string }) {
 					conditions={filterConditions}
 					focusedChipIndex={focusedChipIndex}
 					handleCombinatorChange={handleCombinatorChange}
-					removeCondition={removeFilter}
+					removeCondition={removeDataFilter}
 					setFocusedChipIndex={setFocusedChipIndex}
-					updateCondition={updateFilter}
+					updateCondition={updateDataFilter}
 				/>
 
 				<input

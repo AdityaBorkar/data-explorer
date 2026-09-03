@@ -25,6 +25,8 @@ export function FilterChipGroup({
 	if (conditions.length === 0) return null;
 
 	const group = groupConditions(conditions);
+	const indexById = new Map(conditions.map((c, i) => [c.id, i] as const));
+	const combinatorIndexOf = (id: string): number => indexById.get(id) ?? -1;
 
 	if (group.conditions.length <= 1 || group.combinator === "and") {
 		return (
@@ -59,20 +61,15 @@ export function FilterChipGroup({
 					const bracketConditions = item.conditions.filter(
 						(c): c is FilterCondition => !("conditions" in c),
 					);
-					const showBrackets = g > 0 || group.conditions.length > 1;
 
 					return (
 						<span key={`group-${item.id}`}>
 							{orSeparator}
-							{!!showBrackets && (
-								<span className="text-muted-foreground text-xs">(</span>
-							)}
+							<span className="text-muted-foreground text-xs">(</span>
 							{bracketConditions.map((cond, i) => (
 								<ChipWithCombinator
 									columnsConfig={columnsConfig}
-									combinatorIndex={conditions.findIndex(
-										(cc) => cc.id === cond.id,
-									)}
+									combinatorIndex={combinatorIndexOf(cond.id)}
 									condition={cond}
 									focusedChipIndex={focusedChipIndex}
 									handleCombinatorChange={handleCombinatorChange}
@@ -83,21 +80,18 @@ export function FilterChipGroup({
 									updateCondition={updateCondition}
 								/>
 							))}
-							{!!showBrackets && (
-								<span className="text-muted-foreground text-xs">)</span>
-							)}
+							<span className="text-muted-foreground text-xs">)</span>
 						</span>
 					);
 				}
 
-				const cond = item as FilterCondition;
 				return (
-					<span key={cond.id}>
+					<span key={item.id}>
 						{orSeparator}
 						<ChipWithCombinator
 							columnsConfig={columnsConfig}
-							combinatorIndex={conditions.findIndex((cc) => cc.id === cond.id)}
-							condition={cond}
+							combinatorIndex={combinatorIndexOf(item.id)}
+							condition={item}
 							focusedChipIndex={focusedChipIndex}
 							handleCombinatorChange={handleCombinatorChange}
 							removeCondition={removeCondition}

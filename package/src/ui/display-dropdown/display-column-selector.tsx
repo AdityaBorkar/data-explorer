@@ -1,6 +1,9 @@
 import { IconLayoutList } from "@tabler/icons-react";
+import type { Column } from "@tanstack/react-table";
+import { useCallback } from "react";
 
 import { useDataExplorerContext } from "../../core/context.tsx";
+import type { TableFeatures } from "../../core/types.ts";
 import { Checkbox } from "../primitives/index.ts";
 
 export function DisplayColumnSelector() {
@@ -15,43 +18,64 @@ export function DisplayColumnSelector() {
 				Columns
 			</div>
 			<div className="flex flex-col gap-1">
-				{columns.map((column) => {
-					const isVisible = column.getIsVisible();
-					const meta = column.columnDef.meta;
-					const Icon = meta?.icon as
-						| React.ComponentType<{ className?: string }>
-						| undefined;
-					return (
-						// biome-ignore lint/a11y/useSemanticElements: ARIA checkbox wrapping a Radix Checkbox (button); native input not applicable
-						<div
-							aria-checked={isVisible}
-							className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted"
-							key={column.id}
-							onClick={() => column.toggleVisibility(!isVisible)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									e.preventDefault();
-									column.toggleVisibility(!isVisible);
-								}
-							}}
-							role="checkbox"
-							tabIndex={0}
-						>
-							<Checkbox
-								checked={isVisible}
-								onCheckedChange={(checked) =>
-									column.toggleVisibility(!!checked)
-								}
-								tabIndex={-1}
-							/>
-							{!!Icon && (
-								<Icon className="size-3.5 shrink-0 text-muted-foreground" />
-							)}
-							<span>{meta?.displayName ?? column.id}</span>
-						</div>
-					);
-				})}
+				{columns.map((column) => (
+					<ColumnVisibilityRow column={column} key={column.id} />
+				))}
 			</div>
+		</div>
+	);
+}
+
+function ColumnVisibilityRow({
+	column,
+}: {
+	column: Column<TableFeatures, Record<string, unknown>>;
+}) {
+	const isVisible = column.getIsVisible();
+	const meta = column.columnDef.meta;
+	const Icon = meta?.icon as
+		| React.ComponentType<{ className?: string }>
+		| undefined;
+
+	const toggle = useCallback(() => {
+		column.toggleVisibility(!isVisible);
+	}, [column, isVisible]);
+
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				toggle();
+			}
+		},
+		[toggle],
+	);
+
+	const handleCheckedChange = useCallback(
+		(checked: boolean | "indeterminate") => {
+			column.toggleVisibility(checked !== false);
+		},
+		[column],
+	);
+
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: ARIA checkbox wrapping a Radix Checkbox (button); native input not applicable
+		<div
+			aria-checked={isVisible}
+			className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted"
+			key={column.id}
+			onClick={toggle}
+			onKeyDown={handleKeyDown}
+			role="checkbox"
+			tabIndex={0}
+		>
+			<Checkbox
+				checked={isVisible}
+				onCheckedChange={handleCheckedChange}
+				tabIndex={-1}
+			/>
+			{!!Icon && <Icon className="size-3.5 shrink-0 text-muted-foreground" />}
+			<span>{meta?.displayName ?? column.id}</span>
 		</div>
 	);
 }

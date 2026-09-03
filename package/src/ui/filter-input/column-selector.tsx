@@ -26,15 +26,15 @@ export function ColumnSelector({
 	onSelect,
 	onQuickValueSelect,
 }: ColumnSelectorProps) {
+	const term = search.trim().toLowerCase();
 	const filteredColumns = useMemo(() => {
-		if (!search.trim()) return columns;
-		const lower = search.toLowerCase();
+		if (!term) return columns;
 		return columns.filter(
 			(c) =>
-				c.displayName.toLowerCase().includes(lower) ||
-				c.id.toLowerCase().includes(lower),
+				c.displayName.toLowerCase().includes(term) ||
+				c.id.toLowerCase().includes(term),
 		);
-	}, [columns, search]);
+	}, [columns, term]);
 
 	const enumColumns = useMemo(
 		() => columns.filter((c) => c.type === "enum" || c.type === "multiEnum"),
@@ -42,8 +42,7 @@ export function ColumnSelector({
 	);
 
 	const quickMatches = useMemo(() => {
-		if (!search.trim() || search.trim().length < 2) return [];
-		const lower = search.toLowerCase();
+		if (term.length < 2) return [];
 		const matches: {
 			columnId: string;
 			columnDisplayName: string;
@@ -54,8 +53,8 @@ export function ColumnSelector({
 			const opts: { label: string; value: string }[] = col.options ?? [];
 			for (const opt of opts) {
 				if (
-					opt.label.toLowerCase().includes(lower) ||
-					opt.value.toLowerCase().includes(lower)
+					opt.label.toLowerCase().includes(term) ||
+					opt.value.toLowerCase().includes(term)
 				) {
 					matches.push({
 						columnDisplayName: col.displayName,
@@ -66,12 +65,12 @@ export function ColumnSelector({
 			}
 		}
 		return matches;
-	}, [search, enumColumns]);
+	}, [term, enumColumns]);
 
 	return (
 		<Command
-			filter={(value, term) =>
-				value.toLowerCase().includes(term.toLowerCase()) ? 1 : 0
+			filter={(value, query) =>
+				value.toLowerCase().includes(query.toLowerCase()) ? 1 : 0
 			}
 			loop={true}
 		>

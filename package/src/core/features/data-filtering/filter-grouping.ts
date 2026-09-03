@@ -3,11 +3,7 @@ import { nanoid } from "nanoid";
 import type { FilterCondition, FilterGroup } from "../../types.ts";
 
 export function groupConditions(conditions: FilterCondition[]): FilterGroup {
-	if (conditions.length === 0) {
-		return { combinator: "and", conditions: [], id: nanoid() };
-	}
-
-	const first = conditions[0];
+	const [first] = conditions;
 	if (!first) {
 		return { combinator: "and", conditions: [], id: nanoid() };
 	}
@@ -20,8 +16,9 @@ export function groupConditions(conditions: FilterCondition[]): FilterGroup {
 		};
 	}
 
-	const hasOr = conditions.some((c, i) => i > 0 && c.combinator === "or");
-	const hasAnd = conditions.some((c, i) => i > 0 && c.combinator === "and");
+	const rest = conditions.slice(1);
+	const hasOr = rest.some((c) => c.combinator === "or");
+	const hasAnd = rest.some((c) => c.combinator === "and");
 
 	if (!hasOr) {
 		return {
@@ -51,9 +48,7 @@ export function groupConditions(conditions: FilterCondition[]): FilterGroup {
 		id: nanoid(),
 	};
 
-	for (let i = 1; i < conditions.length; i++) {
-		const cond = conditions[i];
-		if (!cond) continue;
+	for (const cond of rest) {
 		if (cond.combinator === "or") {
 			orRoot.conditions.push(currentAndGroup);
 			currentAndGroup = {

@@ -7,11 +7,6 @@ import type {
 
 import type { Density, ViewType } from "../../types.ts";
 
-export interface DisplayMetaState {
-	density: Density;
-	viewType: ViewType;
-}
-
 export interface TableState_DisplayMeta {
 	density: Density;
 	viewType: ViewType;

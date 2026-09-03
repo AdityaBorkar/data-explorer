@@ -5,36 +5,47 @@ import {
 } from "@tanstack/react-table";
 
 import "./dataFilteringFeature.types.ts";
-import {
-	getDefaultDataFiltersState,
-	table_addDataFilter,
-	table_clearDataFilters,
-	table_removeDataFilter,
-	table_resetDataFilters,
-	table_setDataFilters,
-	table_updateDataFilter,
-} from "./dataFilteringFeature.utils.ts";
+import type { FilterCondition } from "../../types.ts";
+import type { DataFiltersState } from "./dataFilteringFeature.types.ts";
+
+/* biome-ignore lint/suspicious/noExplicitAny: feature APIs match TanStack's internal table shape */
+type AnyTable = any;
 
 export const dataFilteringFeature: TableFeature = {
-	constructTableAPIs: (table) => {
+	constructTableAPIs: (table: AnyTable) => {
 		assignTableAPIs("dataFilteringFeature", table, {
 			table_addDataFilter: {
-				fn: (condition) => table_addDataFilter(table, condition),
+				fn: (condition: FilterCondition) =>
+					table.options.onDataFiltersChange?.((prev: DataFiltersState) => [
+						...prev,
+						condition,
+					]),
 			},
 			table_clearDataFilters: {
-				fn: () => table_clearDataFilters(table),
+				fn: () => table.options.onDataFiltersChange?.([]),
 			},
 			table_removeDataFilter: {
-				fn: (id) => table_removeDataFilter(table, id),
+				fn: (id: string) =>
+					table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
+						prev.filter((item) => item.id !== id),
+					),
 			},
 			table_resetDataFilters: {
-				fn: (defaultState) => table_resetDataFilters(table, defaultState),
+				fn: (defaultState?: boolean) =>
+					table.options.onDataFiltersChange?.(
+						defaultState ? [] : (table.initialState.dataFilters ?? []),
+					),
 			},
 			table_setDataFilters: {
-				fn: (updater) => table_setDataFilters(table, updater),
+				fn: (updater) => table.options.onDataFiltersChange?.(updater),
 			},
 			table_updateDataFilter: {
-				fn: (id, updates) => table_updateDataFilter(table, id, updates),
+				fn: (id: string, updates: Partial<FilterCondition>) =>
+					table.options.onDataFiltersChange?.((prev: DataFiltersState) =>
+						prev.map((item) =>
+							item.id === id ? { ...item, ...updates } : item,
+						),
+					),
 			},
 		});
 	},
@@ -44,7 +55,7 @@ export const dataFilteringFeature: TableFeature = {
 	}),
 	getInitialState: (initialState) => ({
 		...initialState,
-		dataFilters: getDefaultDataFiltersState(),
+		dataFilters: [] as DataFiltersState,
 	}),
 };
 

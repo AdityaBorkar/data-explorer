@@ -1,5 +1,3 @@
-import { useCallback } from "react";
-
 import {
 	getOperatorLabel,
 	getOperatorsForType,
@@ -35,13 +33,6 @@ export function OperatorSelector({
 		return label.toLowerCase().includes(search.toLowerCase());
 	});
 
-	const handleSelect = useCallback(
-		(op: string) => {
-			onSelect(op as FilterOperator);
-		},
-		[onSelect],
-	);
-
 	return (
 		<Command loop={true}>
 			<CommandInput
@@ -53,7 +44,7 @@ export function OperatorSelector({
 			<CommandList className="max-h-48">
 				<CommandGroup>
 					{filteredOperators.map((op) => (
-						<CommandItem key={op} onSelect={() => handleSelect(op)} value={op}>
+						<CommandItem key={op} onSelect={() => onSelect(op)} value={op}>
 							<span>{getOperatorLabel(op)}</span>
 						</CommandItem>
 					))}

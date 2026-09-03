@@ -24,12 +24,14 @@ export function useInlineFilterFlow(opts: {
 		useState<FilterOperator | null>(null);
 	const [pendingValue, setPendingValue] = useState<unknown>(undefined);
 
+	const getColumn = useCallback(
+		(columnId: string) => columnsConfig.find((c) => c.id === columnId),
+		[columnsConfig],
+	);
+
 	const selectedColumn = useMemo(
-		() =>
-			selectedColumnId
-				? columnsConfig.find((c) => c.id === selectedColumnId)
-				: undefined,
-		[selectedColumnId, columnsConfig],
+		() => (selectedColumnId ? getColumn(selectedColumnId) : undefined),
+		[selectedColumnId, getColumn],
 	);
 
 	const needsNullValue = operatorSkipsValue(selectedOperator ?? "eq");
@@ -78,20 +80,28 @@ export function useInlineFilterFlow(opts: {
 	const handleInputChange = useCallback(
 		(value: string) => {
 			setInputValue(value);
-			if (value.trim().length > 0 && phase === "idle") {
+			const isBlank = value.trim().length === 0;
+			if (!isBlank && phase === "idle") {
 				setPhase("column");
 			}
-			if (value.trim().length === 0 && phase === "column") {
+			if (isBlank && phase === "column") {
 				setPhase("idle");
 			}
 		},
 		[phase],
 	);
 
+	const enterNullValuePhase = useCallback((operator: FilterOperator) => {
+		setSelectedOperator(operator);
+		setPendingValue(null);
+		setPhase("value");
+		setInputValue("");
+	}, []);
+
 	const handleColumnSelect = useCallback(
 		(columnId: string) => {
 			setSelectedColumnId(columnId);
-			const col = columnsConfig.find((c) => c.id === columnId);
+			const col = getColumn(columnId);
 			if (!col) return;
 
 			if (columnId === SEARCH_COLUMN_ID) {
@@ -102,24 +112,22 @@ export function useInlineFilterFlow(opts: {
 			}
 
 			const defaultOp = col.operators?.[0] ?? getDefaultOperator(col.type);
-			setSelectedOperator(defaultOp);
 
 			if (operatorSkipsValue(defaultOp)) {
-				setPendingValue(null);
-				setPhase("value");
-				setInputValue("");
+				enterNullValuePhase(defaultOp);
 				return;
 			}
 
+			setSelectedOperator(defaultOp);
 			setPhase("operator");
 			setInputValue("");
 		},
-		[columnsConfig],
+		[getColumn, enterNullValuePhase],
 	);
 
 	const handleQuickValueSelect = useCallback(
 		(columnId: string, value: string) => {
-			const col = columnsConfig.find((c) => c.id === columnId);
+			const col = getColumn(columnId);
 			if (!col) return;
 
 			onAdd({
@@ -132,23 +140,23 @@ export function useInlineFilterFlow(opts: {
 			});
 			reset();
 		},
-		[columnsConfig, onAdd, reset],
+		[getColumn, onAdd, reset],
 	);
 
-	const handleOperatorSelect = useCallback((operator: FilterOperator) => {
-		setSelectedOperator(operator);
+	const handleOperatorSelect = useCallback(
+		(operator: FilterOperator) => {
+			if (operatorSkipsValue(operator)) {
+				enterNullValuePhase(operator);
+				return;
+			}
 
-		if (operatorSkipsValue(operator)) {
-			setPendingValue(null);
+			setSelectedOperator(operator);
+			setPendingValue(undefined);
 			setPhase("value");
 			setInputValue("");
-			return;
-		}
-
-		setPendingValue(undefined);
-		setPhase("value");
-		setInputValue("");
-	}, []);
+		},
+		[enterNullValuePhase],
+	);
 
 	return {
 		commit,
