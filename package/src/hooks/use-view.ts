@@ -2,9 +2,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactTable } from "@tanstack/react-table";
 import { useCallback, useMemo, useState } from "react";
 
-import { mergeDisplay } from "../features/data-filtering/filter-merge.ts";
 import {
 	applyDisplaySnapshot,
+	mergeDisplay,
 	toDisplaySnapshot,
 } from "../features/display-snapshot.ts";
 import type {

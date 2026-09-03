@@ -1,8 +1,6 @@
 # TODO
 
-thermo-nuclear
-thermo-nuclear file structure
-
+- Optimize react performance @vercel...
 - Completely Headless Design
 - Publish to NPM
 
@@ -17,7 +15,6 @@ thermo-nuclear file structure
   - Fauceting
   - Row Selection
   - Virtualization
-- Optimize react performance
 - Perform the code and API analysis of the entire codebase and write a better-dx.md report with the list of suggestions with examples. Make sure it covers all the aspects for a better Developer Experience while maintaining highly performant code.
 
 ## Phase 2

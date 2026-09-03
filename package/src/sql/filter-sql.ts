@@ -145,24 +145,6 @@ function likeOp(
 	return `${col} ${keyword} ${pushParam(ctx, likePattern(value as string, pattern))} ESCAPE '\\'`;
 }
 
-const COMPARISON_OPS: Record<string, string> = {
-	eq: "=",
-	gt: ">",
-	gte: ">=",
-	lt: "<",
-	lte: "<=",
-	neq: "!=",
-};
-
-const ARRAY_OPS: Record<string, "@>" | "&&"> = {
-	exclude: "@>",
-	excludeAll: "@>",
-	excludeAny: "&&",
-	include: "@>",
-	includeAll: "@>",
-	includeAny: "&&",
-};
-
 function comparisonBuilder(op: string): SqlBuilder {
 	return (col, value, ctx) => `${col} ${op} ${pushParam(ctx, value)}`;
 }
@@ -172,27 +154,21 @@ const OPERATOR_SQL_BUILDERS: Record<FilterOperator, SqlBuilder> = {
 	contains: (col, value, ctx) =>
 		likeOp(col, value, ctx, (v) => `%${v}%`, false),
 	endsWith: (col, value, ctx) => likeOp(col, value, ctx, (v) => `%${v}`, false),
-	eq: comparisonBuilder(COMPARISON_OPS["eq"] as string),
-	exclude: (col, value, ctx) =>
-		notArrayOp(col, value, ctx, ARRAY_OPS["exclude"] as "@>"),
-	excludeAll: (col, value, ctx) =>
-		notArrayOp(col, value, ctx, ARRAY_OPS["excludeAll"] as "@>"),
-	excludeAny: (col, value, ctx) =>
-		notArrayOp(col, value, ctx, ARRAY_OPS["excludeAny"] as "&&"),
-	gt: comparisonBuilder(COMPARISON_OPS["gt"] as string),
-	gte: comparisonBuilder(COMPARISON_OPS["gte"] as string),
+	eq: comparisonBuilder("="),
+	exclude: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
+	excludeAll: (col, value, ctx) => notArrayOp(col, value, ctx, "@>"),
+	excludeAny: (col, value, ctx) => notArrayOp(col, value, ctx, "&&"),
+	gt: comparisonBuilder(">"),
+	gte: comparisonBuilder(">="),
 	in: (col, value, ctx) => `${col} IN (${arrayPlaceholders(value, ctx)})`,
-	include: (col, value, ctx) =>
-		arrayOp(col, value, ctx, ARRAY_OPS["include"] as "@>"),
-	includeAll: (col, value, ctx) =>
-		arrayOp(col, value, ctx, ARRAY_OPS["includeAll"] as "@>"),
-	includeAny: (col, value, ctx) =>
-		arrayOp(col, value, ctx, ARRAY_OPS["includeAny"] as "&&"),
+	include: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
+	includeAll: (col, value, ctx) => arrayOp(col, value, ctx, "@>"),
+	includeAny: (col, value, ctx) => arrayOp(col, value, ctx, "&&"),
 	isEmpty: (col) => `${col} IS NULL`,
 	isNotEmpty: (col) => `${col} IS NOT NULL`,
-	lt: comparisonBuilder(COMPARISON_OPS["lt"] as string),
-	lte: comparisonBuilder(COMPARISON_OPS["lte"] as string),
-	neq: comparisonBuilder(COMPARISON_OPS["neq"] as string),
+	lt: comparisonBuilder("<"),
+	lte: comparisonBuilder("<="),
+	neq: comparisonBuilder("!="),
 	notBetween: (col, value, ctx) => betweenOp(col, value, ctx, true),
 	notContains: (col, value, ctx) =>
 		likeOp(col, value, ctx, (v) => `%${v}%`, true),

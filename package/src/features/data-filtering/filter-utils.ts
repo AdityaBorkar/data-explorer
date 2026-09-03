@@ -3,10 +3,14 @@ import { nanoid } from "nanoid";
 import type {
 	FilterCondition,
 	FilterOperator,
-	FilterViewDisplay,
 	SerializedFilterCondition,
 } from "../../types.ts";
 import { FILTER_OPERATORS } from "./operators.ts";
+
+export {
+	deserializeDisplay,
+	serializeDisplay,
+} from "../display-snapshot.ts";
 
 const OPERATOR_SET = new Set<string>(FILTER_OPERATORS);
 
@@ -42,67 +46,4 @@ export function deserializeFilters(json: string): FilterCondition[] {
 			value: s.v,
 		};
 	});
-}
-
-const DENSITIES = ["compact", "comfortable", "spacious"] as const;
-const DIRS = ["asc", "desc"] as const;
-const VIEW_TYPES = ["table", "board", "timeline"] as const;
-
-export function serializeDisplay(display: FilterViewDisplay): URLSearchParams {
-	const params = new URLSearchParams();
-	params.set("sort", display.orderBy);
-	params.set("dir", display.orderType);
-	params.delete("cols");
-	for (const field of display.fields) params.append("cols", field);
-	if (Object.keys(display.columnWidths).length > 0) {
-		params.set("widths", JSON.stringify(display.columnWidths));
-	}
-	params.set("density", display.density);
-	params.set("type", display.type);
-	if (display.groupBy) params.set("groupBy", display.groupBy);
-	return params;
-}
-
-export function deserializeDisplay(
-	params: URLSearchParams,
-	defaults: FilterViewDisplay,
-): FilterViewDisplay {
-	const rawWidths = params.get("widths");
-	const rawDensity = params.get("density");
-	const rawDir = params.get("dir");
-	const rawType = params.get("type");
-	const rawGroupBy = params.get("groupBy");
-	const rawSort = params.get("sort");
-
-	let columnWidths = defaults.columnWidths;
-	if (rawWidths) {
-		try {
-			columnWidths = JSON.parse(rawWidths) as Record<string, number>;
-		} catch {
-			columnWidths = defaults.columnWidths;
-		}
-	}
-
-	const cols = params
-		.getAll("cols")
-		.flatMap((v) => v.split(","))
-		.map((v) => v.trim())
-		.filter(Boolean);
-	const fields = cols.length > 0 ? cols : defaults.fields;
-
-	return {
-		columnWidths,
-		density: (DENSITIES as readonly string[]).includes(rawDensity ?? "")
-			? (rawDensity as FilterViewDisplay["density"])
-			: defaults.density,
-		fields,
-		groupBy: rawGroupBy || defaults.groupBy,
-		orderBy: rawSort || defaults.orderBy,
-		orderType: (DIRS as readonly string[]).includes(rawDir ?? "")
-			? (rawDir as FilterViewDisplay["orderType"])
-			: defaults.orderType,
-		type: (VIEW_TYPES as readonly string[]).includes(rawType ?? "")
-			? (rawType as FilterViewDisplay["type"])
-			: defaults.type,
-	};
 }

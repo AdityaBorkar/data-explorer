@@ -33,6 +33,26 @@
 					"type": "registry:lib"
 				},
 				{
+					"path": "package/src/columns.ts",
+					"target": "components/data-explorer/columns.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/filters.ts",
+					"target": "components/data-explorer/filters.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/views.ts",
+					"target": "components/data-explorer/views.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/query.ts",
+					"target": "components/data-explorer/query.ts",
+					"type": "registry:lib"
+				},
+				{
 					"path": "package/src/extract-column-config.ts",
 					"target": "components/data-explorer/extract-column-config.ts",
 					"type": "registry:lib"
@@ -98,11 +118,6 @@
 					"type": "registry:lib"
 				},
 				{
-					"path": "package/src/features/data-filtering/filter-validation.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-validation.ts",
-					"type": "registry:lib"
-				},
-				{
 					"path": "package/src/features/data-filtering/operators.ts",
 					"target": "components/data-explorer/features/data-filtering/operators.ts",
 					"type": "registry:lib"
@@ -113,8 +128,18 @@
 					"type": "registry:lib"
 				},
 				{
+					"path": "package/src/hooks/use-data-query.ts",
+					"target": "components/data-explorer/hooks/use-data-query.ts",
+					"type": "registry:lib"
+				},
+				{
 					"path": "package/src/hooks/use-load-more.ts",
 					"target": "components/data-explorer/hooks/use-load-more.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/hooks/use-selection.ts",
+					"target": "components/data-explorer/hooks/use-selection.ts",
 					"type": "registry:lib"
 				},
 				{

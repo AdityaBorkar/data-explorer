@@ -1,5 +1,4 @@
-import type { RowSelectionState } from "@tanstack/react-table";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import type { ContextType } from "./types.ts";
 
@@ -15,36 +14,7 @@ export function useDataExplorerContext<TItem = unknown>(): ContextType<TItem> {
 	return value as ContextType<TItem>;
 }
 
-export interface SelectionState {
-	allRowIds: string[];
-	clearSelection: () => void;
-	selectAll: () => void;
-	selectedRowIds: Set<string>;
-	toggleRowSelection: (id: string) => void;
-}
-
-export function useSelectionContext(): SelectionState {
-	const { table } = useDataExplorerContext();
-	const rowSelection: RowSelectionState = table.state.rowSelection;
-
-	return useMemo(() => {
-		const selectedRowIds = new Set(
-			Object.keys(rowSelection).filter((id) => rowSelection[id]),
-		);
-		const allRowIds = table.getRowModel().flatRows.map((row) => row.id);
-
-		return {
-			allRowIds,
-			clearSelection: () => table.resetRowSelection(),
-			selectAll: () => table.toggleAllRowsSelected(true),
-			selectedRowIds,
-			toggleRowSelection: (id: string) =>
-				table.setRowSelection((prev) => {
-					const next = { ...prev };
-					if (next[id]) delete next[id];
-					else next[id] = true;
-					return next;
-				}),
-		};
-	}, [rowSelection, table]);
-}
+// Re-exported here so the vendored `context.tsx` path keeps working;
+// new code should import from `./hooks/use-selection.ts`.
+export type { SelectionState } from "./hooks/use-selection.ts";
+export { useSelectionContext } from "./hooks/use-selection.ts";

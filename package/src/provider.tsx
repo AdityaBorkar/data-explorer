@@ -1,8 +1,4 @@
-import type {
-	QueryFunctionContext,
-	UseQueryOptions,
-} from "@tanstack/react-query";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type { UseQueryOptions } from "@tanstack/react-query";
 import type { ColumnDef, ReactTable } from "@tanstack/react-table";
 import { useTable } from "@tanstack/react-table";
 import { useMemo } from "react";
@@ -11,17 +7,16 @@ import { DataExplorerContext } from "./context.tsx";
 import { extractColumnConfigs } from "./extract-column-config.ts";
 import { toInitialTableState } from "./features/display-snapshot.ts";
 import { TableFeatures } from "./features/index.ts";
+import { useDataQuery } from "./hooks/use-data-query.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
 import type {
 	ContextType,
-	FilterViewDisplay,
 	ListQueryResult,
 	RefineOptions,
 	ViewAdapter,
 } from "./types.ts";
-
-const PAGE_SIZE = 20;
+import type { FilterViewDisplay } from "./views.ts";
 
 export function Provider<TItem extends Record<string, unknown>>({
 	children,
@@ -78,63 +73,23 @@ export function Provider<TItem extends Record<string, unknown>>({
 	const viewType = table.state.viewType;
 	const dataFilters = table.state.dataFilters ?? [];
 
-	const query = useInfiniteQuery({
-		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-		initialPageParam: undefined as string | undefined,
-		queryFn: ({
-			pageParam,
-			signal,
-		}: QueryFunctionContext<readonly unknown[], string | undefined>) => {
-			const firstSort = sorting[0];
-			const opts = queryBuilder({
-				columnSizing,
-				columnVisibility,
-				cursor: pageParam,
-				density,
-				filters: dataFilters,
-				grouping,
-				limit: PAGE_SIZE,
-				orderBy: {
-					columnId: firstSort?.id ?? "",
-					direction: firstSort?.desc ? "desc" : "asc",
-				},
-				sorting,
-				viewType,
-			});
-			if (typeof opts.queryFn !== "function") {
-				throw new Error("buildQueryOptions must return a queryFn");
-			}
-			return opts.queryFn({
-				queryKey: opts.queryKey,
-				signal,
-			} as QueryFunctionContext) as Promise<ListQueryResult<TItem>>;
-		},
-		queryKey: [
-			"data-explorer",
-			domain,
-			{
-				columnSizing,
-				columnVisibility,
-				conditions: dataFilters,
-				density,
-				grouping,
-				sorting,
-				viewType,
-			},
-		],
-	});
-	const allItems = useMemo(
-		() => query.data?.pages.flatMap((p) => p.items) ?? [],
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[query.data],
-	);
-	// Feed fresh pages directly into the table without a lagged useState copy.
-	(table.options as unknown as { data: TItem[] }).data = allItems;
-
 	const typedTable = table as unknown as ReactTable<
 		typeof TableFeatures,
 		Record<string, unknown>
 	>;
+
+	const { allItems, query } = useDataQuery({
+		columnSizing,
+		columnVisibility,
+		dataFilters,
+		density,
+		domain,
+		grouping,
+		queryBuilder,
+		sorting,
+		table: typedTable,
+		viewType,
+	});
 
 	const viewHook = useView({
 		columnsConfig,

@@ -1,4 +1,7 @@
-import type { FilterCondition, FilterViewDisplay } from "../../types.ts";
+import type { FilterCondition } from "../../types.ts";
+import { mergeDisplay } from "../display-snapshot.ts";
+
+export { mergeDisplay };
 
 export function stableStringify(value: unknown): string {
 	if (value === null) return "null";
@@ -101,19 +104,4 @@ export function computeOverrides(
 	}
 
 	return overrides;
-}
-
-export function mergeDisplay(
-	base: FilterViewDisplay,
-	overrides: Partial<FilterViewDisplay>,
-): FilterViewDisplay {
-	return {
-		columnWidths: overrides.columnWidths ?? base.columnWidths,
-		density: overrides.density ?? base.density,
-		fields: overrides.fields ?? base.fields,
-		groupBy: overrides.groupBy ?? base.groupBy,
-		orderBy: overrides.orderBy ?? base.orderBy,
-		orderType: overrides.orderType ?? base.orderType,
-		type: overrides.type ?? base.type,
-	};
 }
