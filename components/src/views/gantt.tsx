@@ -17,7 +17,7 @@ const ZOOM_CONFIG: Record<
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-interface TimelineViewProps<TItem> {
+interface TimelineViewProps<TItem extends Record<string, unknown>> {
 	getRowId: (item: TItem) => string;
 	renderBar?: (
 		item: TItem,
@@ -25,7 +25,7 @@ interface TimelineViewProps<TItem> {
 	) => React.ReactNode;
 }
 
-export function TimelineView<TItem>({
+export function TimelineView<TItem extends Record<string, unknown>>({
 	renderBar,
 	getRowId,
 }: TimelineViewProps<TItem>): React.JSX.Element {
@@ -55,19 +55,18 @@ export function TimelineView<TItem>({
 			return { end, item, start };
 		});
 
-		const withDates = parsed.filter(
-			(p): p is { end: Date; item: TItem; start: Date } =>
-				p.start !== null && p.end !== null,
-		);
-		const milestones = parsed.filter(
-			(p): p is { end: Date | null; item: TItem; start: Date } =>
-				p.start !== null && p.end === null,
-		);
-
-		const allDates = [
-			...withDates.flatMap((p) => [p.start, p.end]),
-			...milestones.map((p) => p.start),
-		];
+		const withDates: { end: Date; item: TItem; start: Date }[] = [];
+		const milestones: { end: Date | null; item: TItem; start: Date }[] = [];
+		const allDates: Date[] = [];
+		for (const p of parsed) {
+			if (p.start !== null && p.end !== null) {
+				withDates.push({ end: p.end, item: p.item, start: p.start });
+				allDates.push(p.start, p.end);
+			} else if (p.start !== null && p.end === null) {
+				milestones.push({ end: p.end, item: p.item, start: p.start });
+				allDates.push(p.start);
+			}
+		}
 		if (allDates.length === 0)
 			return { items: [], range: { end: new Date(), start: new Date() } };
 

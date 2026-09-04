@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 
+/**
+ * Infinite-scroll trigger: observes a sentinel element and calls
+ * `fetchNextPage` when it nears the viewport. Latest flags ride a ref so
+ * the observer is never recreated per fetch-state change.
+ */
 export function useLoadMore(
 	fetchNextPage: () => void,
 	hasNextPage: boolean,

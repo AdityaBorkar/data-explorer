@@ -75,7 +75,9 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 	if (isLoading) {
 		tableBody = (
 			<MessageRow colSpan={colSpan}>
-				<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+				<div className="mr-2 animate-spin">
+					<IconLoader2 className="h-4 w-4" />
+				</div>
 				Loading...
 			</MessageRow>
 		);
@@ -172,7 +174,9 @@ export function VirtualTable<TItem extends Record<string, unknown>>({
 			</div>
 			{!!isLoadingMore && (
 				<div className="flex items-center justify-center py-3 text-muted-foreground text-sm">
-					<IconLoader2 className="mr-2 size-4 animate-spin" />
+					<div className="mr-2 animate-spin">
+						<IconLoader2 className="size-4" />
+					</div>
 					Loading more...
 				</div>
 			)}

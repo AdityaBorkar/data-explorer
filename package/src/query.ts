@@ -13,12 +13,21 @@ export interface ListQueryResult<TItem> {
 	nextCursor?: string | null;
 }
 
+/** Sort direction shared by `orderBy` and TanStack sorting state. */
+export type SortDirection = "asc" | "desc";
+
+/** Single-column order descriptor (display snapshots are single-sort; see `toInitialSorting`). */
+export interface SortOrder {
+	columnId: string;
+	direction: SortDirection;
+}
+
 export type DataRefineOptions = {
 	cursor?: string;
 	filters: FilterCondition[];
 	grouping: GroupingState;
 	limit: number;
-	orderBy: { columnId: string; direction: "asc" | "desc" };
+	orderBy: SortOrder;
 	sorting: SortingState;
 };
 

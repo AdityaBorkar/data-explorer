@@ -10,15 +10,74 @@ import type {
 	ReactTable,
 	SortingState,
 } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { DataExplorerError } from "../errors.ts";
+import { stableStringify } from "../features/data-filtering/filter-merge.ts";
 import type { FilterCondition } from "../filters.ts";
 import type { ListQueryResult, RefineOptions } from "../query.ts";
 import type { TableFeatures } from "../types.ts";
 import type { Density, ViewType } from "../views.ts";
 
-export const PAGE_SIZE = 20;
+/**
+ * Default page size when `Provider` gets no `pageSize`.
+ * Exported for cache-key construction and docs; override per provider.
+ */
+export const DEFAULT_PAGE_SIZE = 20;
 
+/**
+ * @deprecated Use {@link DEFAULT_PAGE_SIZE}. Kept as an alias for one minor.
+ */
+export const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+
+/** Refine slice that participates in the data query key. */
+export interface DataQueryKeyRefine {
+	columnSizing: ColumnSizingState;
+	columnVisibility: ColumnVisibilityState;
+	dataFilters: FilterCondition[];
+	density: Density;
+	grouping: GroupingState;
+	sorting: SortingState;
+	viewType: ViewType;
+}
+
+/** Stable structural hash of the refine state (backed by `stableStringify`). */
+export function hashRefine(refine: DataQueryKeyRefine): string {
+	return stableStringify(refine);
+}
+
+/**
+ * Cache-key factory for the infinite data query. Prefer this over inline
+ * `["data-explorer", domain]` arrays so invalidations stay in sync.
+ */
+export function dataQueryKey(
+	domain: string,
+	refine?: DataQueryKeyRefine,
+): readonly unknown[] {
+	return refine === undefined
+		? (["data-explorer", domain] as const)
+		: (["data-explorer", domain, hashRefine(refine)] as const);
+}
+
+/**
+ * Stable empty-array singleton so render-phase syncs never loop.
+ * @internal
+ */
+const EMPTY_ITEMS: never[] = [];
+
+/**
+ * Infinite data query for the explorer table. The stable hashed key
+ * (`dataQueryKey`) covers every refine slice; `pageSize` sets the fetch
+ * limit and `debounceFiltersMs` keeps filter keystrokes from refetching
+ * per character. Returns `allItems` memoized on `[query.data]`.
+ *
+ * @example
+ * ```tsx
+ * const { allItems, query } = useDataQuery({
+ *   domain, sorting, grouping, dataFilters, queryBuilder,
+ * });
+ * ```
+ */
 export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	columnSizing: ColumnSizingState;
 	columnVisibility: ColumnVisibilityState;
@@ -30,8 +89,18 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 		opts: RefineOptions,
 	) => UseQueryOptions<ListQueryResult<TItem>>;
 	sorting: SortingState;
-	table: ReactTable<TableFeatures, Record<string, unknown>>;
 	viewType: ViewType;
+	/** @default DEFAULT_PAGE_SIZE */
+	pageSize?: number;
+	/** Forwarded to TanStack as `staleTime`. */
+	staleTime?: number;
+	/** Debounce for filter keystrokes before they enter the query key. @default 0 (off) */
+	debounceFiltersMs?: number;
+	/**
+	 * @deprecated No longer read. Data flows declaratively via `Provider`
+	 * (`useTable({ data: allItems })`). Kept so existing call sites typecheck.
+	 */
+	table?: ReactTable<TableFeatures, Record<string, unknown>>;
 }) {
 	const {
 		columnSizing,
@@ -42,9 +111,49 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 		grouping,
 		queryBuilder,
 		sorting,
-		table,
 		viewType,
+		pageSize = DEFAULT_PAGE_SIZE,
+		staleTime,
+		debounceFiltersMs = 0,
 	} = opts;
+
+	// Debounce filter typing so each keystroke does not mint a new query key.
+	const [debouncedFilters, setDebouncedFilters] =
+		useState<FilterCondition[]>(dataFilters);
+	useEffect(() => {
+		if (debounceFiltersMs <= 0) {
+			setDebouncedFilters(dataFilters);
+			return;
+		}
+		const t = setTimeout(
+			() => setDebouncedFilters(dataFilters),
+			debounceFiltersMs,
+		);
+		return () => clearTimeout(t);
+	}, [dataFilters, debounceFiltersMs]);
+	const effectiveFilters =
+		debounceFiltersMs <= 0 ? dataFilters : debouncedFilters;
+
+	const keyRefine: DataQueryKeyRefine = useMemo(
+		() => ({
+			columnSizing,
+			columnVisibility,
+			dataFilters: effectiveFilters,
+			density,
+			grouping,
+			sorting,
+			viewType,
+		}),
+		[
+			columnSizing,
+			columnVisibility,
+			effectiveFilters,
+			density,
+			grouping,
+			sorting,
+			viewType,
+		],
+	);
 
 	const query = useInfiniteQuery({
 		getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -59,9 +168,9 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 				columnVisibility,
 				cursor: pageParam,
 				density,
-				filters: dataFilters,
+				filters: effectiveFilters,
 				grouping,
-				limit: PAGE_SIZE,
+				limit: pageSize,
 				orderBy: {
 					columnId: firstSort?.id ?? "",
 					direction: firstSort?.desc ? "desc" : "asc",
@@ -69,35 +178,29 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 				sorting,
 				viewType,
 			});
-			if (typeof built.queryFn !== "function") {
-				throw new Error("buildQueryOptions must return a queryFn");
+			// Fail fast on the builder contract before any network work.
+			if (typeof built.queryFn !== "function" || !built.queryKey) {
+				throw new DataExplorerError(
+					"INVALID_QUERY_OPTIONS",
+					"query() must return { queryKey, queryFn }.",
+				);
 			}
+			// Honor the builder's key when present; otherwise fall back to the
+			// stable outer key so structurally identical refines share cache.
+			const queryKey = built.queryKey ?? dataQueryKey(domain, keyRefine);
 			return built.queryFn({
-				queryKey: built.queryKey,
+				queryKey,
 				signal,
 			} as QueryFunctionContext) as Promise<ListQueryResult<TItem>>;
 		},
-		queryKey: [
-			"data-explorer",
-			domain,
-			{
-				columnSizing,
-				columnVisibility,
-				conditions: dataFilters,
-				density,
-				grouping,
-				sorting,
-				viewType,
-			},
-		],
+		queryKey: dataQueryKey(domain, keyRefine),
+		staleTime,
 	});
 	const allItems = useMemo(
-		() => query.data?.pages.flatMap((p) => p.items) ?? [],
+		() => query.data?.pages.flatMap((p) => p.items) ?? EMPTY_ITEMS,
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[query.data],
 	);
-	// Feed fresh pages directly into the table without a lagged useState copy.
-	(table.options as unknown as { data: TItem[] }).data = allItems;
 
 	return { allItems, query };
 }

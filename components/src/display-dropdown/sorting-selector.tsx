@@ -22,19 +22,21 @@ export function SortingSelector(): React.JSX.Element {
 	const visibleColumns = table.getVisibleLeafColumns();
 	const sorting = table.state.sorting;
 	const current = sorting[0];
-	const isAscending = !(current?.desc ?? false);
+	const currentId = current?.id;
+	const currentDesc = current?.desc ?? false;
+	const isAscending = !currentDesc;
 
 	const handleSortColumnChange = useCallback(
 		(value: string) => {
-			table.setSorting([{ desc: current?.desc ?? false, id: value }]);
+			table.setSorting([{ desc: currentDesc, id: value }]);
 		},
-		[table, current],
+		[table, currentDesc],
 	);
 
 	const toggleSortDirection = useCallback(() => {
-		if (!current) return;
-		table.setSorting([{ desc: !current.desc, id: current.id }]);
-	}, [table, current]);
+		if (!currentId) return;
+		table.setSorting([{ desc: !currentDesc, id: currentId }]);
+	}, [table, currentId, currentDesc]);
 
 	return (
 		<div className="p-3">
@@ -45,7 +47,7 @@ export function SortingSelector(): React.JSX.Element {
 			<div className="flex items-center gap-2">
 				<Select
 					onValueChange={handleSortColumnChange}
-					value={current?.id ?? undefined}
+					value={currentId ?? undefined}
 				>
 					<SelectTrigger className="h-8 flex-1" size="sm">
 						<SelectValue />

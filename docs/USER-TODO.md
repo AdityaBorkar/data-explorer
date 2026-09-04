@@ -2,6 +2,7 @@
 
 - Optimize react performance @vercel...
 - Completely Headless Design
+- MANUAL REVIEW 
 - Publish to NPM
 
 - Integrations

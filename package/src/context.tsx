@@ -1,17 +1,30 @@
 import { createContext, useContext } from "react";
 
-import type { ContextType } from "./types.ts";
+import { MissingProviderError } from "./errors.ts";
+import type { DataExplorerContextValue } from "./types.ts";
 
-export const DataExplorerContext = createContext<ContextType | null>(null);
+export const DataExplorerContext = createContext<DataExplorerContextValue<
+	Record<string, unknown>
+> | null>(null);
 
-export function useDataExplorerContext<TItem = unknown>(): ContextType<TItem> {
+/**
+ * Read the explorer context (table instance, column configs, data, view state).
+ * Must run inside `<Provider>` — otherwise throws {@link MissingProviderError}.
+ *
+ * @example
+ * ```tsx
+ * const { table } = useDataExplorerContext<Task>();
+ * const filters = table.state.dataFilters;
+ * ```
+ */
+export function useDataExplorerContext<
+	TItem extends Record<string, unknown> = Record<string, unknown>,
+>(): DataExplorerContextValue<TItem> {
 	const value = useContext(DataExplorerContext);
 	if (!value) {
-		throw new Error(
-			"useDataExplorerContext must be used within DataExplorerProvider",
-		);
+		throw new MissingProviderError("useDataExplorerContext");
 	}
-	return value as ContextType<TItem>;
+	return value as unknown as DataExplorerContextValue<TItem>;
 }
 
 // Re-exported here so the vendored `context.tsx` path keeps working;

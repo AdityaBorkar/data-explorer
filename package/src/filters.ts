@@ -1,3 +1,7 @@
+import { nanoid } from "nanoid";
+
+import type { ColumnDataType } from "./columns.ts";
+
 export type FilterOperator =
 	| "eq"
 	| "neq"
@@ -22,6 +26,7 @@ export type FilterOperator =
 	| "excludeAny"
 	| "excludeAll";
 
+/** A single committed filter predicate. Stored shape; see {@link createFilter} for a typed constructor. */
 export interface FilterCondition {
 	columnId: string;
 	combinator: "and" | "or";
@@ -53,4 +58,40 @@ export interface SerializedFilterCondition {
 	i: string;
 	o: FilterOperator;
 	v: unknown;
+}
+
+/** True when at least one filter condition is present. */
+export function hasFilters(conditions: readonly FilterCondition[]): boolean {
+	return conditions.length > 0;
+}
+
+/**
+ * Value shape per column type for editor autocomplete. The stored shape
+ * stays {@link FilterCondition} (`value: unknown`); this only types the
+ * constructor argument of {@link createFilter}.
+ */
+export type TypedFilterValue<T extends ColumnDataType> = T extends "number"
+	? number | [number, number] | null
+	: T extends "boolean"
+		? boolean | null
+		: T extends "date"
+			? string | [string, string] | null
+			: unknown;
+
+/**
+ * Typed `FilterCondition` constructor — autocomplete for the value shape
+ * without changing the stored (serializable) representation.
+ *
+ * @example
+ * ```ts
+ * createFilter<"number">("estimate", "between", [1, 5]);
+ * createFilter("title", "contains", "polish"); // untyped columns stay `unknown`
+ * ```
+ */
+export function createFilter<T extends ColumnDataType = "string">(
+	columnId: string,
+	operator: FilterOperator,
+	value: TypedFilterValue<T>,
+): FilterCondition {
+	return { columnId, combinator: "and", id: nanoid(), operator, value };
 }

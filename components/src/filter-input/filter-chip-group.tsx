@@ -43,6 +43,10 @@ export function FilterChipGroup({
 		() => new Map(conditions.map((c, i) => [c.id, i] as const)),
 		[conditions],
 	);
+	const colById = useMemo(
+		() => new Map(columnsConfig.map((c) => [c.id, c] as const)),
+		[columnsConfig],
+	);
 
 	if (conditions.length === 0) return null;
 
@@ -62,6 +66,7 @@ export function FilterChipGroup({
 				{conditions.map((cond, i) => (
 					<ChipWithCombinator
 						chipIndex={i}
+						colById={colById}
 						condition={cond}
 						key={cond.id}
 						showCombinator={i > 0}
@@ -78,6 +83,7 @@ export function FilterChipGroup({
 				if (isFilterGroup(item)) {
 					return (
 						<AndBracket
+							colById={colById}
 							group={item}
 							indexById={indexById}
 							key={item.id}
@@ -92,6 +98,7 @@ export function FilterChipGroup({
 						{g > 0 && <OrSeparator />}
 						<ChipWithCombinator
 							chipIndex={indexById.get(item.id) ?? -1}
+							colById={colById}
 							condition={item}
 							showCombinator={false}
 							{...shared}
@@ -114,9 +121,11 @@ function OrSeparator(): React.JSX.Element {
 function AndBracket({
 	group,
 	indexById,
+	colById,
 	showOrSeparator,
 	...shared
 }: SharedChipProps & {
+	colById: Map<string, ColumnConfig>;
 	group: FilterGroup;
 	indexById: Map<string, number>;
 	showOrSeparator: boolean;
@@ -129,6 +138,7 @@ function AndBracket({
 				if (isFilterGroup(child)) {
 					return (
 						<AndBracket
+							colById={colById}
 							group={child}
 							indexById={indexById}
 							key={child.id}
@@ -140,6 +150,7 @@ function AndBracket({
 				return (
 					<ChipWithCombinator
 						chipIndex={indexById.get(child.id) ?? -1}
+						colById={colById}
 						condition={child}
 						key={child.id}
 						showCombinator={i > 0}
@@ -156,7 +167,7 @@ function ChipWithCombinator({
 	chipIndex,
 	condition,
 	showCombinator,
-	columnsConfig,
+	colById,
 	focusedChipIndex,
 	handleCombinatorChange,
 	removeCondition,
@@ -164,10 +175,11 @@ function ChipWithCombinator({
 	updateCondition,
 }: SharedChipProps & {
 	chipIndex: number;
+	colById: Map<string, ColumnConfig>;
 	condition: FilterCondition;
 	showCombinator: boolean;
 }): React.JSX.Element | null {
-	const col = columnsConfig.find((c) => c.id === condition.columnId);
+	const col = colById.get(condition.columnId);
 	if (!col) return null;
 
 	return (

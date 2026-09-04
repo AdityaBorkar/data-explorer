@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 
+import { SEARCH_COLUMN_ID } from "../../columns.ts";
 import type {
 	ColumnConfig,
 	ColumnDataType,
@@ -31,6 +32,19 @@ export function buildDraftCondition(
 	value: unknown,
 ): FilterCondition {
 	return { columnId, combinator: "and", id: nanoid(), operator, value };
+}
+
+/**
+ * Build a global-search condition without hand-rolling the `_search`
+ * divergence (`contains` operator, value phase, `ILIKE … OR …` fan-out).
+ *
+ * @example
+ * ```ts
+ * onAdd(createSearchFilter("polish"));
+ * ```
+ */
+export function createSearchFilter(term: string): FilterCondition {
+	return buildDraftCondition(SEARCH_COLUMN_ID, "contains", term);
 }
 
 /**

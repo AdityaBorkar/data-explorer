@@ -4,14 +4,14 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import type { CSSProperties } from "react";
 import { useCallback, useMemo } from "react";
 
-interface BoardViewProps<TItem> {
+interface BoardViewProps<TItem extends Record<string, unknown>> {
 	getRowId: (item: TItem) => string;
 	renderCard?: (item: TItem, meta: { isDragging: boolean }) => React.ReactNode;
 }
 
 const UNGROUPED_KEY = "__ungrouped";
 
-function readGroupValue<TItem>(
+function readGroupValue<TItem extends Record<string, unknown>>(
 	item: TItem,
 	groupBy: string | null,
 ): string | null {
@@ -22,7 +22,7 @@ function readGroupValue<TItem>(
 	return String(v);
 }
 
-export function BoardView<TItem>({
+export function BoardView<TItem extends Record<string, unknown>>({
 	renderCard,
 	getRowId,
 }: BoardViewProps<TItem>): React.JSX.Element {
@@ -58,22 +58,24 @@ export function BoardView<TItem>({
 		return [...columns, { label: "Ungrouped", value: UNGROUPED_KEY }];
 	}, [columns, groupedItems]);
 
+	const groupByColumnId = groupByColumn?.id;
+
 	const handleDragEnd = useCallback(
 		(result: DropResult) => {
-			if (!result.destination || !onMove || !groupByColumn) return;
+			if (!result.destination || !onMove || !groupByColumnId) return;
 
 			const fromGroup = result.source.droppableId;
 			const toGroup = result.destination.droppableId;
 			if (fromGroup === toGroup) return;
 
 			onMove({
-				columnId: groupByColumn.id,
+				columnId: groupByColumnId,
 				fromGroup,
 				itemId: result.draggableId,
 				toGroup,
 			});
 		},
-		[onMove, groupByColumn],
+		[onMove, groupByColumnId],
 	);
 
 	if (!groupByColumn) {

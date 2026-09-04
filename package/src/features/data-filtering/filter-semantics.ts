@@ -1,3 +1,4 @@
+import { DataExplorerError } from "../../errors.ts";
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 import { getOperatorArity, operatorSkipsValue } from "./operators.ts";
 
@@ -12,6 +13,7 @@ import { getOperatorArity, operatorSkipsValue } from "./operators.ts";
  * operator/value rules concentrate behind one seam.
  */
 
+/** Arity check ("is this nullary?"). For UI gating use {@link requiresValue}. */
 export function isNullaryOperator(operator: FilterOperator): boolean {
 	return getOperatorArity(operator) === "nullary";
 }
@@ -25,7 +27,7 @@ export function requiresArrayValue(operator: FilterOperator): boolean {
 	return arity === "set" || arity === "array";
 }
 
-/** True when the operator cannot commit without a value. */
+/** UI gating ("should I render a value input?"). For arity checks use {@link isNullaryOperator}; for full dispatch use `getOperatorArity`. */
 export function requiresValue(operator: FilterOperator): boolean {
 	return !operatorSkipsValue(operator);
 }
@@ -78,7 +80,10 @@ export function validateOperatorValue(
 	type?: ColumnDataType,
 ): void {
 	const error = validateFilterValue(operator, value, type);
-	if (error) throw new Error(error);
+	if (error)
+		throw new DataExplorerError("INVALID_FILTER_VALUE", error, {
+			operator,
+		});
 }
 
 export interface CoercedFilterValue {

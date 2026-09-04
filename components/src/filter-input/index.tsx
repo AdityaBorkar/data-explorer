@@ -35,7 +35,7 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 
 	const [popoverOpen, setPopoverOpen] = useState(false);
 
-	const flow = useInlineFilterFlow({
+	const { state: flow, actions } = useInlineFilterFlow({
 		columnsConfig,
 		onAdd: addDataFilter,
 	});
@@ -50,7 +50,7 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 		inputValue: flow.inputValue,
 		onRemove: removeDataFilter,
 		onResetFlow: () => {
-			flow.reset();
+			actions.reset();
 			setPopoverOpen(false);
 		},
 		popoverOpen,
@@ -70,9 +70,9 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 	}, [focusInput]);
 
 	const commitCondition = useCallback(() => {
-		flow.commit();
+		actions.commit();
 		closeAndFocus();
-	}, [flow.commit, closeAndFocus]);
+	}, [actions, closeAndFocus]);
 
 	const handleClearAll = useCallback(
 		(e: React.MouseEvent) => {
@@ -138,7 +138,7 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 				<input
 					aria-label="Filter input"
 					className="min-w-0 grow bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-					onChange={(e) => flow.handleInputChange(e.target.value)}
+					onChange={(e) => actions.handleInputChange(e.target.value)}
 					onFocus={() => setFocusedChipIndex(null)}
 					onKeyDown={handleInputKeyDown}
 					placeholder={
@@ -163,13 +163,14 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 			<Popover
 				onOpenChange={(open) => {
 					setPopoverOpen(open);
-					if (!open) flow.reset();
+					if (!open) actions.reset();
 				}}
 				open={popoverOpen}
 			>
 				<PopoverTrigger className="sr-only" tabIndex={-1} />
 				<PopoverContent align="start" className="w-80 p-0" side="bottom">
 					<FilterPopoverContent
+						actions={actions}
 						columnsConfig={columnsConfig}
 						flow={flow}
 						onCloseAndFocus={closeAndFocus}
@@ -182,14 +183,16 @@ export function FilterBar({ className }: FilterBarProps): React.JSX.Element {
 }
 
 interface FilterPopoverContentProps {
+	actions: ReturnType<typeof useInlineFilterFlow>["actions"];
 	columnsConfig: ReturnType<typeof useDataExplorerContext>["columnsConfig"];
-	flow: ReturnType<typeof useInlineFilterFlow>;
+	flow: ReturnType<typeof useInlineFilterFlow>["state"];
 	onCloseAndFocus: () => void;
 	onCommit: () => void;
 }
 
 function FilterPopoverContent({
 	flow,
+	actions,
 	columnsConfig,
 	onCloseAndFocus,
 	onCommit,
@@ -199,12 +202,12 @@ function FilterPopoverContent({
 			<ColumnSelector
 				columns={columnsConfig}
 				onQuickValueSelect={(colId, val) => {
-					flow.handleQuickValueSelect(colId, val);
+					actions.handleQuickValueSelect(colId, val);
 					onCloseAndFocus();
 				}}
-				onSearchChange={flow.setInputValue}
+				onSearchChange={actions.setSearchText}
 				onSelect={(colId) => {
-					flow.handleColumnSelect(colId);
+					actions.handleColumnSelect(colId);
 					if (isSearchColumn(colId)) onCloseAndFocus();
 				}}
 				search={flow.inputValue}
@@ -216,9 +219,9 @@ function FilterPopoverContent({
 		return (
 			<OperatorSelector
 				column={flow.selectedColumn}
-				onSearchChange={flow.setInputValue}
+				onSearchChange={actions.setSearchText}
 				onSelect={(op) => {
-					flow.handleOperatorSelect(op);
+					actions.handleOperatorSelect(op);
 					if (!requiresValue(op)) {
 						onCloseAndFocus();
 					}
@@ -246,11 +249,16 @@ function FilterPopoverContent({
 				</div>
 				<ValueInput
 					column={flow.selectedColumn}
-					onChange={flow.setPendingValue}
+					onChange={actions.setPendingValue}
 					onCommit={onCommit}
 					operator={flow.selectedOperator}
 					value={flow.pendingValue}
 				/>
+				{flow.error !== null && (
+					<p className="mt-1 text-destructive text-xs" role="alert">
+						{flow.error}
+					</p>
+				)}
 				<div className="mt-2 flex justify-end">
 					<button
 						className="rounded-md bg-primary px-3 py-1 text-primary-foreground text-xs"

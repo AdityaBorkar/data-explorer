@@ -117,8 +117,47 @@ describe("serializeFilters / deserializeFilters", () => {
 			},
 		];
 		const json = serializeFilters(conditions);
-		const parsed = JSON.parse(json) as { v: string }[];
-		expect(parsed[0]?.v).toBe("2024-06-15T12:00:00.000Z");
+		const parsed = JSON.parse(json) as {
+			filters: { v: string }[];
+			v: number;
+		};
+		expect(parsed.v).toBe(1);
+		expect(parsed.filters[0]?.v).toBe("2024-06-15T12:00:00.000Z");
+	});
+
+	it("revives Date values on deserialize", () => {
+		const date = new Date("2024-06-15T12:00:00.000Z");
+		const conditions: FilterCondition[] = [
+			{
+				columnId: "createdAt",
+				combinator: "and",
+				id: "x",
+				operator: "eq",
+				value: date,
+			},
+		];
+		const result = deserializeFilters(serializeFilters(conditions));
+		expect(result).toHaveLength(1);
+		const value = result[0]?.value;
+		expect(value).toBeInstanceOf(Date);
+		if (!(value instanceof Date)) throw new Error("expected Date revival");
+		expect(value.toISOString()).toBe("2024-06-15T12:00:00.000Z");
+	});
+
+	it("reads legacy bare-array payloads", () => {
+		const legacy = JSON.stringify([
+			{ b: "and", c: "name", i: "legacy-1", o: "eq", v: "foo" },
+		]);
+		const result = deserializeFilters(legacy);
+		expect(result).toHaveLength(1);
+		expect(result[0]?.id).toBe("legacy-1");
+		expect(result[0]?.value).toBe("foo");
+	});
+
+	it("rejects unknown payload versions", () => {
+		expect(() =>
+			deserializeFilters(JSON.stringify({ filters: [], v: 999 })),
+		).toThrow(/version/i);
 	});
 });
 

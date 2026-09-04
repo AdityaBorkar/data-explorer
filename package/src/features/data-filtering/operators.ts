@@ -1,5 +1,11 @@
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 
+/**
+ * Which predicate to use:
+ * - UI gating ("should I render a value input?") → {@link requiresValue}
+ * - arity checks ("is this nullary?") → {@link isNullaryOperator}
+ * - full dispatch → {@link getOperatorArity}
+ */
 export type OperatorArity = "nullary" | "single" | "range" | "set" | "array";
 
 interface OperatorDef {
@@ -105,10 +111,18 @@ for (const defs of Object.values(OPERATORS)) {
 	}
 }
 
+/**
+ * Low-level catalog flag. Prefer the intent-revealing wrappers:
+ * `requiresValue` (filter-semantics) for UI gating, `isNullaryOperator`
+ * (filter-semantics) for arity checks.
+ *
+ * @deprecated Use `requiresValue(op)` / `isNullaryOperator(op)` instead.
+ */
 export function operatorSkipsValue(operator: FilterOperator): boolean {
 	return OPERATOR_DEFS.get(operator)?.skipValue ?? false;
 }
 
+/** Full arity dispatch — use when `requiresValue` / `isNullaryOperator` are not specific enough. */
 export function getOperatorArity(operator: FilterOperator): OperatorArity {
 	return OPERATOR_DEFS.get(operator)?.arity ?? "single";
 }

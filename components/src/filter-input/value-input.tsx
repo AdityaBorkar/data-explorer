@@ -423,10 +423,10 @@ function MultiOptionInput({
 					onChange(
 						str === ""
 							? []
-							: str
-									.split(",")
-									.map((s) => s.trim())
-									.filter(Boolean),
+							: str.split(",").flatMap((s) => {
+									const trimmed = s.trim();
+									return trimmed ? [trimmed] : [];
+								}),
 					);
 				}}
 				onCommit={onCommit}

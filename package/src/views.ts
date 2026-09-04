@@ -11,12 +11,32 @@ export interface View {
 }
 
 export interface ViewAdapter {
+	/** Optional: required by `saveViewAs` / `createView`. */
+	createView?: (
+		domain: string,
+		data: {
+			display: FilterViewDisplay;
+			name: string;
+			refine: FilterCondition[];
+		},
+	) => Promise<View>;
+	/** Optional: required by `deleteView`. */
+	deleteView?: (id: string) => Promise<void>;
 	listViews: (domain: string) => Promise<View[]>;
+	/** Optional: required by `renameView`. */
+	renameView?: (id: string, name: string) => Promise<View>;
 	updateView: (
 		id: string,
 		data: { display: FilterViewDisplay; refine: FilterCondition[] },
 	) => Promise<void>;
 }
+
+/** Outcome of `applyView` / `resetToSaved` so UI can toast instead of guessing. */
+export type ViewApplyResult =
+	| "applied"
+	| "reset-to-default"
+	| "deferred-loading"
+	| "unknown-id";
 
 export interface FilterViewDisplay {
 	columnWidths: Record<string, number>;

@@ -152,15 +152,14 @@ export function useFilterBarKeyboard(
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
+	const focusedId =
+		focusedChipIndex !== null ? conditions[focusedChipIndex]?.id : undefined;
+
 	useEffect(() => {
 		if (focusedChipIndex !== null) {
-			focusChip(
-				containerRef.current,
-				conditions[focusedChipIndex]?.id,
-				"focus",
-			);
+			focusChip(containerRef.current, focusedId, "focus");
 		}
-	}, [focusedChipIndex, conditions]);
+	}, [focusedChipIndex, focusedId]);
 
 	return {
 		containerRef,

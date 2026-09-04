@@ -1,15 +1,112 @@
-# @adityab-data-explorer
+# `@adistack/data-explorer`
 
-To install dependencies:
+Headless data-explorer core: TanStack-powered table state (filtering,
+display, selection, persisted views) plus a filter → parameterized SQL
+helper. UI lives in `@adistack/data-explorer-ui`; this package ships no
+DOM. Terms below follow `docs/CONTEXT.md` (Filter Condition, Display,
+View, View Type, Density, Selection, Board Move).
+
+## Install
 
 ```bash
-bun install
+bun add @adistack/data-explorer @tanstack/react-query @tanstack/react-table react
 ```
 
-To run:
+## Minimal wiring
 
-```bash
-bun run index.ts
+```tsx
+import { Provider } from "@adistack/data-explorer";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const client = new QueryClient();
+
+<QueryClientProvider client={client}>
+  <Provider
+    columns={columns}
+    defaultDisplay={DEFAULT_DISPLAY}
+    domain="tasks"
+    getRowId={(row) => row.id}
+    query={query}
+  >
+    {children}
+  </Provider>
+</QueryClientProvider>
 ```
 
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+`defaultDisplay` is applied once as table `initialState` (uncontrolled):
+later changes are ignored — apply updates via `applyDisplaySnapshot` /
+table APIs, or key the provider (`<Provider key={domain}>`) for a reset.
+Memoize `columns`; only id changes recompute `columnsConfig`.
+
+## `query()` — paged data source
+
+```ts
+import type { ListQueryResult, RefineOptions } from "@adistack/data-explorer";
+import type { UseQueryOptions } from "@tanstack/react-query";
+
+const query = (opts: RefineOptions): UseQueryOptions<ListQueryResult<Task>> => ({
+  queryFn: async () => fetchPage(opts), // { filters, sorting, orderBy, limit, cursor, … }
+  queryKey: ["tasks", opts.filters],
+});
+```
+
+`query()` must return `{ queryKey, queryFn }` — anything else throws
+`DataExplorerError("INVALID_QUERY_OPTIONS")`. Paging: `pageSize` prop
+(default `DEFAULT_PAGE_SIZE`, 20), `staleTime` / `debounceFiltersMs`
+passthroughs. Cache keys: `dataQueryKey(domain, refine)`,
+`viewQueryKey(domain)`.
+
+## `buildFilterWhere` — Postgres + SQLite
+
+```ts
+import { buildFilterWhere } from "@adistack/data-explorer";
+
+// Postgres (default): ILIKE, text[] @>, $n
+buildFilterWhere(filters, columns, mapping, { tableAlias: "tasks" });
+// → { sql: '("tasks"."title" ILIKE $1 ESCAPE \'\\\')', params: ["%x%"] }
+
+// SQLite: LOWER(col) LIKE, ? placeholders (array ops throw UNSUPPORTED_DIALECT)
+buildFilterWhere(filters, columns, mapping, { dialect: "sqlite" });
+// Empty filters → { sql: "", params: [] } (never undefined)
+```
+
+`isEmpty` on text matches `NULL` or `''`; empty `IN ()` becomes `(1=0)`
+(and `NOT IN` → `(1=1)`). Failures throw `FilterSqlError` with a stable
+`code` (`UNKNOWN_COLUMN`, `MISSING_MAPPING`, …) and the offending
+`columnId` in `details` — highlight the chip instead of parsing messages.
+
+## Persisted views
+
+```tsx
+const viewAdapter: ViewAdapter = {
+  listViews: (domain) => load(domain),
+  updateView: (id, data) => save(id, data),
+  createView: (domain, data) => insert(domain, data), // optional: enables saveViewAs
+};
+
+const { views, applyView, saveViewAs } = useView({
+  columnsConfig, defaultDisplay, domain, table, viewAdapter,
+});
+const status = applyView("backlog"); // "applied" | "unknown-id" | "deferred-loading" | "reset-to-default"
+```
+
+`saveView()` persists the active view; `saveViewAs(name)` creates one.
+With no active view, `resetToSaved()` falls back to `defaultDisplay` +
+empty filters. Share links: `serializeFilters` (versioned, revives
+`Date`s) and `serializeDisplay` (compact base64 widths, legacy-compatible).
+
+## Errors
+
+```ts
+import { DataExplorerError } from "@adistack/data-explorer";
+
+try {
+  /* … */
+} catch (error) {
+  if (error instanceof DataExplorerError) error.code; // matchable, documented in errors.ts
+}
+```
+
+Invalid column definitions are skipped and reported via the
+`onInvalidColumn` prop (`strictColumns` throws instead) — the library
+never logs.

@@ -25,7 +25,7 @@ function SqlPreview() {
 				TASK_COLUMN_MAPPING,
 				{ tableAlias: "tasks" },
 			);
-			if (!result) return { params: [], sql: "-- no filters" };
+			if (result.sql === "") return { params: [], sql: "-- no filters" };
 			return result;
 		} catch (error) {
 			return {
