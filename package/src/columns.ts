@@ -99,10 +99,9 @@ export function extractColumnConfigsDetailed(
 	});
 	if (options?.strict && issues.length > 0) {
 		const first = issues[0] as ColumnIssue;
-		throw new DataExplorerError("INVALID_COLUMN_DEF", first.message, {
-			index: first.index,
-			...(first.id !== undefined ? { id: first.id } : {}),
-		});
+		const details: Record<string, unknown> = { index: first.index };
+		if (first.id !== undefined) details.id = first.id;
+		throw new DataExplorerError("INVALID_COLUMN_DEF", first.message, details);
 	}
 	for (const issue of issues) options?.onInvalidColumn?.(issue);
 	return { configs, issues };

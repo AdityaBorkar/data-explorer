@@ -8,8 +8,12 @@ import type {
 	FilterOperator,
 } from "../../types.ts";
 import { isSearchColumn } from "../../types.ts";
-import { coerceFilterValue, validateFilterValue } from "./filter-semantics.ts";
-import { getOperatorArity, operatorSkipsValue } from "./operators.ts";
+import {
+	coerceFilterValue,
+	isNullaryOperator,
+	validateFilterValue,
+} from "./filter-semantics.ts";
+import { getOperatorArity } from "./operators.ts";
 
 /**
  * Filter-draft policy: the single module that decides how a pending
@@ -90,7 +94,7 @@ export function editorKind(
 	operator: FilterOperator,
 	column: Pick<ColumnConfig, "id" | "type">,
 ): FilterEditorKind {
-	if (operatorSkipsValue(operator)) return "nullary";
+	if (isNullaryOperator(operator)) return "nullary";
 	if (isSearchColumn(column.id)) return "search";
 	const arity = getOperatorArity(operator);
 	if (arity === "range") return "range";
@@ -107,7 +111,7 @@ export function formatFilterValue(
 	operator: FilterOperator,
 	column: Pick<ColumnConfig, "options" | "type">,
 ): string | null {
-	if (operatorSkipsValue(operator)) return null;
+	if (isNullaryOperator(operator)) return null;
 	if (value === null || value === undefined) return null;
 
 	if (operator === "between" || operator === "notBetween") {
@@ -118,10 +122,8 @@ export function formatFilterValue(
 		return `${String(min)} – ${String(max)}`;
 	}
 
-	if (
-		getOperatorArity(operator) === "set" ||
-		getOperatorArity(operator) === "array"
-	) {
+	const arity = getOperatorArity(operator);
+	if (arity === "set" || arity === "array") {
 		if (!Array.isArray(value)) return String(value);
 		const vals = value as unknown[];
 		if (vals.length === 0) return null;

@@ -57,22 +57,6 @@ export class DataExplorerError extends Error {
 }
 
 /**
- * SQL-builder failures from `buildFilterWhere`.
- * Carries the offending `columnId` in {@link DataExplorerError.details}
- * so callers can highlight the failing filter chip.
- */
-export class FilterSqlError extends DataExplorerError {
-	constructor(
-		code: DataExplorerErrorCode,
-		message: string,
-		details?: Record<string, unknown>,
-	) {
-		super(code, message, details);
-		this.name = "FilterSqlError";
-	}
-}
-
-/**
  * Thrown when a context hook runs outside `<Provider>`.
  * Includes the hook name so copy-pasted `useSelectionContext` failures
  * point at the right call site.

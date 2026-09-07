@@ -36,7 +36,7 @@ const client = new QueryClient();
 `defaultDisplay` is applied once as table `initialState` (uncontrolled):
 later changes are ignored — apply updates via `applyDisplaySnapshot` /
 table APIs, or key the provider (`<Provider key={domain}>`) for a reset.
-Memoize `columns`; only id changes recompute `columnsConfig`.
+Memoize `columns` to avoid recomputing `columnsConfig` per render.
 
 ## `query()` — paged data source
 
@@ -71,7 +71,7 @@ buildFilterWhere(filters, columns, mapping, { dialect: "sqlite" });
 ```
 
 `isEmpty` on text matches `NULL` or `''`; empty `IN ()` becomes `(1=0)`
-(and `NOT IN` → `(1=1)`). Failures throw `FilterSqlError` with a stable
+(and `NOT IN` → `(1=1)`). Failures throw `DataExplorerError` with a stable
 `code` (`UNKNOWN_COLUMN`, `MISSING_MAPPING`, …) and the offending
 `columnId` in `details` — highlight the chip instead of parsing messages.
 
@@ -81,19 +81,19 @@ buildFilterWhere(filters, columns, mapping, { dialect: "sqlite" });
 const viewAdapter: ViewAdapter = {
   listViews: (domain) => load(domain),
   updateView: (id, data) => save(id, data),
-  createView: (domain, data) => insert(domain, data), // optional: enables saveViewAs
+  createView: (domain, data) => insert(domain, data), // optional: enables createView
 };
 
-const { views, applyView, saveViewAs } = useView({
+const { views, applyView, createView } = useView({
   columnsConfig, defaultDisplay, domain, table, viewAdapter,
 });
-const status = applyView("backlog"); // "applied" | "unknown-id" | "deferred-loading" | "reset-to-default"
+applyView("backlog"); // void — read `isLoading` / `views` to toast on unknown ids
 ```
 
-`saveView()` persists the active view; `saveViewAs(name)` creates one.
+`saveView()` persists the active view; `createView(name)` creates one (omitted `display`/`refine` snapshots from the table).
 With no active view, `resetToSaved()` falls back to `defaultDisplay` +
 empty filters. Share links: `serializeFilters` (versioned, revives
-`Date`s) and `serializeDisplay` (compact base64 widths, legacy-compatible).
+`Date`s) and `serializeDisplay` (raw JSON widths; legacy `b64:` links still decode).
 
 ## Errors
 

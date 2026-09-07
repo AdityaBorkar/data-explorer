@@ -12,7 +12,6 @@ interface OperatorDef {
 	arity: OperatorArity;
 	key: FilterOperator;
 	label: string;
-	skipValue?: boolean;
 }
 
 const OPERATORS: Record<ColumnDataType, OperatorDef[]> = {
@@ -33,13 +32,11 @@ const OPERATORS: Record<ColumnDataType, OperatorDef[]> = {
 			arity: "nullary",
 			key: "isEmpty",
 			label: "is empty",
-			skipValue: true,
 		},
 		{
 			arity: "nullary",
 			key: "isNotEmpty",
 			label: "is not empty",
-			skipValue: true,
 		},
 	],
 	enum: [
@@ -69,13 +66,11 @@ const OPERATORS: Record<ColumnDataType, OperatorDef[]> = {
 			arity: "nullary",
 			key: "isEmpty",
 			label: "is empty",
-			skipValue: true,
 		},
 		{
 			arity: "nullary",
 			key: "isNotEmpty",
 			label: "is not empty",
-			skipValue: true,
 		},
 	],
 	string: [
@@ -89,13 +84,11 @@ const OPERATORS: Record<ColumnDataType, OperatorDef[]> = {
 			arity: "nullary",
 			key: "isEmpty",
 			label: "is empty",
-			skipValue: true,
 		},
 		{
 			arity: "nullary",
 			key: "isNotEmpty",
 			label: "is not empty",
-			skipValue: true,
 		},
 	],
 };
@@ -109,17 +102,6 @@ for (const defs of Object.values(OPERATORS)) {
 	for (const def of defs) {
 		if (!OPERATOR_DEFS.has(def.key)) OPERATOR_DEFS.set(def.key, def);
 	}
-}
-
-/**
- * Low-level catalog flag. Prefer the intent-revealing wrappers:
- * `requiresValue` (filter-semantics) for UI gating, `isNullaryOperator`
- * (filter-semantics) for arity checks.
- *
- * @deprecated Use `requiresValue(op)` / `isNullaryOperator(op)` instead.
- */
-export function operatorSkipsValue(operator: FilterOperator): boolean {
-	return OPERATOR_DEFS.get(operator)?.skipValue ?? false;
 }
 
 /** Full arity dispatch — use when `requiresValue` / `isNullaryOperator` are not specific enough. */

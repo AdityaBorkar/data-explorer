@@ -5,8 +5,6 @@ import type { ColumnConfig } from "../columns.ts";
 import type { TableFeatures } from "../types.ts";
 import type { Density, FilterViewDisplay, ViewType } from "../views.ts";
 
-type DisplayTable = ReactTable<TableFeatures, Record<string, unknown>>;
-
 /** Valid density values (also used to validate share-link params). */
 export const DENSITIES: readonly Density[] = [
 	"compact",
@@ -26,14 +24,16 @@ export const VIEW_TYPES: readonly ViewType[] = [
  * entry and `grouping[0]` round-trip. Multi-sort tables collapse to their
  * primary key by design.
  */
-export function toInitialSorting(display: FilterViewDisplay) {
+export function toInitialSorting(
+	display: FilterViewDisplay,
+): { desc: boolean; id: string }[] {
 	return display.orderBy
 		? [{ desc: display.orderType === "desc", id: display.orderBy }]
 		: [];
 }
 
 /** See {@link toInitialSorting} — single-group by design. */
-export function toInitialGrouping(display: FilterViewDisplay) {
+export function toInitialGrouping(display: FilterViewDisplay): string[] {
 	return display.groupBy ? [display.groupBy] : [];
 }
 
@@ -50,7 +50,14 @@ export function toInitialColumnVisibility(
 export function toInitialTableState(
 	display: FilterViewDisplay,
 	columnsConfig: ColumnConfig[],
-) {
+): {
+	columnSizing: Record<string, number>;
+	columnVisibility: Record<string, boolean>;
+	density: Density;
+	grouping: string[];
+	sorting: { desc: boolean; id: string }[];
+	viewType: ViewType;
+} {
 	return {
 		columnSizing: { ...display.columnWidths },
 		columnVisibility: toInitialColumnVisibility(display, columnsConfig),
@@ -61,8 +68,8 @@ export function toInitialTableState(
 	};
 }
 
-export function toDisplaySnapshot(
-	table: DisplayTable,
+export function toDisplaySnapshot<TItem extends Record<string, unknown>>(
+	table: ReactTable<TableFeatures, TItem>,
 	columnsConfig: ColumnConfig[],
 ): FilterViewDisplay {
 	const first = table.state.sorting[0];
@@ -80,9 +87,9 @@ export function toDisplaySnapshot(
 }
 
 // Single transaction: callers get one function instead of 6 sequential setters.
-export function applyDisplaySnapshot(
+export function applyDisplaySnapshot<TItem extends Record<string, unknown>>(
 	snapshot: FilterViewDisplay,
-	table: DisplayTable,
+	table: ReactTable<TableFeatures, TItem>,
 	columnsConfig: ColumnConfig[],
 ): void {
 	const next = toInitialTableState(snapshot, columnsConfig);
@@ -113,18 +120,6 @@ export function mergeDisplay(
 	};
 }
 
-function encodeWidths(widths: Record<string, number>): string {
-	const json = JSON.stringify(widths);
-	// btoa is ASCII-safe for JSON widths maps; fall back to raw JSON where
-	// base64 is unavailable (non-DOM runtimes without a polyfill).
-	try {
-		if (typeof btoa === "function") return `b64:${btoa(json)}`;
-	} catch {
-		// fall through to raw JSON
-	}
-	return json;
-}
-
 function decodeWidths(
 	raw: string,
 	defaults: Record<string, number>,
@@ -140,31 +135,31 @@ function decodeWidths(
 		}
 		return null;
 	};
-	if (raw.startsWith("b64:")) {
+	const direct = parse(raw);
+	if (direct) return direct;
+	// Legacy `b64:` links (pre-raw-JSON encoder) still decode.
+	if (raw.startsWith("b64:") && typeof atob === "function") {
 		try {
-			if (typeof atob === "function") {
-				const decoded = parse(atob(raw.slice(4)));
-				if (decoded) return decoded;
-			}
+			const decoded = parse(atob(raw.slice(4)));
+			if (decoded) return decoded;
 		} catch {
-			// fall through to legacy JSON, then defaults
+			// fall through to defaults
 		}
 	}
-	return parse(raw) ?? defaults;
+	return defaults;
 }
 
 /**
- * Compact share-link encoding: column widths ride base64 (`widths=b64:…`),
- * legacy raw-JSON links still decode. Widths are omitted when empty.
+ * Share-link encoding: column widths ride raw JSON (`widths={…}`).
+ * Legacy `b64:` links still decode. Widths are omitted when empty.
  */
 export function serializeDisplay(display: FilterViewDisplay): URLSearchParams {
 	const params = new URLSearchParams();
 	params.set("sort", display.orderBy);
 	params.set("dir", display.orderType);
-	params.delete("cols");
 	for (const field of display.fields) params.append("cols", field);
 	if (Object.keys(display.columnWidths).length > 0) {
-		params.set("widths", encodeWidths(display.columnWidths));
+		params.set("widths", JSON.stringify(display.columnWidths));
 	}
 	params.set("density", display.density);
 	params.set("type", display.type);
@@ -196,17 +191,20 @@ export function deserializeDisplay(
 
 	return {
 		columnWidths,
-		density: (DENSITIES as readonly string[]).includes(rawDensity ?? "")
-			? (rawDensity as FilterViewDisplay["density"])
-			: defaults.density,
+		density: isOneOf(DENSITIES, rawDensity) ? rawDensity : defaults.density,
 		fields,
 		groupBy: rawGroupBy || defaults.groupBy,
 		orderBy: rawSort || defaults.orderBy,
-		orderType: (["asc", "desc"] as readonly string[]).includes(rawDir ?? "")
-			? (rawDir as FilterViewDisplay["orderType"])
+		orderType: isOneOf(["asc", "desc"] as const, rawDir)
+			? rawDir
 			: defaults.orderType,
-		type: (VIEW_TYPES as readonly string[]).includes(rawType ?? "")
-			? (rawType as FilterViewDisplay["type"])
-			: defaults.type,
+		type: isOneOf(VIEW_TYPES, rawType) ? rawType : defaults.type,
 	};
+}
+
+function isOneOf<T extends string>(
+	list: readonly T[],
+	value: string | null,
+): value is T {
+	return value !== null && (list as readonly string[]).includes(value);
 }

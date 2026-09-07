@@ -7,7 +7,6 @@ import type {
 	ColumnSizingState,
 	ColumnVisibilityState,
 	GroupingState,
-	ReactTable,
 	SortingState,
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
@@ -16,7 +15,6 @@ import { DataExplorerError } from "../errors.ts";
 import { stableStringify } from "../features/data-filtering/filter-merge.ts";
 import type { FilterCondition } from "../filters.ts";
 import type { ListQueryResult, RefineOptions } from "../query.ts";
-import type { TableFeatures } from "../types.ts";
 import type { Density, ViewType } from "../views.ts";
 
 /**
@@ -96,11 +94,6 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	staleTime?: number;
 	/** Debounce for filter keystrokes before they enter the query key. @default 0 (off) */
 	debounceFiltersMs?: number;
-	/**
-	 * @deprecated No longer read. Data flows declaratively via `Provider`
-	 * (`useTable({ data: allItems })`). Kept so existing call sites typecheck.
-	 */
-	table?: ReactTable<TableFeatures, Record<string, unknown>>;
 }) {
 	const {
 		columnSizing,

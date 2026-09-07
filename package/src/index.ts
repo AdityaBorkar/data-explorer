@@ -5,7 +5,10 @@
  * contract — renames elsewhere don't break consumers, and bundlers can
  * tree-shake cleanly. Canonical home per domain:
  * columns → `./columns.ts`, filters → `./filters.ts`, display →
- * `./features/display-snapshot.ts`, serialization → `filter-utils.ts`.
+ * `./features/display-snapshot.ts`, serialization →
+ * `./features/data-filtering/filter-utils.ts`.
+ * (`types.ts` is the internal composition root; only the names
+ * re-exported here are public.)
  */
 
 // --- Columns (`./columns.ts`) ---
@@ -20,18 +23,15 @@ export {
 	isSearchColumn,
 	SEARCH_COLUMN_ID,
 } from "./columns.ts";
-export type { SelectionState } from "./context.tsx";
 // --- Context + provider shell. ---
 export {
 	DataExplorerContext,
 	useDataExplorerContext,
-	useSelectionContext,
 } from "./context.tsx";
 // --- Errors (`./errors.ts`): match on `error.code`, never on messages. ---
 export {
 	DataExplorerError,
 	type DataExplorerErrorCode,
-	FilterSqlError,
 	MissingProviderError,
 } from "./errors.ts";
 // --- Table features. ---
@@ -84,8 +84,6 @@ export {
 	getOperatorLabel,
 	getOperatorsForType,
 	type OperatorArity,
-	/** @deprecated Use `requiresValue` / `isNullaryOperator` instead. */
-	operatorSkipsValue,
 } from "./features/data-filtering/operators.ts";
 export {
 	type InlineFilterActions,
@@ -126,6 +124,10 @@ export {
 	useDataQuery,
 } from "./hooks/use-data-query.ts";
 export { useLoadMore } from "./hooks/use-load-more.ts";
+export {
+	type SelectionState,
+	useSelectionContext,
+} from "./hooks/use-selection.ts";
 export { useView, viewQueryKey } from "./hooks/use-view.ts";
 /** Headless provider — see `DataExplorerProviderProps` for the contract. */
 export {
@@ -154,7 +156,6 @@ export {
 export type {
 	BoardMoveArgs,
 	BoardMoveHandler,
-	ContextType,
 	DataExplorerContextType,
 	DataExplorerContextValue,
 	DataExplorerViewState,
@@ -166,6 +167,5 @@ export type {
 	FilterViewDisplay,
 	View,
 	ViewAdapter,
-	ViewApplyResult,
 	ViewType,
 } from "./views.ts";

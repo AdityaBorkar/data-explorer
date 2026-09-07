@@ -10,8 +10,8 @@ import {
 	commitDraft,
 	isSearchDraft,
 } from "./filter-draft.ts";
-import { requiresValue } from "./filter-semantics.ts";
-import { getDefaultOperator, operatorSkipsValue } from "./operators.ts";
+import { isNullaryOperator, requiresValue } from "./filter-semantics.ts";
+import { getDefaultOperator } from "./operators.ts";
 
 type Phase = "idle" | "column" | "operator" | "value";
 
@@ -23,6 +23,7 @@ export interface InlineFilterState {
 	needsNullValue: boolean;
 	pendingValue: unknown;
 	phase: Phase;
+	searchText: string;
 	selectedColumn: ColumnConfig | undefined;
 	selectedColumnId: string | null;
 	selectedOperator: FilterOperator | null;
@@ -41,8 +42,8 @@ export interface InlineFilterActions {
 	setPendingValue: (value: unknown) => void;
 	/**
 	 * Plain text setter for the selector search boxes (column / operator
-	 * lists). Unlike `handleInputChange` it never drives phase transitions —
-	 * the main filter input must go through `handleInputChange`.
+	 * lists). Writes `searchText` only — never drives phase transitions.
+	 * The main filter input must go through `handleInputChange`.
 	 */
 	setSearchText: (value: string) => void;
 }
@@ -50,9 +51,14 @@ export interface InlineFilterActions {
 /**
  * Guided `idle → column → operator → value` draft machine for the filter bar.
  *
- * Returns a namespaced `{ state, actions }` pair; the flat legacy keys are
- * still present (deprecated) so existing call sites keep working. `commit()`
+ * Returns a namespaced `{ state, actions }` pair. `commit()`
  * surfaces validation failures on `state.error` instead of swallowing them.
+ *
+ * `inputValue` is the main filter input (drives `idle ↔ column`);
+ * `searchText` is the selector search box (never drives phases). Typing
+ * in the main input seeds `searchText` so the opening selector is
+ * pre-filtered; clearing the selector shows all options without closing
+ * the popover.
  *
  * @example
  * ```tsx
@@ -63,11 +69,12 @@ export interface InlineFilterActions {
 export function useInlineFilterFlow(opts: {
 	columnsConfig: ColumnConfig[];
 	onAdd: (condition: FilterCondition) => void;
-}) {
+}): { actions: InlineFilterActions; state: InlineFilterState } {
 	const { columnsConfig, onAdd } = opts;
 
 	const [phase, setPhase] = useState<Phase>("idle");
 	const [inputValue, setInputValue] = useState("");
+	const [searchText, setSearchText] = useState("");
 	const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
 	const [selectedOperator, setSelectedOperator] =
 		useState<FilterOperator | null>(null);
@@ -101,6 +108,7 @@ export function useInlineFilterFlow(opts: {
 		setSelectedOperator(null);
 		setPendingValue(undefined);
 		setInputValue("");
+		setSearchText("");
 		setError(null);
 	}, []);
 
@@ -141,6 +149,7 @@ export function useInlineFilterFlow(opts: {
 	const handleInputChange = useCallback(
 		(value: string) => {
 			setInputValue(value);
+			setSearchText(value);
 			const isBlank = value.trim().length === 0;
 			if (!isBlank && phase === "idle") {
 				setPhase("column");
@@ -162,12 +171,13 @@ export function useInlineFilterFlow(opts: {
 				setSelectedOperator("contains");
 				setPhase("value");
 				setInputValue("");
+				setSearchText("");
 				return;
 			}
 
 			const defaultOp = col.operators?.[0] ?? getDefaultOperator(col.type);
 
-			if (operatorSkipsValue(defaultOp)) {
+			if (isNullaryOperator(defaultOp)) {
 				commitNullary(columnId, defaultOp);
 				return;
 			}
@@ -175,6 +185,7 @@ export function useInlineFilterFlow(opts: {
 			setSelectedOperator(defaultOp);
 			setPhase("operator");
 			setInputValue("");
+			setSearchText("");
 		},
 		[getColumn, commitNullary],
 	);
@@ -196,7 +207,7 @@ export function useInlineFilterFlow(opts: {
 	const handleOperatorSelect = useCallback(
 		(operator: FilterOperator) => {
 			if (!selectedColumnId) return;
-			if (operatorSkipsValue(operator)) {
+			if (isNullaryOperator(operator)) {
 				commitNullary(selectedColumnId, operator);
 				return;
 			}
@@ -205,6 +216,7 @@ export function useInlineFilterFlow(opts: {
 			setPendingValue(undefined);
 			setPhase("value");
 			setInputValue("");
+			setSearchText("");
 		},
 		[selectedColumnId, commitNullary],
 	);
@@ -216,6 +228,7 @@ export function useInlineFilterFlow(opts: {
 			needsNullValue,
 			pendingValue,
 			phase,
+			searchText,
 			selectedColumn,
 			selectedColumnId,
 			selectedOperator,
@@ -226,6 +239,7 @@ export function useInlineFilterFlow(opts: {
 			needsNullValue,
 			pendingValue,
 			phase,
+			searchText,
 			selectedColumn,
 			selectedColumnId,
 			selectedOperator,
@@ -242,7 +256,7 @@ export function useInlineFilterFlow(opts: {
 			handleQuickValueSelect,
 			reset,
 			setPendingValue,
-			setSearchText: setInputValue,
+			setSearchText,
 		}),
 		[
 			clearError,
@@ -255,43 +269,5 @@ export function useInlineFilterFlow(opts: {
 		],
 	);
 
-	return {
-		actions,
-		/** @deprecated Use `actions.clearError`. */
-		clearError,
-		// --- Legacy flat surface (deprecated; use `state` / `actions`). ---
-		/** @deprecated Use `state` / `actions`. */
-		commit,
-		/** @deprecated Use `state.error`. */
-		error,
-		/** @deprecated Use `actions.handleColumnSelect`. */
-		handleColumnSelect,
-		/** @deprecated Use `actions.handleInputChange`. */
-		handleInputChange,
-		/** @deprecated Use `actions.handleOperatorSelect`. */
-		handleOperatorSelect,
-		/** @deprecated Use `actions.handleQuickValueSelect`. */
-		handleQuickValueSelect,
-		/** @deprecated Use `state.inputValue`. */
-		inputValue,
-		/** @deprecated Use `state.needsNullValue`. */
-		needsNullValue,
-		/** @deprecated Use `state.pendingValue`. */
-		pendingValue,
-		/** @deprecated Use `state.phase`. */
-		phase,
-		/** @deprecated Use `actions.reset`. */
-		reset,
-		/** @deprecated Use `state.selectedColumn`. */
-		selectedColumn,
-		/** @deprecated Use `state.selectedColumnId`. */
-		selectedColumnId,
-		/** @deprecated Use `state.selectedOperator`. */
-		selectedOperator,
-		/** @deprecated Internal — input changes go through `actions.handleInputChange`. */
-		setInputValue,
-		/** @deprecated Use `actions.setPendingValue`. */
-		setPendingValue,
-		state,
-	};
+	return { actions, state };
 }

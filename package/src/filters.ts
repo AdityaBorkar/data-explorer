@@ -2,6 +2,11 @@ import { nanoid } from "nanoid";
 
 import type { ColumnDataType } from "./columns.ts";
 
+/**
+ * All filter operators. `include` ≡ `includeAll` and `exclude` ≡
+ * `excludeAll` (historical duplicates, kept for stored filters).
+ * Prefer `includeAll` / `excludeAll` in new code.
+ */
 export type FilterOperator =
 	| "eq"
 	| "neq"

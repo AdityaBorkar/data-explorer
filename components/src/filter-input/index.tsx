@@ -210,7 +210,7 @@ function FilterPopoverContent({
 					actions.handleColumnSelect(colId);
 					if (isSearchColumn(colId)) onCloseAndFocus();
 				}}
-				search={flow.inputValue}
+				search={flow.searchText}
 			/>
 		);
 	}
@@ -226,7 +226,7 @@ function FilterPopoverContent({
 						onCloseAndFocus();
 					}
 				}}
-				search={flow.inputValue}
+				search={flow.searchText}
 			/>
 		);
 	}

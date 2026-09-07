@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactTable } from "@tanstack/react-table";
-import { startTransition, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
 	applyDisplaySnapshot,
@@ -14,32 +14,30 @@ import type {
 	TableFeatures,
 	View,
 	ViewAdapter,
-	ViewApplyResult,
 } from "../types.ts";
 
 /** Cache-key factory for persisted views (use for prefetch/invalidation). */
 export function viewQueryKey(domain: string): readonly unknown[] {
-	return ["data-explorer", "views", domain] as const;
+	return ["data-explorer", domain, "views"] as const;
 }
 
 /**
  * Persisted filter + display views.
  *
- * - `saveView()` persists the active view only; `saveViewAs(name)` /
- *   `createView` need `adapter.createView`.
- * - `applyView` / `resetToSaved` return outcome codes (`unknown-id`,
- *   `deferred-loading`) instead of failing silently — surface them as toasts.
- * - With no active view, `resetToSaved()` resets to `defaultDisplay` +
- *   empty filters.
+ * - `saveView()` persists the active view only; `createView(name, data?)`
+ *   creates one (omitted `display`/`refine` snapshot from the table).
+ * - `applyView(null)` / `resetToSaved()` with no active view resets to
+ *   `defaultDisplay` + empty filters. Unknown ids after load reset too;
+ *   while views are loading, `applyView` preserves unpersisted work.
+ * - Read `isLoading` / `views` to toast on unknown ids — no outcome codes.
  *
  * @example
  * ```tsx
- * const { views, applyView, saveViewAs } = useView({ columnsConfig, defaultDisplay, domain, table, viewAdapter });
- * const status = applyView("backlog");
- * if (status === "unknown-id") toast("View no longer exists");
+ * const { views, applyView, createView } = useView({ columnsConfig, defaultDisplay, domain, table, viewAdapter });
+ * applyView("backlog");
  * ```
  */
-export function useView({
+export function useView<TItem extends Record<string, unknown>>({
 	columnsConfig,
 	defaultDisplay,
 	domain,
@@ -49,7 +47,7 @@ export function useView({
 	columnsConfig: ColumnConfig[];
 	defaultDisplay: FilterViewDisplay;
 	domain: string;
-	table: ReactTable<TableFeatures, Record<string, unknown>>;
+	table: ReactTable<TableFeatures, TItem>;
 	viewAdapter?: ViewAdapter;
 }) {
 	const queryClient = useQueryClient();
@@ -71,45 +69,39 @@ export function useView({
 	);
 
 	const resetToDefault = useCallback(() => {
-		startTransition(() => {
-			table.setDataFilters([]);
-			applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
-		});
+		table.setDataFilters([]);
+		applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
 	}, [table, defaultDisplay, columnsConfig]);
 
 	const applySnapshot = useCallback(
 		(refine: FilterCondition[], display: FilterViewDisplay) => {
-			// One logical transaction: filters + all display slices together so
-			// subscribers never observe a torn intermediate state.
-			startTransition(() => {
-				table.setDataFilters(refine);
-				applyDisplaySnapshot(
-					mergeDisplay(defaultDisplay, display),
-					table,
-					columnsConfig,
-				);
-			});
+			// React batches sequential setters; `applyDisplaySnapshot` owns
+			// the display transaction (single transition over 6 setters).
+			table.setDataFilters(refine);
+			applyDisplaySnapshot(
+				mergeDisplay(defaultDisplay, display),
+				table,
+				columnsConfig,
+			);
 		},
 		[table, defaultDisplay, columnsConfig],
 	);
 
 	const applyView = useCallback(
-		(viewId: string | null): ViewApplyResult => {
+		(viewId: string | null): void => {
 			setActiveViewId(viewId);
 			if (!viewId) {
 				resetToDefault();
-				return "reset-to-default";
+				return;
 			}
 			// Never wipe unpersisted work while views are still loading.
-			if (viewAdapter && views === undefined) return "deferred-loading";
+			if (viewAdapter && views === undefined) return;
 			const view = views?.find((v) => v.id === viewId);
 			if (!view) {
-				// Unknown id after load: reset; during load we already returned.
 				if (!viewsLoading) resetToDefault();
-				return viewsLoading ? "deferred-loading" : "unknown-id";
+				return;
 			}
 			applySnapshot(view.refine, view.display);
-			return "applied";
 		},
 		[views, viewsLoading, viewAdapter, resetToDefault, applySnapshot],
 	);
@@ -127,24 +119,6 @@ export function useView({
 		return true;
 	}, [activeViewId, columnsConfig, domain, queryClient, table, viewAdapter]);
 
-	const saveViewAs = useCallback(
-		async (name: string): Promise<View | null> => {
-			if (!viewAdapter?.createView) return null;
-			const display = toDisplaySnapshot(table, columnsConfig);
-			const created = await viewAdapter.createView(domain, {
-				display,
-				name,
-				refine: table.state.dataFilters,
-			});
-			setActiveViewId(created.id);
-			await queryClient.invalidateQueries({
-				queryKey: viewQueryKey(domain),
-			});
-			return created;
-		},
-		[columnsConfig, domain, queryClient, table, viewAdapter],
-	);
-
 	const createView = useCallback(
 		async (
 			name: string,
@@ -156,6 +130,7 @@ export function useView({
 				name,
 				refine: data?.refine ?? table.state.dataFilters,
 			});
+			setActiveViewId(created.id);
 			await queryClient.invalidateQueries({
 				queryKey: viewQueryKey(domain),
 			});
@@ -192,14 +167,13 @@ export function useView({
 		[domain, queryClient, viewAdapter],
 	);
 
-	const resetToSaved = useCallback((): ViewApplyResult => {
+	const resetToSaved = useCallback((): void => {
 		if (!activeView) {
-			if (viewAdapter && views === undefined) return "deferred-loading";
+			if (viewAdapter && views === undefined) return;
 			resetToDefault();
-			return "reset-to-default";
+			return;
 		}
 		applySnapshot(activeView.refine, activeView.display);
-		return "applied";
 	}, [activeView, views, viewAdapter, resetToDefault, applySnapshot]);
 
 	return useMemo(
@@ -212,10 +186,8 @@ export function useView({
 			error,
 			isLoading: viewsLoading,
 			renameView,
-			resetToDefault,
 			resetToSaved,
 			saveView,
-			saveViewAs,
 			views,
 		}),
 		[
@@ -227,10 +199,8 @@ export function useView({
 			error,
 			viewsLoading,
 			renameView,
-			resetToDefault,
 			resetToSaved,
 			saveView,
-			saveViewAs,
 			views,
 		],
 	);

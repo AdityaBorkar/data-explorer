@@ -11,7 +11,7 @@ export interface View {
 }
 
 export interface ViewAdapter {
-	/** Optional: required by `saveViewAs` / `createView`. */
+	/** Optional: required by `createView`. */
 	createView?: (
 		domain: string,
 		data: {
@@ -30,13 +30,6 @@ export interface ViewAdapter {
 		data: { display: FilterViewDisplay; refine: FilterCondition[] },
 	) => Promise<void>;
 }
-
-/** Outcome of `applyView` / `resetToSaved` so UI can toast instead of guessing. */
-export type ViewApplyResult =
-	| "applied"
-	| "reset-to-default"
-	| "deferred-loading"
-	| "unknown-id";
 
 export interface FilterViewDisplay {
 	columnWidths: Record<string, number>;

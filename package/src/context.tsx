@@ -26,8 +26,3 @@ export function useDataExplorerContext<
 	}
 	return value as unknown as DataExplorerContextValue<TItem>;
 }
-
-// Re-exported here so the vendored `context.tsx` path keeps working;
-// new code should import from `./hooks/use-selection.ts`.
-export type { SelectionState } from "./hooks/use-selection.ts";
-export { useSelectionContext } from "./hooks/use-selection.ts";

@@ -10,7 +10,7 @@ import type { ReactTable } from "@tanstack/react-table";
 
 import type { ColumnConfig } from "./columns.ts";
 import type { TableFeatures as $TableFeatures } from "./features/index.ts";
-import type { View, ViewApplyResult } from "./views.ts";
+import type { View } from "./views.ts";
 
 export type TableFeatures = typeof $TableFeatures;
 
@@ -29,8 +29,7 @@ export type BoardMoveHandler = (args: BoardMoveArgs) => void;
 export interface DataExplorerViewState {
 	activeView?: View | null;
 	activeViewId: string | null;
-	/** @returns outcome code so UI can toast on `unknown-id` / `deferred-loading`. */
-	applyView: (viewId: string | null) => ViewApplyResult;
+	applyView: (viewId: string | null) => void;
 	createView: (
 		name: string,
 		data?: { display?: View["display"]; refine?: View["refine"] },
@@ -39,11 +38,9 @@ export interface DataExplorerViewState {
 	error: unknown;
 	isLoading: boolean;
 	renameView: (viewId: string, name: string) => Promise<View | null>;
-	resetToDefault: () => void;
-	/** @returns outcome code; resets to `defaultDisplay` + empty filters when nothing is saved. */
-	resetToSaved: () => ViewApplyResult;
+	/** Resets to `defaultDisplay` + empty filters when nothing is saved. */
+	resetToSaved: () => void;
 	saveView: () => Promise<boolean>;
-	saveViewAs: (name: string) => Promise<View | null>;
 	views?: View[];
 }
 
@@ -71,12 +68,5 @@ export interface DataExplorerContextValue<
  * @deprecated Use {@link DataExplorerContextValue}. Kept as an alias for one minor.
  */
 export type DataExplorerContextType<
-	TItem extends Record<string, unknown> = Record<string, unknown>,
-> = DataExplorerContextValue<TItem>;
-
-/**
- * @deprecated Use {@link DataExplorerContextValue}. Kept as an alias for one minor.
- */
-export type ContextType<
 	TItem extends Record<string, unknown> = Record<string, unknown>,
 > = DataExplorerContextValue<TItem>;

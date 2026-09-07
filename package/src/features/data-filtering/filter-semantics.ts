@@ -1,6 +1,6 @@
 import { DataExplorerError } from "../../errors.ts";
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
-import { getOperatorArity, operatorSkipsValue } from "./operators.ts";
+import { getOperatorArity } from "./operators.ts";
 
 /**
  * Canonical filter semantics: the single module that answers
@@ -29,7 +29,7 @@ export function requiresArrayValue(operator: FilterOperator): boolean {
 
 /** UI gating ("should I render a value input?"). For arity checks use {@link isNullaryOperator}; for full dispatch use `getOperatorArity`. */
 export function requiresValue(operator: FilterOperator): boolean {
-	return !operatorSkipsValue(operator);
+	return getOperatorArity(operator) !== "nullary";
 }
 
 export function validateFilterValue(
@@ -37,13 +37,14 @@ export function validateFilterValue(
 	value: unknown,
 	type?: ColumnDataType,
 ): string | undefined {
-	if (getOperatorArity(operator) === "nullary") {
+	if (isNullaryOperator(operator)) {
 		return value === null
 			? undefined
 			: `Operator "${operator}" requires null value`;
 	}
 
-	if (getOperatorArity(operator) === "range") {
+	const arity = getOperatorArity(operator);
+	if (arity === "range") {
 		if (!Array.isArray(value) || value.length !== 2) {
 			return `Operator "${operator}" requires [min, max] tuple`;
 		}
@@ -100,7 +101,7 @@ export function coerceFilterValue(
 	operator: FilterOperator,
 	pendingValue: unknown,
 ): CoercedFilterValue {
-	if (operatorSkipsValue(operator)) return { hasValue: true, value: null };
+	if (isNullaryOperator(operator)) return { hasValue: true, value: null };
 	if (
 		pendingValue === undefined ||
 		pendingValue === null ||
