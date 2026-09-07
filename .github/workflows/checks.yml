@@ -1,0 +1,89 @@
+name: Checks
+
+on:
+  pull_request:
+    branches: [beta, latest]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (biome)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run check:lint
+
+  types:
+    name: Types (tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run check:types
+
+  check:
+    name: Require changeset
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check for changeset file
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="origin/${{ github.base_ref }}"
+          CHANGED=$(git diff --name-only "$BASE...HEAD" || true)
+          ADDED=$(git diff --name-only --diff-filter=A "$BASE...HEAD" || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "No changes detected — nothing to check."
+            exit 0
+          fi
+
+          # Paths that never require a changeset on their own.
+          NONEXEMPT=$(echo "$CHANGED" | grep -vE '^(\.changeset/|www/|docs/|examples/|\.github/|[^/]+\.md$|[^/]+\.mdx$|bun\.lockb$)' || true)
+          # Newly added changeset files (README.md is docs, not a changeset).
+          NEW_CHANGESETS=$(echo "$ADDED" | grep -E '^\.changeset/[^/]+\.md$' | grep -v '^\.changeset/README\.md$' || true)
+
+          if [ -n "$NONEXEMPT" ] && [ -z "$NEW_CHANGESETS" ]; then
+            echo "::error::This PR touches publishable code but adds no changeset."
+            echo ""
+            echo "Non-exempt changed files:"
+            echo "$NONEXEMPT"
+            echo ""
+            echo "Add one with 'bunx changeset' (a .changeset/<name>.md file),"
+            echo "or restrict the PR to docs-only paths (www/, docs/, examples/, *.md)."
+            exit 1
+          fi
+
+          echo "Changeset check passed."

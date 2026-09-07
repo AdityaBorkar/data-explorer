@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    branches: [beta, latest]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version or publish (${{ github.ref_name }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node (npm publish + provenance)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Ensure prerelease mode (beta)
+        if: github.ref_name == 'beta'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f .changeset/pre.json ]; then
+            bunx changeset pre enter beta
+          else
+            echo "Already in prerelease mode:"
+            cat .changeset/pre.json
+          fi
+
+      - name: Exit prerelease mode (if promoting from beta)
+        if: github.ref_name == 'latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f .changeset/pre.json ]; then
+            bunx changeset pre exit
+          else
+            echo "Not in prerelease mode — publishing as latest."
+          fi
+
+      - name: Version, publish, and push (no PR)
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          bun changeset version
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit --amend --no-edit
+            AMENDED=1
+          else
+            echo "No version changes."
+            AMENDED=0
+          fi
+          bun changeset publish
+          if [ "$AMENDED" = "1" ]; then
+            git push --force-with-lease --follow-tags origin HEAD:${{ github.ref_name }}
+          else
+            git push --follow-tags origin HEAD:${{ github.ref_name }}
+          fi
+
+  sync-docs:
+    name: Refresh docs content
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: www
+        with:
+          base: ${{ github.ref_name }}
+          filters: |
+            changed:
+              - 'www/**'
+
+      - name: Trigger refresh-content.yml in adistack-docs
+        if: steps.www.outputs.changed == 'true'
+        run: gh workflow run "refresh-content.yml" --repo "adityaborkar/adistack-docs" --ref "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}

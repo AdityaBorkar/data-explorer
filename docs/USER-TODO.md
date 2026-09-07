@@ -1,10 +1,6 @@
 # TODO
 
-- Optimize react performance @vercel...
-- Completely Headless Design
-- MANUAL REVIEW 
-- Publish to NPM
-
+- Manual Code Review
 - Integrations
   - display-dropdown
   - filter-bar
