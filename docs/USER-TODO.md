@@ -1,48 +1,21 @@
 # TODO
 
-- Manual Code Review
-- Integrations
-  - display-dropdown
-  - filter-bar
-  - icons in data-config
-  - virtual-table
-- Table Features
-  - Global Filtering
-  - Fuzzy Filtering
-  - Fauceting
-  - Row Selection
-  - Virtualization
-- Perform the code and API analysis of the entire codebase and write a better-dx.md report with the list of suggestions with examples. Make sure it covers all the aspects for a better Developer Experience while maintaining highly performant code.
+## Now / Next
+
+- E2E + more unit coverage (`display-meta`, `use-view`, `Provider`, `use-data-query`)
+- Decide on fuzzy filtering + faceting: explicitly absent today (no fuzzy match, no facet counts) — keep out or spec them
+- Fix ship gaps: `timeline-view` registry description (claims relative `parseDateValue` import, actual `@/lib/dates`), `lib/dates.ts` in no registry item; `components/package.json` `files`/`exports` stale (`./index.ts` vs `src/index.ts`, stray `selection-checkbox.tsx`)
 
 ## Phase 2
 
 - Map View
 - Table View with Tree Tables
+- Transform `examples` using Fumadocs + Wrangler, with docs in-repo
+- Skills and checks: `security-audit`, `vulnerabilities`, `bug-finder`, `performance-optimizations`
+- `@abstack/conform` tasks (README, GitHub Actions, repo settings, auto-publishing) — confirm scope, looks unrelated to this repo
 
-- Transform `examples` using Fumadocs+Wrangler. Also write documentation in this file itself.
-- @abstack/conform
-  - Write a README
-  - GitHub Actions
-  - GitHub Repository Settings
-  - Auto-Publishing using Branches & PRs
-    - Documentation Publishing
-    - Package Publishing
-- Skills and Checks for
-  - security-audit
-  - vulnerabilities
-  - bug-finder
-  - performance-optimizations
-- Write tests
-  - E2E
-  - Unit
+## Not supported
 
-## Features not supported / planned:
-
-- Row Pinning
-- Column Ordering
-- Column Pinning
-- Column Sizing
-- Column Resizing
-- Column Drag Sizing
-- Expanding
-- Pagination
+- Single-sort / single-group only (first sort + `grouping[0]` round-trip; multi-sort collapses)
+- Infinite-scroll cursor pagination only (`nextCursor`, `loadMoreRef` sentinel) — no classic page-number UI
+- No drag-resize UI for column widths (widths ride snapshots/share links only), no column ordering/pinning UI, no row pinning, no expanding

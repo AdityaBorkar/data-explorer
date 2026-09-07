@@ -14,14 +14,22 @@ _Avoid_: Field, attribute, property
 A single predicate on one column, combined with others by and/or.
 _Avoid_: Refine, query, facet
 
+**Filter Group**:
+A nested and/or grouping of filter conditions.
+_Avoid_: Filter set, bracket
+
 **Search**:
 Global text hunt across the columns marked searchable.
 _Avoid_: Global filter, fuzzy search
 
+**Domain**:
+Scope key isolating one record set's data and saved views.
+_Avoid_: Tenant, workspace, namespace
+
 ### Showing
 
 **Display**:
-The visible shape of the explorer: which columns show, how rows order and group, row spacing, and presentation type.
+The visible shape of the explorer: which columns show and how wide, how rows order and group, row spacing, and presentation type.
 _Avoid_: Layout, view config
 
 **View**:
