@@ -1,5 +1,12 @@
-import type { ColumnDataType, FilterOperator } from "../../types.ts";
-import { getOperatorArity } from "./operators.ts";
+import type { ColumnDataType } from "../../columns.ts";
+import { isSearchColumnId } from "../../columns.ts";
+import type { DataExplorerErrorCode } from "../../errors.ts";
+import type { FilterOperator } from "../../filters.ts";
+import {
+	getOperatorArity,
+	getOperatorsForType,
+	normalizeOperator,
+} from "./operators.ts";
 
 /**
  * Canonical filter semantics: the single module that answers
@@ -84,4 +91,76 @@ export function coerceFilterValue(
 		return { hasValue: false, value: pendingValue };
 	}
 	return { hasValue: true, value: pendingValue };
+}
+
+export interface ConditionValidationError {
+	code: DataExplorerErrorCode;
+	details?: Record<string, unknown>;
+	message: string;
+}
+
+/**
+ * Single condition validator shared by the SQL builder (which throws
+ * `DataExplorerError` from it) and the column-aware zod schema (which maps
+ * it to issues). Branch on the returned `code`, never on message text.
+ */
+export function validateCondition(
+	cond: { columnId: string; operator: string; value: unknown },
+	columnsById: Map<
+		string,
+		{ operators?: FilterOperator[]; type: ColumnDataType }
+	>,
+): ConditionValidationError | undefined {
+	if (isSearchColumnId(cond.columnId)) {
+		if (cond.operator !== "contains") {
+			return {
+				code: "INVALID_OPERATOR",
+				details: { columnId: cond.columnId, operator: cond.operator },
+				message: `Invalid operator "${cond.operator}" for search (must be "contains")`,
+			};
+		}
+		if (typeof cond.value !== "string" || cond.value.length === 0) {
+			return {
+				code: "INVALID_FILTER_VALUE",
+				details: { columnId: cond.columnId, operator: cond.operator },
+				message: "Search filter requires a non-empty string value",
+			};
+		}
+		return undefined;
+	}
+
+	const col = columnsById.get(cond.columnId);
+	if (!col) {
+		return {
+			code: "UNKNOWN_COLUMN",
+			details: { columnId: cond.columnId },
+			message: `Invalid filter condition: Unknown column "${cond.columnId}"`,
+		};
+	}
+
+	const canonical = normalizeOperator(cond.operator);
+	if (!canonical) {
+		return {
+			code: "INVALID_OPERATOR",
+			details: { columnId: cond.columnId, operator: cond.operator },
+			message: `Invalid filter condition: Invalid operator "${cond.operator}" for column "${cond.columnId}"`,
+		};
+	}
+	const valid = col.operators ?? getOperatorsForType(col.type);
+	if (!valid.includes(canonical)) {
+		return {
+			code: "INVALID_OPERATOR",
+			details: { columnId: cond.columnId, operator: cond.operator },
+			message: `Invalid filter condition: Invalid operator "${cond.operator}" for column "${cond.columnId}"`,
+		};
+	}
+	const error = validateFilterValue(canonical, cond.value, col.type);
+	if (error) {
+		return {
+			code: "INVALID_FILTER_VALUE",
+			details: { columnId: cond.columnId, operator: cond.operator },
+			message: `Invalid filter condition: ${error}`,
+		};
+	}
+	return undefined;
 }

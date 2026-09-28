@@ -21,9 +21,8 @@ import {
 } from "../query.ts";
 import type { Density, ViewType } from "../views.ts";
 
-// Re-exported from the canonical home (`../query.ts`) so existing
-// `import { dataQueryKey } from "@adistack/data-explorer"` call sites keep
-// working while the implementation lives with the query types.
+// Backwards-compat re-exports for existing deep imports. New code should
+// import these from the canonical home (`../query.ts`).
 export type { DataQueryKeyRefine } from "../query.ts";
 export { dataQueryKey, hashRefine, stableStringify } from "../query.ts";
 
@@ -34,22 +33,19 @@ export { dataQueryKey, hashRefine, stableStringify } from "../query.ts";
 export const DEFAULT_PAGE_SIZE = 20;
 
 /**
- * Debounced copy of the filter list. Always mounted (hooks can't be
- * conditional) but inert when `debounceMs <= 0` — callers must read the
- * return value only when debouncing, and read `dataFilters` directly
- * otherwise, so the stale initial state never leaks onto the fast path.
+ * Debounced value with a single read path. When `delayMs <= 0` the input
+ * is returned directly (no state, nothing stale to leak); otherwise the
+ * trailing value commits after the delay.
  */
-function useDebouncedFilters(
-	dataFilters: FilterCondition[],
-	debounceMs: number,
-): FilterCondition[] {
-	const [debounced, setDebounced] = useState<FilterCondition[]>(dataFilters);
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+	const enabled = delayMs > 0;
+	const [debounced, setDebounced] = useState(value);
 	useEffect(() => {
-		if (debounceMs <= 0) return;
-		const t = setTimeout(() => setDebounced(dataFilters), debounceMs);
+		if (!enabled) return;
+		const t = setTimeout(() => setDebounced(value), delayMs);
 		return () => clearTimeout(t);
-	}, [dataFilters, debounceMs]);
-	return debounced;
+	}, [value, delayMs, enabled]);
+	return enabled ? debounced : value;
 }
 
 /**
@@ -61,10 +57,13 @@ const EMPTY_ITEMS: never[] = [];
 /**
  * Infinite data query for the explorer table. The stable hashed key
  * (`dataQueryKey`) covers the data-affecting refine slices (filters,
- * sorting, grouping); display-only state still reaches the `queryBuilder`
- * but never busts the cache. `pageSize` sets the fetch limit and
- * `debounceFiltersMs` keeps filter keystrokes from refetching per
- * character. Returns `allItems` memoized on `[query.data]`.
+ * sorting, grouping). Display-only state (`columnSizing`,
+ * `columnVisibility`, `density`, `viewType`) is passed through to the
+ * `queryBuilder` at fetch time for contextual queries, but display-only
+ * changes alone never invalidate the cache — the builder sees the display
+ * values from the render that triggered the fetch. `pageSize` sets the
+ * fetch limit and `debounceFiltersMs` keeps filter keystrokes from
+ * refetching per character. Returns `allItems` memoized on `[query.data]`.
  *
  * @example
  * ```tsx
@@ -108,11 +107,7 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	} = opts;
 
 	// Debounce filter typing so each keystroke does not mint a new query key.
-	// The helper is inert when debouncing is off — `effectiveFilters` reads
-	// `dataFilters` directly so the helper's stale initial state never leaks.
-	const debouncedFilters = useDebouncedFilters(dataFilters, debounceFiltersMs);
-	const effectiveFilters =
-		debounceFiltersMs <= 0 ? dataFilters : debouncedFilters;
+	const effectiveFilters = useDebouncedValue(dataFilters, debounceFiltersMs);
 
 	const keyRefine: DataQueryKeyRefine = useMemo(
 		() => ({
@@ -121,6 +116,13 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 			sorting,
 		}),
 		[effectiveFilters, grouping, sorting],
+	);
+
+	// Hoisted so `queryKey` and the fetch below always share one reference
+	// instead of hashing the refine slices twice per page.
+	const queryKey = useMemo(
+		() => dataQueryKey(domain, keyRefine),
+		[domain, keyRefine],
 	);
 
 	const query = useInfiniteQuery({
@@ -147,7 +149,7 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 				viewType,
 			});
 			// Fail fast on the builder contract before any network work.
-			// The wrapper owns the cache key (`dataQueryKey` below): the
+			// The wrapper owns the cache key (`queryKey` above): the
 			// builder's `queryKey` is still required by the contract (standalone
 			// use, devtools display) but the fetch always runs under the outer
 			// key so cache and network never diverge.
@@ -157,13 +159,12 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 					"query() must return { queryKey, queryFn }.",
 				);
 			}
-			const outerKey = dataQueryKey(domain, keyRefine);
 			return built.queryFn({
-				queryKey: outerKey,
+				queryKey,
 				signal,
 			} as QueryFunctionContext) as Promise<ListQueryResult<TItem>>;
 		},
-		queryKey: dataQueryKey(domain, keyRefine),
+		queryKey,
 		staleTime,
 	});
 	const allItems = useMemo(

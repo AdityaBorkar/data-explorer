@@ -5,10 +5,8 @@ import type {
 	FilterCondition,
 	FilterOperator,
 	SerializedFilterCondition,
-} from "../../types.ts";
-import { FILTER_OPERATORS } from "./operators.ts";
-
-const OPERATOR_SET = new Set<FilterOperator>(FILTER_OPERATORS);
+} from "../../filters.ts";
+import { normalizeOperator } from "./operators.ts";
 
 /** Matches the ISO strings `serializeFilters` writes for `Date` values. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
@@ -21,38 +19,50 @@ interface VersionedFilterPayload {
 	v: number;
 }
 
-function reviveValue(value: unknown): unknown {
-	if (typeof value === "string") {
-		return ISO_DATE_RE.test(value) ? new Date(value) : value;
-	}
-	if (Array.isArray(value)) return value.map(reviveValue);
-	if (typeof value === "object" && value !== null) {
+/**
+ * Single recursive walker for filter values. `serializeValue` encodes
+ * `Date` leaves to ISO strings; `reviveValue` decodes matching strings
+ * back — one traversal shape instead of two mirrored recursions.
+ */
+function mapFilterValue(
+	value: unknown,
+	leaf: (v: unknown) => unknown,
+): unknown {
+	if (Array.isArray(value)) return value.map((v) => mapFilterValue(v, leaf));
+	if (typeof value === "object" && value !== null && !(value instanceof Date)) {
 		return Object.fromEntries(
 			Object.entries(value as Record<string, unknown>).map(([k, v]) => [
 				k,
-				reviveValue(v),
+				mapFilterValue(v, leaf),
 			]),
 		);
 	}
-	return value;
+	return leaf(value);
+}
+
+function reviveValue(value: unknown): unknown {
+	return mapFilterValue(value, (v) =>
+		typeof v === "string" && ISO_DATE_RE.test(v) ? new Date(v) : v,
+	);
 }
 
 function serializeValue(value: unknown): unknown {
-	if (value instanceof Date) return value.toISOString();
-	if (Array.isArray(value)) return value.map(serializeValue);
-	if (typeof value === "object" && value !== null) {
-		return Object.fromEntries(
-			Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-				k,
-				serializeValue(v),
-			]),
-		);
-	}
-	return value;
+	return mapFilterValue(value, (v) =>
+		v instanceof Date ? v.toISOString() : v,
+	);
 }
 
 function toCondition(s: SerializedFilterCondition): FilterCondition {
-	if (!OPERATOR_SET.has(s.o)) {
+	if (typeof s.c !== "string" || s.c.length === 0) {
+		throw new DataExplorerError(
+			"INVALID_FILTER_JSON",
+			`Invalid column "${String(s.c)}" in filter JSON`,
+			{ columnId: String(s.c) },
+		);
+	}
+	const operator: FilterOperator | undefined =
+		typeof s.o === "string" ? normalizeOperator(s.o) : undefined;
+	if (!operator) {
 		throw new DataExplorerError(
 			"INVALID_FILTER_JSON",
 			`Invalid operator "${String(s.o)}" in filter JSON`,
@@ -70,7 +80,7 @@ function toCondition(s: SerializedFilterCondition): FilterCondition {
 		columnId: s.c,
 		combinator: s.b,
 		id: typeof s.i === "string" && s.i.length > 0 ? s.i : nanoid(),
-		operator: s.o,
+		operator,
 		value: reviveValue(s.v),
 	};
 }
@@ -101,8 +111,10 @@ export function serializeFilters(conditions: FilterCondition[]): string {
 
 /**
  * Deserialize filter lists. Accepts the versioned envelope from
- * {@link serializeFilters} and legacy bare-array payloads; unknown future
- * versions throw `INVALID_FILTER_JSON` instead of mis-parsing.
+ * {@link serializeFilters} and legacy bare-array payloads (including the
+ * historical `include` / `exclude` operator names, normalized to
+ * `includeAll` / `excludeAll`); unknown future versions throw
+ * `INVALID_FILTER_JSON` instead of mis-parsing.
  */
 export function deserializeFilters(json: string): FilterCondition[] {
 	if (!json) return [];

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ColumnConfig } from "../columns.ts";
 import { DataExplorerError } from "../errors.ts";
+import { deserializeFilters } from "../features/data-filtering/filter-utils.ts";
 import type { FilterCondition } from "../filters.ts";
 import { buildFilterWhere } from "./filter-sql.ts";
 
@@ -168,9 +169,12 @@ describe("buildFilterWhere typed errors", () => {
 		}
 	});
 
-	it("canonicalizes include/exclude aliases", () => {
+	it("normalizes legacy include/exclude aliases from stored JSON", () => {
+		const legacy = JSON.stringify([
+			{ b: "and", c: "tags", i: "legacy-1", o: "include", v: ["a"] },
+		]);
 		const withAlias = buildFilterWhere(
-			[cond("tags", "include", ["a"])],
+			deserializeFilters(legacy),
 			COLUMNS,
 			MAPPING,
 		);

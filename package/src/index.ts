@@ -4,12 +4,11 @@
  * Explicit allow-list (no `export *`): every name here is the stable
  * contract — renames elsewhere don't break consumers, and bundlers can
  * tree-shake cleanly. Canonical home per domain:
- * columns → `./columns.ts`, filters → `./filters.ts`, display +
- * share-link codec → `./features/display-snapshot.ts`, filter
+ * columns → `./columns.ts`, filters → `./filters.ts`, display snapshots
+ * + share-link codec → `./features/display-snapshot.ts`, filter
  * serialization → `./features/data-filtering/filter-utils.ts`, query keys
- * → `./query.ts` (re-exported through `./hooks/use-data-query.ts`).
- * (`types.ts` is the internal composition root; only the names
- * re-exported here are public.)
+ * → `./query.ts`. (`types.ts` owns the context shape only; it is not a
+ * barrel.)
  */
 
 // --- Columns (`./columns.ts`) ---
@@ -56,7 +55,9 @@ export {
 export { groupConditions } from "./features/data-filtering/filter-grouping.ts";
 export {
 	type CoercedFilterValue,
+	type ConditionValidationError,
 	coerceFilterValue,
+	validateCondition,
 	validateFilterValue,
 } from "./features/data-filtering/filter-semantics.ts";
 export {
@@ -70,6 +71,7 @@ export {
 	getOperatorArity,
 	getOperatorLabel,
 	getOperatorsForType,
+	normalizeOperator,
 	type OperatorArity,
 } from "./features/data-filtering/operators.ts";
 export {
@@ -105,11 +107,7 @@ export {
 } from "./filters.ts";
 // --- Hooks. ---
 export {
-	type DataQueryKeyRefine,
 	DEFAULT_PAGE_SIZE,
-	dataQueryKey,
-	hashRefine,
-	stableStringify,
 	useDataQuery,
 } from "./hooks/use-data-query.ts";
 export { useLoadMore } from "./hooks/use-load-more.ts";
@@ -124,13 +122,19 @@ export {
 	Provider,
 	Provider as DataExplorerProvider,
 } from "./provider.tsx";
-// --- Query (`./query.ts`) ---
+// --- Query (`./query.ts`: canonical home for keys + hashing). ---
 export type {
+	DataQueryKeyRefine,
 	DataRefineOptions,
 	ListQueryResult,
 	RefineOptions,
 	SortDirection,
 	SortOrder,
+} from "./query.ts";
+export {
+	dataQueryKey,
+	hashRefine,
+	stableStringify,
 } from "./query.ts";
 // --- SQL helper. ---
 export {
@@ -141,7 +145,7 @@ export {
 	type PlaceholderStyle,
 	type SqlDialect,
 } from "./sql/index.ts";
-// --- Context shape (`./types.ts`) ---
+// --- Context shape (`./types.ts`: owns `BoardMove*` + context only). ---
 export type {
 	BoardMoveArgs,
 	BoardMoveHandler,

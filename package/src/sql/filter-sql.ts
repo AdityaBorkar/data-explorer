@@ -6,23 +6,24 @@
  * `LOWER(col) LIKE LOWER(?)` elsewhere); pass `caseSensitive: true` for
  * binary `LIKE`.
  *
- * Alias contract: `include` ≡ `includeAll` (contains-all, `@>`) and
- * `exclude` ≡ `excludeAll` (`NOT (@>)`). The short names are historical
- * duplicates — prefer `includeAll` / `excludeAll` in new code. `includeAny`
- * / `excludeAny` use overlap (`&&`).
+ * Historical `include` / `exclude` short names are normalized to
+ * `includeAll` / `excludeAll` at the serialization boundary
+ * (`deserializeFilters`) and defensively here, so the operator table only
+ * carries canonical names. `includeAny` / `excludeAny` use overlap (`&&`).
  */
 
+import type { ColumnConfig } from "../columns.ts";
+import { isSearchColumnId } from "../columns.ts";
 import { DataExplorerError } from "../errors.ts";
 import { groupConditions } from "../features/data-filtering/filter-grouping.ts";
-import { validateFilterValue } from "../features/data-filtering/filter-semantics.ts";
-import { getOperatorsForType } from "../features/data-filtering/operators.ts";
+import { validateCondition } from "../features/data-filtering/filter-semantics.ts";
+import { normalizeOperator } from "../features/data-filtering/operators.ts";
 import type {
-	ColumnConfig,
 	FilterCondition,
 	FilterGroup,
 	FilterOperator,
-} from "../types.ts";
-import { isFilterGroup, isSearchColumn } from "../types.ts";
+} from "../filters.ts";
+import { isFilterGroup } from "../filters.ts";
 
 export interface ParameterizedSql {
 	params: unknown[];
@@ -49,12 +50,6 @@ export interface BuildFilterOptions {
 	tableAlias?: string;
 }
 
-interface DialectImpl {
-	assertArraySupported: (operator: string) => void;
-	buildLike: (col: string, param: string, not: boolean) => string;
-	quoteIdent: (name: string) => string;
-}
-
 function ansiQuote(name: string): string {
 	return `"${name.replace(/"/g, '""')}"`;
 }
@@ -67,7 +62,7 @@ function quoteIdent(name: string, dialect: SqlDialect): string {
 	return dialect === "mysql" ? mysqlQuote(name) : ansiQuote(name);
 }
 
-function buildLikeFrag(
+function buildLike(
 	col: string,
 	param: string,
 	not: boolean,
@@ -96,21 +91,10 @@ function assertArraySupported(operator: string, dialect: SqlDialect): void {
 	}
 }
 
-function resolveDialect(
-	dialect: SqlDialect,
-	caseSensitive: boolean,
-): DialectImpl {
-	return {
-		assertArraySupported: (operator) => assertArraySupported(operator, dialect),
-		buildLike: (col, param, not) =>
-			buildLikeFrag(col, param, not, dialect, caseSensitive),
-		quoteIdent: (name) => quoteIdent(name, dialect),
-	};
-}
-
 interface BuildContext {
+	caseSensitive: boolean;
 	columnMap: Map<string, ColumnConfig>;
-	impl: DialectImpl;
+	dialect: SqlDialect;
 	nextIdx: number;
 	params: unknown[];
 	placeholderStyle: PlaceholderStyle;
@@ -124,10 +108,10 @@ function pushParam(ctx: BuildContext, value: unknown): string {
 function colRef(
 	columnName: string,
 	tableAlias: string | undefined,
-	impl: DialectImpl,
+	dialect: SqlDialect,
 ): string {
-	const quoted = impl.quoteIdent(columnName);
-	return tableAlias ? `${impl.quoteIdent(tableAlias)}.${quoted}` : quoted;
+	const quoted = quoteIdent(columnName, dialect);
+	return tableAlias ? `${quoteIdent(tableAlias, dialect)}.${quoted}` : quoted;
 }
 
 /** Escape LIKE wildcards so user input matches literally. */
@@ -135,170 +119,140 @@ function escapeLikePattern(value: string): string {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
-/**
- * Historical aliases, canonicalized once before SQL generation so the
- * operator table only carries the canonical names. Accepted everywhere
- * (stored filters, zod schema) but never branched on downstream.
- */
-const OPERATOR_ALIASES: Partial<Record<FilterOperator, FilterOperator>> = {
-	exclude: "excludeAll",
-	include: "includeAll",
-};
-
-function canonicalOperator(operator: FilterOperator): FilterOperator {
-	return OPERATOR_ALIASES[operator] ?? operator;
-}
-
-/**
- * Single validation entry point with explicit matchable codes.
- * Mirrors the column-aware zod schema (`makeFilterConditionSchema`, the
- * contract form-level callers use) but branches on structure — never on
- * zod message text — so copy edits to messages can't re-code SQL errors.
- */
+/** Single validation entry point with explicit matchable codes (see `validateCondition`). */
 function validateConditions(
 	conditions: FilterCondition[],
 	columnMap: Map<string, ColumnConfig>,
 ): void {
 	for (const cond of conditions) {
-		if (isSearchColumn(cond.columnId)) {
-			if (cond.operator !== "contains") {
-				throw new DataExplorerError(
-					"INVALID_OPERATOR",
-					`Invalid operator "${cond.operator}" for search (must be "contains")`,
-					{ columnId: cond.columnId, operator: cond.operator },
-				);
-			}
-			if (typeof cond.value !== "string" || cond.value.length === 0) {
-				throw new DataExplorerError(
-					"INVALID_FILTER_VALUE",
-					"Search filter requires a non-empty string value",
-					{ columnId: cond.columnId, operator: cond.operator },
-				);
-			}
-			continue;
-		}
-		const col = columnMap.get(cond.columnId);
-		if (!col) {
-			throw new DataExplorerError(
-				"UNKNOWN_COLUMN",
-				`Invalid filter condition: Unknown column "${cond.columnId}"`,
-				{ columnId: cond.columnId },
-			);
-		}
-		const valid = col.operators ?? getOperatorsForType(col.type);
-		if (
-			!valid.includes(canonicalOperator(cond.operator)) &&
-			!valid.includes(cond.operator)
-		) {
-			throw new DataExplorerError(
-				"INVALID_OPERATOR",
-				`Invalid filter condition: Invalid operator "${cond.operator}" for column "${cond.columnId}"`,
-				{ columnId: cond.columnId, operator: cond.operator },
-			);
-		}
-		const error = validateFilterValue(
-			canonicalOperator(cond.operator),
-			cond.value,
-			col.type,
-		);
+		const error = validateCondition(cond, columnMap);
 		if (error) {
-			throw new DataExplorerError(
-				"INVALID_FILTER_VALUE",
-				`Invalid filter condition: ${error}`,
-				{ columnId: cond.columnId, operator: cond.operator },
-			);
+			throw new DataExplorerError(error.code, error.message, error.details);
 		}
 	}
 }
 
-type SqlBuilder = (col: string, value: unknown, ctx: BuildContext) => string;
+type SqlBuilder = (
+	col: string,
+	cond: FilterCondition,
+	ctx: BuildContext,
+) => string;
 
-function arrayPlaceholders(value: unknown, ctx: BuildContext): string {
-	const arr = value as unknown[];
-	return arr.map((v) => pushParam(ctx, v)).join(", ");
+function assertArrayValue(
+	cond: FilterCondition,
+): asserts cond is FilterCondition & { value: unknown[] } {
+	if (!Array.isArray(cond.value)) {
+		throw new DataExplorerError(
+			"INVALID_FILTER_VALUE",
+			`Invalid filter condition: Operator "${cond.operator}" requires string[] value`,
+			{ columnId: cond.columnId, operator: cond.operator },
+		);
+	}
+}
+
+function assertStringValue(
+	cond: FilterCondition,
+): asserts cond is FilterCondition & { value: string } {
+	if (typeof cond.value !== "string") {
+		throw new DataExplorerError(
+			"INVALID_FILTER_VALUE",
+			`Invalid filter condition: Operator "${cond.operator}" requires a non-null value`,
+			{ columnId: cond.columnId, operator: cond.operator },
+		);
+	}
+}
+
+function assertRangeValue(
+	cond: FilterCondition,
+): asserts cond is FilterCondition & { value: [unknown, unknown] } {
+	if (!Array.isArray(cond.value) || cond.value.length !== 2) {
+		throw new DataExplorerError(
+			"INVALID_FILTER_VALUE",
+			`Invalid filter condition: Operator "${cond.operator}" requires [min, max] tuple`,
+			{ columnId: cond.columnId, operator: cond.operator },
+		);
+	}
 }
 
 function arrayOp(
 	col: string,
-	value: unknown,
+	cond: FilterCondition,
 	ctx: BuildContext,
 	op: "@>" | "&&",
-	operator: FilterOperator,
 ): string {
-	ctx.impl.assertArraySupported(operator);
+	assertArraySupported(cond.operator, ctx.dialect);
+	assertArrayValue(cond);
 	// Postgres text[] containment/overlap.
-	return `${col} ${op} ARRAY[${arrayPlaceholders(value, ctx)}]::text[]`;
+	return `${col} ${op} ARRAY[${cond.value.map((v) => pushParam(ctx, v)).join(", ")}]::text[]`;
 }
 
 function notArrayOp(
 	col: string,
-	value: unknown,
+	cond: FilterCondition,
 	ctx: BuildContext,
 	op: "@>" | "&&",
-	operator: FilterOperator,
 ): string {
-	return `NOT (${arrayOp(col, value, ctx, op, operator)})`;
+	return `NOT (${arrayOp(col, cond, ctx, op)})`;
 }
 
 function betweenOp(
 	col: string,
-	value: unknown,
+	cond: FilterCondition,
 	ctx: BuildContext,
 	not: boolean,
 ): string {
-	const [min, max] = value as [unknown, unknown];
+	assertRangeValue(cond);
+	const [min, max] = cond.value;
 	const keyword = not ? "NOT BETWEEN" : "BETWEEN";
 	return `${col} ${keyword} ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
 }
 
 function likeOp(
 	col: string,
-	value: unknown,
+	cond: FilterCondition,
 	ctx: BuildContext,
 	pattern: (v: string) => string,
 	not: boolean,
 ): string {
-	const param = pushParam(ctx, pattern(escapeLikePattern(value as string)));
-	return ctx.impl.buildLike(col, param, not);
+	assertStringValue(cond);
+	const param = pushParam(ctx, pattern(escapeLikePattern(cond.value)));
+	return buildLike(col, param, not, ctx.dialect, ctx.caseSensitive);
 }
 
 function comparisonBuilder(op: string): SqlBuilder {
-	return (col, value, ctx) => `${col} ${op} ${pushParam(ctx, value)}`;
+	return (col, cond, ctx) => `${col} ${op} ${pushParam(ctx, cond.value)}`;
 }
 
-const OPERATOR_SQL_BUILDERS: Record<
-	Exclude<FilterOperator, "isEmpty" | "isNotEmpty" | "include" | "exclude">,
-	SqlBuilder
-> = {
-	between: (col, value, ctx) => betweenOp(col, value, ctx, false),
-	contains: (col, value, ctx) =>
-		likeOp(col, value, ctx, (v) => `%${v}%`, false),
-	endsWith: (col, value, ctx) => likeOp(col, value, ctx, (v) => `%${v}`, false),
+type NonNullaryOperator = Exclude<FilterOperator, "isEmpty" | "isNotEmpty">;
+
+const OPERATOR_SQL_BUILDERS: Record<NonNullaryOperator, SqlBuilder> = {
+	between: (col, cond, ctx) => betweenOp(col, cond, ctx, false),
+	contains: (col, cond, ctx) => likeOp(col, cond, ctx, (v) => `%${v}%`, false),
+	endsWith: (col, cond, ctx) => likeOp(col, cond, ctx, (v) => `%${v}`, false),
 	eq: comparisonBuilder("="),
-	excludeAll: (col, value, ctx) =>
-		notArrayOp(col, value, ctx, "@>", "excludeAll"),
-	excludeAny: (col, value, ctx) =>
-		notArrayOp(col, value, ctx, "&&", "excludeAny"),
+	excludeAll: (col, cond, ctx) => notArrayOp(col, cond, ctx, "@>"),
+	excludeAny: (col, cond, ctx) => notArrayOp(col, cond, ctx, "&&"),
 	gt: comparisonBuilder(">"),
 	gte: comparisonBuilder(">="),
-	in: (col, value, ctx) => {
-		if (!Array.isArray(value) || value.length === 0) return "(1=0)";
-		return `${col} IN (${arrayPlaceholders(value, ctx)})`;
+	in: (col, cond, ctx) => {
+		assertArrayValue(cond);
+		if (cond.value.length === 0) return "(1=0)";
+		return `${col} IN (${cond.value.map((v) => pushParam(ctx, v)).join(", ")})`;
 	},
-	includeAll: (col, value, ctx) => arrayOp(col, value, ctx, "@>", "includeAll"),
-	includeAny: (col, value, ctx) => arrayOp(col, value, ctx, "&&", "includeAny"),
+	includeAll: (col, cond, ctx) => arrayOp(col, cond, ctx, "@>"),
+	includeAny: (col, cond, ctx) => arrayOp(col, cond, ctx, "&&"),
 	lt: comparisonBuilder("<"),
 	lte: comparisonBuilder("<="),
 	neq: comparisonBuilder("!="),
-	notBetween: (col, value, ctx) => betweenOp(col, value, ctx, true),
-	notContains: (col, value, ctx) =>
-		likeOp(col, value, ctx, (v) => `%${v}%`, true),
-	notIn: (col, value, ctx) => {
-		if (!Array.isArray(value) || value.length === 0) return "(1=1)";
-		return `${col} NOT IN (${arrayPlaceholders(value, ctx)})`;
+	notBetween: (col, cond, ctx) => betweenOp(col, cond, ctx, true),
+	notContains: (col, cond, ctx) =>
+		likeOp(col, cond, ctx, (v) => `%${v}%`, true),
+	notIn: (col, cond, ctx) => {
+		assertArrayValue(cond);
+		if (cond.value.length === 0) return "(1=1)";
+		return `${col} NOT IN (${cond.value.map((v) => pushParam(ctx, v)).join(", ")})`;
 	},
-	startsWith: (col, value, ctx) =>
-		likeOp(col, value, ctx, (v) => `${v}%`, false),
+	startsWith: (col, cond, ctx) => likeOp(col, cond, ctx, (v) => `${v}%`, false),
 };
 
 function isEmptySql(
@@ -316,13 +270,9 @@ function buildConditionSql(
 	ctx: BuildContext,
 	tableAlias: string | undefined,
 ): string {
-	if (isSearchColumn(condition.columnId)) {
-		return buildSearchSql(
-			condition.value as string,
-			columnMapping,
-			ctx,
-			tableAlias,
-		);
+	if (isSearchColumnId(condition.columnId)) {
+		assertStringValue(condition);
+		return buildSearchSql(condition.value, columnMapping, ctx, tableAlias);
 	}
 
 	const columnName = columnMapping[condition.columnId];
@@ -334,7 +284,7 @@ function buildConditionSql(
 		);
 	}
 
-	const col = colRef(columnName, tableAlias, ctx.impl);
+	const col = colRef(columnName, tableAlias, ctx.dialect);
 
 	if (condition.operator === "isEmpty" || condition.operator === "isNotEmpty") {
 		const type = ctx.columnMap.get(condition.columnId)?.type;
@@ -344,10 +294,11 @@ function buildConditionSql(
 			: `${col} IS NOT NULL`;
 	}
 
-	const canonical = canonicalOperator(condition.operator);
-	const builder: SqlBuilder | undefined = (
-		OPERATOR_SQL_BUILDERS as Partial<Record<FilterOperator, SqlBuilder>>
-	)[canonical];
+	const canonical = normalizeOperator(condition.operator) ?? condition.operator;
+	const builder: SqlBuilder | undefined =
+		canonical === "isEmpty" || canonical === "isNotEmpty"
+			? undefined
+			: OPERATOR_SQL_BUILDERS[canonical];
 	if (!builder) {
 		throw new DataExplorerError(
 			"INVALID_OPERATOR",
@@ -356,7 +307,7 @@ function buildConditionSql(
 		);
 	}
 
-	return builder(col, condition.value, ctx);
+	return builder(col, condition, ctx);
 }
 
 function buildSearchSql(
@@ -366,7 +317,7 @@ function buildSearchSql(
 	tableAlias: string | undefined,
 ): string {
 	const searchableCols = [...ctx.columnMap.values()].filter(
-		(c) => c.searchable && !isSearchColumn(c.id),
+		(c) => c.searchable && !isSearchColumnId(c.id),
 	);
 
 	if (searchableCols.length === 0) {
@@ -456,8 +407,9 @@ export function buildFilterWhere(
 	const group = groupConditions(conditions);
 
 	const ctx: BuildContext = {
+		caseSensitive,
 		columnMap,
-		impl: resolveDialect(dialect, caseSensitive),
+		dialect,
 		nextIdx: 1,
 		params: [],
 		placeholderStyle,

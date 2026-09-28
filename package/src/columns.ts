@@ -70,6 +70,26 @@ export interface ExtractColumnConfigOptions {
 	strict?: boolean;
 }
 
+const KNOWN_COLUMN_TYPES: readonly string[] = [
+	"string",
+	"number",
+	"date",
+	"boolean",
+	"enum",
+	"multiEnum",
+];
+
+/** Explicit meta boundary: rejects non-objects and unknown types instead of spreading garbage. */
+function isColumnMeta(meta: unknown): meta is DataExplorerColumnMeta {
+	if (typeof meta !== "object" || meta === null) return false;
+	const candidate = meta as Record<string, unknown>;
+	return (
+		typeof candidate.displayName === "string" &&
+		typeof candidate.type === "string" &&
+		KNOWN_COLUMN_TYPES.includes(candidate.type)
+	);
+}
+
 /**
  * Strict variant of {@link extractColumnConfigs}: returns both the usable
  * configs and the per-definition issues that were skipped.
@@ -89,8 +109,8 @@ export function extractColumnConfigsDetailed(
 			});
 			return;
 		}
-		const meta = def.meta as DataExplorerColumnMeta | undefined;
-		if (meta?.displayName == null || meta?.type == null) {
+		const meta: unknown = def.meta;
+		if (!isColumnMeta(meta)) {
 			issues.push({
 				code: "INVALID_COLUMN_DEF",
 				id: def.id,

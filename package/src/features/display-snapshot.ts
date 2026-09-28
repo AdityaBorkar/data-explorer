@@ -133,7 +133,25 @@ function safeJsonParse(text: string): unknown {
 }
 
 function isWidthMap(value: unknown): value is Record<string, number> {
-	return typeof value === "object" && value !== null;
+	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+		return false;
+	}
+	return Object.values(value as Record<string, unknown>).every(
+		(v) => typeof v === "number" && Number.isFinite(v),
+	);
+}
+
+function decodeBase64(input: string): string {
+	const globals = globalThis as {
+		atob?: (data: string) => string;
+		Buffer?: {
+			from(data: string, encoding: string): { toString(e: string): string };
+		};
+	};
+	if (typeof globals.atob === "function") return globals.atob(input);
+	if (globals.Buffer)
+		return globals.Buffer.from(input, "base64").toString("utf-8");
+	throw new Error("no base64 decoder available");
 }
 
 function decodeWidths(
@@ -141,13 +159,18 @@ function decodeWidths(
 	defaults: Record<string, number>,
 ): Record<string, number> {
 	const direct = safeJsonParse(raw);
-	if (isWidthMap(direct)) return direct as Record<string, number>;
-	// Legacy `b64:` links (pre-raw-JSON encoder) still decode.
-	if (raw.startsWith("b64:") && typeof atob === "function") {
-		const decoded = safeJsonParse(atob(raw.slice(4)));
-		if (isWidthMap(decoded)) return decoded as Record<string, number>;
+	if (isWidthMap(direct)) return { ...direct };
+	// Legacy `b64:` links (pre-raw-JSON encoder) still decode. Malformed
+	// payloads fall back to defaults instead of throwing.
+	if (raw.startsWith("b64:")) {
+		try {
+			const decoded = safeJsonParse(decodeBase64(raw.slice(4)));
+			if (isWidthMap(decoded)) return { ...decoded };
+		} catch {
+			return { ...defaults };
+		}
 	}
-	return defaults;
+	return { ...defaults };
 }
 
 /**
@@ -181,7 +204,7 @@ export function deserializeDisplay(
 
 	const columnWidths = rawWidths
 		? decodeWidths(rawWidths, defaults.columnWidths)
-		: defaults.columnWidths;
+		: { ...defaults.columnWidths };
 
 	const cols = params
 		.getAll("cols")
@@ -194,8 +217,9 @@ export function deserializeDisplay(
 		columnWidths,
 		density: isOneOf(DENSITIES, rawDensity) ? rawDensity : defaults.density,
 		fields,
-		groupBy: rawGroupBy || defaults.groupBy,
-		orderBy: rawSort || defaults.orderBy,
+		groupBy:
+			rawGroupBy === null || rawGroupBy === "" ? defaults.groupBy : rawGroupBy,
+		orderBy: rawSort === null || rawSort === "" ? defaults.orderBy : rawSort,
 		orderType: isOneOf(["asc", "desc"] as const, rawDir)
 			? rawDir
 			: defaults.orderType,
@@ -207,5 +231,5 @@ function isOneOf<T extends string>(
 	list: readonly T[],
 	value: string | null,
 ): value is T {
-	return value !== null && (list as readonly string[]).includes(value);
+	return value !== null && list.some((item) => item === value);
 }

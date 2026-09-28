@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ColumnConfig } from "../../types.ts";
+import type { ColumnConfig } from "../../columns.ts";
 import {
 	buildDraftCondition,
 	commitDraft,

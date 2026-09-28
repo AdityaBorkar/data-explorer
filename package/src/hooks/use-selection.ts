@@ -10,7 +10,12 @@ export interface SelectionState {
 	/** True when every loaded row is selected. */
 	allSelected: boolean;
 	clearSelection: () => void;
-	/** Row-level membership check for `React.memo` rows (stable callback). */
+	/**
+	 * Row-level membership check. Identity is stable across selection
+	 * toggles (it reads current table state lazily); pair with
+	 * `selectedCount` in `React.memo` rows so a count change re-renders
+	 * the row and the fresh membership is picked up.
+	 */
 	isSelected: (id: string) => boolean;
 	/** Number of selected rows — prefer over `selectedRowIds.size` in memoized rows. */
 	selectedCount: number;
@@ -75,9 +80,11 @@ export function useSelectionContext(): SelectionState {
 			}),
 		[table],
 	);
+	// Stable identity: reads the table's current selection lazily instead
+	// of closing over the per-toggle `selectedRowIds` snapshot.
 	const isSelected = useCallback(
-		(id: string) => selectedRowIds.has(id),
-		[selectedRowIds],
+		(id: string) => table.state.rowSelection[id] === true,
+		[table],
 	);
 
 	return useMemo(

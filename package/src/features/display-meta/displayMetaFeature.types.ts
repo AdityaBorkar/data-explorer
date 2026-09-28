@@ -5,7 +5,7 @@ import type {
 	Updater,
 } from "@tanstack/react-table";
 
-import type { Density, ViewType } from "../../types.ts";
+import type { Density, ViewType } from "../../views.ts";
 
 export interface TableState_DisplayMeta {
 	density: Density;

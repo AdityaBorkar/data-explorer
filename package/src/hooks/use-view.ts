@@ -2,30 +2,33 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactTable } from "@tanstack/react-table";
 import { startTransition, useCallback, useMemo, useState } from "react";
 
+import type { ColumnConfig } from "../columns.ts";
 import { DataExplorerError } from "../errors.ts";
 import {
 	applyDisplaySnapshot,
 	mergeDisplay,
 	toDisplaySnapshot,
+	toInitialTableState,
 } from "../features/display-snapshot.ts";
-import type {
-	ColumnConfig,
-	FilterCondition,
-	FilterViewDisplay,
-	TableFeatures,
-	View,
-	ViewAdapter,
-} from "../types.ts";
+import type { FilterCondition } from "../filters.ts";
+import type { TableFeatures } from "../types.ts";
+import type { FilterViewDisplay, View, ViewAdapter } from "../views.ts";
 
 /** Cache-key factory for persisted views (use for prefetch/invalidation). */
 export function viewQueryKey(domain: string): readonly unknown[] {
 	return ["data-explorer", domain, "views"] as const;
 }
 
-function requireViewAdapter(
+/**
+ * Single guard for the adapter and its optional methods: asserts the
+ * adapter exists and narrows the requested method in one place instead of
+ * repeating the same `VIEWS_NOT_CONFIGURED` branches per operation.
+ */
+function getAdapterMethod<K extends "createView" | "deleteView" | "renameView">(
 	viewAdapter: ViewAdapter | undefined,
+	method: K,
 	operation: string,
-): asserts viewAdapter is ViewAdapter {
+): NonNullable<ViewAdapter[K]> {
 	if (!viewAdapter) {
 		throw new DataExplorerError(
 			"VIEWS_NOT_CONFIGURED",
@@ -33,16 +36,6 @@ function requireViewAdapter(
 			{ operation },
 		);
 	}
-}
-
-/** Require an optional adapter method, narrowing it in one place instead of repeating the same guard per operation. */
-function requireAdapterMethod<
-	K extends "createView" | "deleteView" | "renameView",
->(
-	viewAdapter: ViewAdapter,
-	method: K,
-	operation: string,
-): NonNullable<ViewAdapter[K]> {
 	const fn = viewAdapter[method];
 	if (!fn) {
 		throw new DataExplorerError(
@@ -65,8 +58,9 @@ type ViewsStatus = "disabled" | "loading" | "ready";
  *   `createView(name, data?)` creates one (omitted `display`/`refine`
  *   snapshot from the table).
  * - `applyView(null)` / `resetToSaved()` with no active view resets to
- *   `defaultDisplay` + empty filters. Unknown ids after load reset too;
- *   while views are loading, `applyView` preserves unpersisted work.
+ *   `defaultDisplay` + empty filters. Unknown ids after load clear the
+ *   selection and reset too; while views are loading, `applyView` records
+ *   the intent without wiping unpersisted work.
  * - `createView` / `deleteView` / `renameView` require the matching
  *   optional adapter method and throw `VIEWS_NOT_CONFIGURED` otherwise.
  * - Read `isLoading` / `views` to toast on unknown ids — no outcome codes.
@@ -117,6 +111,14 @@ export function useView<TItem extends Record<string, unknown>>({
 				? "loading"
 				: "ready";
 
+	const invalidateViews = useCallback(
+		() =>
+			queryClient.invalidateQueries({
+				queryKey: viewQueryKey(domain),
+			}),
+		[domain, queryClient],
+	);
+
 	const resetToDefault = useCallback(() => {
 		table.setDataFilters([]);
 		applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
@@ -125,14 +127,21 @@ export function useView<TItem extends Record<string, unknown>>({
 	const applySnapshot = useCallback(
 		(refine: FilterCondition[], display: FilterViewDisplay) => {
 			// One transaction for filters + the 6 display setters so
-			// subscribers never observe a half-applied view.
+			// subscribers never observe a half-applied view. Inlined here
+			// (instead of calling `applyDisplaySnapshot`, which owns its own
+			// transition) so nesting never splits the update.
+			const next = toInitialTableState(
+				mergeDisplay(defaultDisplay, display),
+				columnsConfig,
+			);
 			startTransition(() => {
 				table.setDataFilters(refine);
-				applyDisplaySnapshot(
-					mergeDisplay(defaultDisplay, display),
-					table,
-					columnsConfig,
-				);
+				table.setSorting(next.sorting);
+				table.setGrouping(next.grouping);
+				table.setColumnVisibility(next.columnVisibility);
+				table.setColumnSizing(next.columnSizing);
+				table.setDensity(next.density);
+				table.setViewType(next.viewType);
 			});
 		},
 		[table, defaultDisplay, columnsConfig],
@@ -140,44 +149,55 @@ export function useView<TItem extends Record<string, unknown>>({
 
 	const applyView = useCallback(
 		(viewId: string | null): void => {
-			setActiveViewId(viewId);
 			if (!viewId) {
+				setActiveViewId(null);
 				resetToDefault();
 				return;
 			}
-			// Never wipe unpersisted work while views are still loading.
-			if (viewsStatus === "loading") return;
-			const view = views?.find((v) => v.id === viewId);
-			if (!view) {
-				if (viewsStatus === "ready") resetToDefault();
+			// Never wipe unpersisted work while views are still loading —
+			// record the intent and wait for the list.
+			if (viewsStatus === "loading") {
+				setActiveViewId(viewId);
 				return;
 			}
+			const view = views?.find((v) => v.id === viewId);
+			if (!view) {
+				// Unknown id (or no adapter): clear the stale selection so
+				// `activeViewId` never points at a view that doesn't exist.
+				setActiveViewId(null);
+				resetToDefault();
+				return;
+			}
+			setActiveViewId(viewId);
 			applySnapshot(view.refine, view.display);
 		},
 		[views, viewsStatus, resetToDefault, applySnapshot],
 	);
 
 	const saveView = useCallback(async (): Promise<boolean> => {
-		requireViewAdapter(viewAdapter, "save the active view");
+		if (!viewAdapter) {
+			throw new DataExplorerError(
+				"VIEWS_NOT_CONFIGURED",
+				"Cannot save the active view: no viewAdapter was provided to <Provider>.",
+				{ operation: "save the active view" },
+			);
+		}
 		if (!activeViewId) return false;
 		const display = toDisplaySnapshot(table, columnsConfig);
 		await viewAdapter.updateView(activeViewId, {
 			display,
 			refine: table.state.dataFilters,
 		});
-		await queryClient.invalidateQueries({
-			queryKey: viewQueryKey(domain),
-		});
+		await invalidateViews();
 		return true;
-	}, [activeViewId, columnsConfig, domain, queryClient, table, viewAdapter]);
+	}, [activeViewId, columnsConfig, invalidateViews, table, viewAdapter]);
 
 	const createView = useCallback(
 		async (
 			name: string,
 			data?: { display?: View["display"]; refine?: View["refine"] },
 		): Promise<View> => {
-			requireViewAdapter(viewAdapter, "create a view");
-			const create = requireAdapterMethod(
+			const create = getAdapterMethod(
 				viewAdapter,
 				"createView",
 				"create a view",
@@ -188,18 +208,15 @@ export function useView<TItem extends Record<string, unknown>>({
 				refine: data?.refine ?? table.state.dataFilters,
 			});
 			setActiveViewId(created.id);
-			await queryClient.invalidateQueries({
-				queryKey: viewQueryKey(domain),
-			});
+			await invalidateViews();
 			return created;
 		},
-		[columnsConfig, domain, queryClient, table, viewAdapter],
+		[columnsConfig, domain, invalidateViews, table, viewAdapter],
 	);
 
 	const deleteView = useCallback(
 		async (viewId: string): Promise<boolean> => {
-			requireViewAdapter(viewAdapter, "delete a view");
-			const remove = requireAdapterMethod(
+			const remove = getAdapterMethod(
 				viewAdapter,
 				"deleteView",
 				"delete a view",
@@ -209,34 +226,30 @@ export function useView<TItem extends Record<string, unknown>>({
 				setActiveViewId(null);
 				resetToDefault();
 			}
-			await queryClient.invalidateQueries({
-				queryKey: viewQueryKey(domain),
-			});
+			await invalidateViews();
 			return true;
 		},
-		[activeViewId, domain, queryClient, resetToDefault, viewAdapter],
+		[activeViewId, invalidateViews, resetToDefault, viewAdapter],
 	);
 
 	const renameView = useCallback(
 		async (viewId: string, name: string): Promise<View> => {
-			requireViewAdapter(viewAdapter, "rename a view");
-			const rename = requireAdapterMethod(
+			const rename = getAdapterMethod(
 				viewAdapter,
 				"renameView",
 				"rename a view",
 			);
 			const renamed = await rename(viewId, name);
-			await queryClient.invalidateQueries({
-				queryKey: viewQueryKey(domain),
-			});
+			await invalidateViews();
 			return renamed;
 		},
-		[domain, queryClient, viewAdapter],
+		[invalidateViews, viewAdapter],
 	);
 
 	const resetToSaved = useCallback((): void => {
 		if (!activeView) {
 			if (viewsStatus === "loading") return;
+			setActiveViewId(null);
 			resetToDefault();
 			return;
 		}

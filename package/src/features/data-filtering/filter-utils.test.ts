@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition } from "../../types.ts";
+import type { FilterCondition } from "../../filters.ts";
 import { deserializeFilters, serializeFilters } from "./filter-utils.ts";
 
 function cond(

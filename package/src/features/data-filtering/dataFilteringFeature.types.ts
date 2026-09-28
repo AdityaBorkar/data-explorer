@@ -5,7 +5,7 @@ import type {
 	Updater,
 } from "@tanstack/react-table";
 
-import type { FilterCondition } from "../../types.ts";
+import type { FilterCondition } from "../../filters.ts";
 
 export type DataFiltersState = FilterCondition[];
 

@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-table";
 
 import "./displayMetaFeature.types.ts";
-import type { Density, ViewType } from "../../types.ts";
+import type { Density, ViewType } from "../../views.ts";
 
 /* biome-ignore lint/suspicious/noExplicitAny: feature APIs match TanStack's internal table shape */
 type AnyTable = any;

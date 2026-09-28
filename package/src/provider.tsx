@@ -20,14 +20,9 @@ import { TableFeatures } from "./features/index.ts";
 import { useDataQuery } from "./hooks/use-data-query.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
-import type {
-	BoardMoveHandler,
-	DataExplorerContextValue,
-	ListQueryResult,
-	RefineOptions,
-	ViewAdapter,
-} from "./types.ts";
-import type { FilterViewDisplay } from "./views.ts";
+import type { ListQueryResult, RefineOptions } from "./query.ts";
+import type { BoardMoveHandler, DataExplorerContextValue } from "./types.ts";
+import type { FilterViewDisplay, ViewAdapter } from "./views.ts";
 
 /** Props for {@link Provider}. */
 export interface DataExplorerProviderProps<
@@ -75,9 +70,12 @@ function useQueryClientGuard(): void {
  * Headless data-explorer provider: owns the single TanStack table instance,
  * the infinite data query, and persisted-view state.
  *
- * Data cycle is `table.state → query → allItems → table.data`, broken by a
- * `tableData` state synced in an effect (no render-phase `setState`, no
- * `table.options` mutation). Requires a `QueryClientProvider` ancestor.
+ * Data flows `table.state → query → allItems → tableData → table.data`.
+ * The `tableData` state + effect hop breaks the hook-order cycle (`useTable`
+ * needs data that `useDataQuery` computes from `table.state`), with no
+ * render-phase `setState` and no `table.options` mutation. Context consumers
+ * read the same `tableData` reference the table sees. Requires a
+ * `QueryClientProvider` ancestor.
  *
  * @example
  * ```tsx
@@ -135,9 +133,13 @@ export function Provider<TItem extends Record<string, unknown>>({
 		dataFilters: [],
 	}));
 
-	// Breaks the `table.state → query → data → table` cycle. `allItems`
-	// is stable (empty singleton until pages arrive), so this only
-	// re-renders when fresh pages land.
+	// The `table.state → query → data → table` hook-order cycle is broken
+	// by this state + effect hop: the table reads `tableData`, the query
+	// reads `table.state`, and fresh pages land here one commit later.
+	// `allItems` is stable (empty singleton until pages arrive), so this
+	// only re-renders when fresh pages land. `context.items` reads the
+	// same `tableData` reference below, so consumers never observe rows
+	// the table instance doesn't know about yet.
 	const [tableData, setTableData] = useState<TItem[]>([]);
 
 	const table = useTable({
@@ -223,7 +225,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 				hasMore: hasNextPage,
 				isLoading,
 				isLoadingMore: isFetchingNextPage,
-				items: allItems,
+				items: tableData,
 				loadMoreRef: triggerRef,
 			},
 			onMove: stableOnMove,
@@ -247,7 +249,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 			hasNextPage,
 			isLoading,
 			isFetchingNextPage,
-			allItems,
+			tableData,
 			triggerRef,
 			stableOnMove,
 			table,

@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-table";
 
 import "./dataFilteringFeature.types.ts";
-import type { FilterCondition } from "../../types.ts";
+import type { FilterCondition } from "../../filters.ts";
 import type { DataFiltersState } from "./dataFilteringFeature.types.ts";
 
 /* biome-ignore lint/suspicious/noExplicitAny: feature APIs match TanStack's internal table shape */

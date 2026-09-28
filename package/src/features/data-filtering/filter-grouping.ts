@@ -1,4 +1,4 @@
-import type { FilterCondition, FilterGroup } from "../../types.ts";
+import type { FilterCondition, FilterGroup } from "../../filters.ts";
 
 /**
  * Bounded deterministic group id: a short hash of the member ids so ids

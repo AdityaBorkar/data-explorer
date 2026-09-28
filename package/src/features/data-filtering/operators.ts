@@ -1,4 +1,5 @@
-import type { ColumnDataType, FilterOperator } from "../../types.ts";
+import type { ColumnDataType } from "../../columns.ts";
+import type { FilterOperator } from "../../filters.ts";
 
 /**
  * Which predicate to use: arity questions ("is this nullary?", "should I
@@ -22,7 +23,6 @@ const OPERATOR_DEFS: Record<FilterOperator, OperatorDef> = {
 	contains: { arity: "single", key: "contains", label: "contains" },
 	endsWith: { arity: "single", key: "endsWith", label: "ends with" },
 	eq: { arity: "single", key: "eq", label: "is" },
-	exclude: { arity: "array", key: "exclude", label: "excludes" },
 	excludeAll: { arity: "array", key: "excludeAll", label: "excludes if all" },
 	excludeAny: {
 		arity: "array",
@@ -36,7 +36,6 @@ const OPERATOR_DEFS: Record<FilterOperator, OperatorDef> = {
 		label: "is on or after",
 	},
 	in: { arity: "set", key: "in", label: "is any of" },
-	include: { arity: "array", key: "include", label: "includes" },
 	includeAll: { arity: "array", key: "includeAll", label: "includes all of" },
 	includeAny: { arity: "array", key: "includeAny", label: "includes any of" },
 	isEmpty: { arity: "nullary", key: "isEmpty", label: "is empty" },
@@ -70,14 +69,7 @@ const OPERATORS: Record<ColumnDataType, FilterOperator[]> = {
 		"isNotEmpty",
 	],
 	enum: ["eq", "neq", "in", "notIn"],
-	multiEnum: [
-		"include",
-		"exclude",
-		"includeAny",
-		"includeAll",
-		"excludeAny",
-		"excludeAll",
-	],
+	multiEnum: ["includeAny", "includeAll", "excludeAny", "excludeAll"],
 	number: [
 		"eq",
 		"neq",
@@ -107,7 +99,7 @@ const DEFAULT_OPERATORS: Record<ColumnDataType, FilterOperator> = {
 	boolean: "eq",
 	date: "eq",
 	enum: "eq",
-	multiEnum: "include",
+	multiEnum: "includeAll",
 	number: "eq",
 	string: "eq",
 };
@@ -131,4 +123,22 @@ export function getOperatorLabel(operator: FilterOperator): string {
 
 export function getDefaultOperator(type: ColumnDataType): FilterOperator {
 	return DEFAULT_OPERATORS[type];
+}
+
+/**
+ * Historical short names from stored filters (`include` ≡ `includeAll`,
+ * `exclude` ≡ `excludeAll`). Accepted at the serialization boundary only —
+ * returns the canonical operator, or `undefined` for unknown strings so
+ * callers can report `INVALID_OPERATOR` / `INVALID_FILTER_JSON`.
+ */
+const LEGACY_OPERATOR_ALIASES: Record<string, FilterOperator> = {
+	exclude: "excludeAll",
+	include: "includeAll",
+};
+
+export function normalizeOperator(raw: string): FilterOperator | undefined {
+	if (FILTER_OPERATORS.some((op) => op === raw)) {
+		return raw as FilterOperator;
+	}
+	return LEGACY_OPERATOR_ALIASES[raw];
 }

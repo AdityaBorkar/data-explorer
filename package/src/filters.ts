@@ -3,9 +3,13 @@ import { nanoid } from "nanoid";
 import type { ColumnDataType } from "./columns.ts";
 
 /**
- * All filter operators. `include` ≡ `includeAll` and `exclude` ≡
- * `excludeAll` (historical duplicates, kept for stored filters).
- * Prefer `includeAll` / `excludeAll` in new code.
+ * All filter operators (canonical names only).
+ *
+ * Historical stored filters may still carry the `include` / `exclude`
+ * short names (`include` ≡ `includeAll`, `exclude` ≡ `excludeAll`).
+ * Those aliases are accepted at the serialization boundary
+ * (`deserializeFilters` normalizes them via `normalizeOperator`) but are
+ * not part of this union — new code must use `includeAll` / `excludeAll`.
  */
 export type FilterOperator =
 	| "eq"
@@ -24,8 +28,6 @@ export type FilterOperator =
 	| "notBetween"
 	| "in"
 	| "notIn"
-	| "include"
-	| "exclude"
 	| "includeAny"
 	| "includeAll"
 	| "excludeAny"

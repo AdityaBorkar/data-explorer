@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 import type { ColumnConfig } from "../../columns.ts";
-import { validateFilterValue } from "./filter-semantics.ts";
-import { FILTER_OPERATORS, getOperatorsForType } from "./operators.ts";
+import { validateCondition, validateFilterValue } from "./filter-semantics.ts";
+import { FILTER_OPERATORS } from "./operators.ts";
 
 export const filterConditionSchema = z
 	.object({
@@ -25,7 +25,8 @@ export const filterConditionSchema = z
  * Column-aware condition schema: additionally checks `columnId ∈ config`
  * and `operator ∈ operators[type]` (including per-column `operators`
  * overrides) so form-level zod errors match the server-side
- * `validateConditions` errors from the SQL builder.
+ * `validateCondition` errors from the SQL builder. The rule body lives in
+ * `filter-semantics.ts` — this schema only maps it to zod issues.
  *
  * @example
  * ```ts
@@ -46,33 +47,11 @@ export function makeFilterConditionSchema(columnsConfig: ColumnConfig[]) {
 			value: z.unknown(),
 		})
 		.superRefine((data, ctx) => {
-			if (data.columnId === "_search") {
-				if (data.operator !== "contains") {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: 'Invalid operator for search (must be "contains")',
-					});
-				} else if (typeof data.value !== "string" || data.value.length === 0) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Search filter requires a non-empty string value",
-					});
-				}
-				return;
-			}
-			const col = byId.get(data.columnId);
-			if (!col) return; // already reported on columnId
-			const valid = col.operators ?? getOperatorsForType(col.type);
-			if (!valid.includes(data.operator)) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: `Invalid operator "${data.operator}" for column "${data.columnId}"`,
-				});
-				return;
-			}
-			const error = validateFilterValue(data.operator, data.value, col.type);
+			// Unknown columns are already reported on `columnId` above.
+			if (data.columnId !== "_search" && !byId.has(data.columnId)) return;
+			const error = validateCondition(data, byId);
 			if (error) {
-				ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+				ctx.addIssue({ code: z.ZodIssueCode.custom, message: error.message });
 			}
 		});
 }

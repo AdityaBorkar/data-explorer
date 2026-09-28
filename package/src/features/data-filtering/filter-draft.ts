@@ -1,13 +1,8 @@
 import { nanoid } from "nanoid";
 
-import { SEARCH_COLUMN_ID } from "../../columns.ts";
-import type {
-	ColumnConfig,
-	ColumnDataType,
-	FilterCondition,
-	FilterOperator,
-} from "../../types.ts";
-import { isSearchColumn } from "../../types.ts";
+import type { ColumnConfig, ColumnDataType } from "../../columns.ts";
+import { isSearchColumnId, SEARCH_COLUMN_ID } from "../../columns.ts";
+import type { FilterCondition, FilterOperator } from "../../filters.ts";
 import { coerceFilterValue, validateFilterValue } from "./filter-semantics.ts";
 import { getOperatorArity } from "./operators.ts";
 
@@ -104,13 +99,16 @@ export function editorKind(
 	operator: FilterOperator,
 	column: Pick<ColumnConfig, "id" | "type">,
 ): FilterEditorKind {
-	if (getOperatorArity(operator) === "nullary") return "nullary";
-	if (isSearchColumn(column.id)) return "search";
 	const arity = getOperatorArity(operator);
+	if (arity === "nullary") return "nullary";
+	if (isSearchColumnId(column.id)) return "search";
 	if (arity === "range") return "range";
 	if (arity === "set" || arity === "array") return "multi";
 	return "single";
 }
+
+const MAX_INLINE_LABELS = 2;
+const MAX_INLINE_CHARS = 20;
 
 /**
  * Single display formatter for committed values. Returns null when
@@ -126,7 +124,7 @@ export function formatFilterValue(
 
 	if (operator === "between" || operator === "notBetween") {
 		if (!Array.isArray(value)) return null;
-		const [min, max] = value as [unknown, unknown];
+		const [min, max] = value;
 		if (min === undefined || min === "" || max === undefined || max === "")
 			return null;
 		return `${String(min)} – ${String(max)}`;
@@ -134,15 +132,16 @@ export function formatFilterValue(
 
 	const arity = getOperatorArity(operator);
 	if (arity === "set" || arity === "array") {
-		if (!Array.isArray(value)) return String(value);
-		const vals = value as unknown[];
-		if (vals.length === 0) return null;
-		const labels = vals.map((v) => {
+		// Committed set/array values are always arrays (see `commitDraft`);
+		// anything else has nothing to render.
+		if (!Array.isArray(value)) return null;
+		if (value.length === 0) return null;
+		const labels = value.map((v) => {
 			const opt = column.options?.find((o) => o.value === String(v));
 			return opt?.label ?? String(v);
 		});
-		return labels.length > 2
-			? `${labels.slice(0, 2).join(", ")}...`
+		return labels.length > MAX_INLINE_LABELS
+			? `${labels.slice(0, MAX_INLINE_LABELS).join(", ")}...`
 			: labels.join(", ");
 	}
 
@@ -156,5 +155,7 @@ export function formatFilterValue(
 		? value.map(String).join(", ")
 		: String(value);
 	if (str === "") return null;
-	return str.length > 20 ? `${str.slice(0, 20)}...` : str;
+	return str.length > MAX_INLINE_CHARS
+		? `${str.slice(0, MAX_INLINE_CHARS)}...`
+		: str;
 }
