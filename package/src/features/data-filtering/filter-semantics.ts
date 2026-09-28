@@ -1,4 +1,3 @@
-import { DataExplorerError } from "../../errors.ts";
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 import { getOperatorArity } from "./operators.ts";
 
@@ -7,37 +6,20 @@ import { getOperatorArity } from "./operators.ts";
  * "is this operator + value legal, and what does committing it mean?".
  *
  * `operators.ts` owns the operator catalog (which operators exist per
- * column type); this module owns the policy over that catalog (arity
- * predicates, validation, commit coercion). All callers — the inline
- * flow, chips, the zod schema, the SQL builder — route through here so
- * operator/value rules concentrate behind one seam.
+ * column type); this module owns the policy over that catalog
+ * (validation, commit coercion). Arity questions ("is this nullary?",
+ * "should I render a value input?") go directly to
+ * {@link getOperatorArity} so there is one way to ask. All callers —
+ * the inline flow, chips, the zod schema, the SQL builder — route
+ * through here so operator/value rules concentrate behind one seam.
  */
-
-/** Arity check ("is this nullary?"). For UI gating use {@link requiresValue}. */
-export function isNullaryOperator(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) === "nullary";
-}
-
-export function isRangeOperator(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) === "range";
-}
-
-export function requiresArrayValue(operator: FilterOperator): boolean {
-	const arity = getOperatorArity(operator);
-	return arity === "set" || arity === "array";
-}
-
-/** UI gating ("should I render a value input?"). For arity checks use {@link isNullaryOperator}; for full dispatch use `getOperatorArity`. */
-export function requiresValue(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) !== "nullary";
-}
 
 export function validateFilterValue(
 	operator: FilterOperator,
 	value: unknown,
 	type?: ColumnDataType,
 ): string | undefined {
-	if (isNullaryOperator(operator)) {
+	if (getOperatorArity(operator) === "nullary") {
 		return value === null
 			? undefined
 			: `Operator "${operator}" requires null value`;
@@ -56,7 +38,7 @@ export function validateFilterValue(
 		return undefined;
 	}
 
-	if (requiresArrayValue(operator)) {
+	if (arity === "set" || arity === "array") {
 		return Array.isArray(value)
 			? undefined
 			: `Operator "${operator}" requires string[] value`;
@@ -65,26 +47,6 @@ export function validateFilterValue(
 	return value !== null && value !== undefined && value !== ""
 		? undefined
 		: `Operator "${operator}" requires a non-null value`;
-}
-
-export function isValidOperatorValue(
-	operator: FilterOperator,
-	value: unknown,
-	type?: ColumnDataType,
-): boolean {
-	return validateFilterValue(operator, value, type) === undefined;
-}
-
-export function validateOperatorValue(
-	operator: FilterOperator,
-	value: unknown,
-	type?: ColumnDataType,
-): void {
-	const error = validateFilterValue(operator, value, type);
-	if (error)
-		throw new DataExplorerError("INVALID_FILTER_VALUE", error, {
-			operator,
-		});
 }
 
 export interface CoercedFilterValue {
@@ -101,7 +63,8 @@ export function coerceFilterValue(
 	operator: FilterOperator,
 	pendingValue: unknown,
 ): CoercedFilterValue {
-	if (isNullaryOperator(operator)) return { hasValue: true, value: null };
+	if (getOperatorArity(operator) === "nullary")
+		return { hasValue: true, value: null };
 	if (
 		pendingValue === undefined ||
 		pendingValue === null ||

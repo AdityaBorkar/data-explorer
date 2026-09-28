@@ -5,9 +5,9 @@ import { useTable } from "@tanstack/react-table";
 import { useContext, useEffect, useMemo, useState } from "react";
 
 import type { ExtractColumnConfigOptions } from "./columns.ts";
+import { extractColumnConfigs } from "./columns.ts";
 import { DataExplorerContext } from "./context.tsx";
 import { DataExplorerError } from "./errors.ts";
-import { extractColumnConfigs } from "./extract-column-config.ts";
 import { toInitialTableState } from "./features/display-snapshot.ts";
 import { TableFeatures } from "./features/index.ts";
 import { useDataQuery } from "./hooks/use-data-query.ts";
@@ -170,7 +170,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 
 	const { triggerRef } = useLoadMore(
 		query.fetchNextPage,
-		query.hasNextPage ?? false,
+		query.hasNextPage,
 		query.isFetchingNextPage,
 	);
 
@@ -190,7 +190,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 		views,
 	} = viewHook;
 
-	const hasNextPage = query.hasNextPage ?? false;
+	const hasNextPage = query.hasNextPage;
 	const isLoading = query.isLoading;
 	const isFetchingNextPage = query.isFetchingNextPage;
 
@@ -246,6 +246,8 @@ export function Provider<TItem extends Record<string, unknown>>({
 	return (
 		<DataExplorerContext
 			value={
+				// The context is intentionally non-generic (one shared
+				// instance); the cast restores the row type at consumption.
 				contextValue as unknown as DataExplorerContextValue<
 					Record<string, unknown>
 				>

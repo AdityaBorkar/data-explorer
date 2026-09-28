@@ -8,11 +8,7 @@ import type {
 	FilterOperator,
 } from "../../types.ts";
 import { isSearchColumn } from "../../types.ts";
-import {
-	coerceFilterValue,
-	isNullaryOperator,
-	validateFilterValue,
-} from "./filter-semantics.ts";
+import { coerceFilterValue, validateFilterValue } from "./filter-semantics.ts";
 import { getOperatorArity } from "./operators.ts";
 
 /**
@@ -72,9 +68,23 @@ export function commitDraft(
 	};
 }
 
-/** True when the draft targets the global search column. */
-export function isSearchDraft(columnId: string): boolean {
-	return isSearchColumn(columnId);
+/**
+ * Quick-add policy for single-click value selection: `multiEnum` columns
+ * commit an `includeAny` array, everything else commits a scalar `eq`.
+ * Lives here (not in the React flow) so the operator choice stays with
+ * the rest of the draft policy and is testable without React.
+ */
+export function quickAddCondition(
+	column: Pick<ColumnConfig, "id" | "type">,
+	value: string,
+): FilterCondition {
+	const operator: FilterOperator =
+		column.type === "multiEnum" ? "includeAny" : "eq";
+	return buildDraftCondition(
+		column.id,
+		operator,
+		operator === "includeAny" ? [value] : value,
+	);
 }
 
 export type FilterEditorKind =
@@ -94,7 +104,7 @@ export function editorKind(
 	operator: FilterOperator,
 	column: Pick<ColumnConfig, "id" | "type">,
 ): FilterEditorKind {
-	if (isNullaryOperator(operator)) return "nullary";
+	if (getOperatorArity(operator) === "nullary") return "nullary";
 	if (isSearchColumn(column.id)) return "search";
 	const arity = getOperatorArity(operator);
 	if (arity === "range") return "range";
@@ -111,7 +121,7 @@ export function formatFilterValue(
 	operator: FilterOperator,
 	column: Pick<ColumnConfig, "options" | "type">,
 ): string | null {
-	if (isNullaryOperator(operator)) return null;
+	if (getOperatorArity(operator) === "nullary") return null;
 	if (value === null || value === undefined) return null;
 
 	if (operator === "between" || operator === "notBetween") {
@@ -137,8 +147,9 @@ export function formatFilterValue(
 	}
 
 	if (column.type === "boolean") {
-		if (value === undefined) return null;
-		return value ? "Yes" : "No";
+		if (value === true) return "Yes";
+		if (value === false) return "No";
+		return null;
 	}
 
 	const str = Array.isArray(value)

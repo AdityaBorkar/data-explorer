@@ -1,10 +1,44 @@
 // Domain barrels: the canonical home for each concept. `types.ts` stays as
-// the composition root (context shape) and re-exports these for compat.
-export * from "./columns.ts";
-export * from "./errors.ts";
-export * from "./filters.ts";
-export * from "./query.ts";
-export * from "./views.ts";
+// the composition root (context shape) with explicit re-exports — no
+// `export *`, so adding a domain export can't leak into consumers by
+// accident. The package root (`index.ts`) allow-list stays the public contract.
+export type {
+	ColumnConfig,
+	ColumnDataType,
+	ColumnIssue,
+	DataExplorerColumnMeta,
+	ExtractColumnConfigOptions,
+} from "./columns.ts";
+export {
+	extractColumnConfigs,
+	extractColumnConfigsDetailed,
+	isSearchColumn,
+	SEARCH_COLUMN_ID,
+} from "./columns.ts";
+export type { DataExplorerErrorCode } from "./errors.ts";
+export { DataExplorerError, MissingProviderError } from "./errors.ts";
+export type {
+	FilterCondition,
+	FilterGroup,
+	FilterOperator,
+	SerializedFilterCondition,
+	TypedFilterValue,
+} from "./filters.ts";
+export { createFilter, hasFilters, isFilterGroup } from "./filters.ts";
+export type {
+	DataRefineOptions,
+	ListQueryResult,
+	RefineOptions,
+	SortDirection,
+	SortOrder,
+} from "./query.ts";
+export type {
+	Density,
+	FilterViewDisplay,
+	View,
+	ViewAdapter,
+	ViewType,
+} from "./views.ts";
 
 import type { ReactTable } from "@tanstack/react-table";
 
@@ -33,13 +67,14 @@ export interface DataExplorerViewState {
 	createView: (
 		name: string,
 		data?: { display?: View["display"]; refine?: View["refine"] },
-	) => Promise<View | null>;
+	) => Promise<View>;
 	deleteView: (viewId: string) => Promise<boolean>;
 	error: unknown;
 	isLoading: boolean;
-	renameView: (viewId: string, name: string) => Promise<View | null>;
+	renameView: (viewId: string, name: string) => Promise<View>;
 	/** Resets to `defaultDisplay` + empty filters when nothing is saved. */
 	resetToSaved: () => void;
+	/** Persists the active view. Returns `false` when no view is active; throws `VIEWS_NOT_CONFIGURED` without an adapter. */
 	saveView: () => Promise<boolean>;
 	views?: View[];
 }

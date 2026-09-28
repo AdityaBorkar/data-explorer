@@ -13,7 +13,7 @@ export {
 	serializeDisplay,
 } from "../display-snapshot.ts";
 
-const OPERATOR_SET = new Set<string>(FILTER_OPERATORS);
+const OPERATOR_SET = new Set<FilterOperator>(FILTER_OPERATORS);
 
 /** Matches the ISO strings `serializeFilters` writes for `Date` values. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
@@ -27,9 +27,17 @@ interface VersionedFilterPayload {
 }
 
 function reviveValue(value: unknown): unknown {
-	return typeof value === "string" && ISO_DATE_RE.test(value)
-		? new Date(value)
-		: value;
+	if (typeof value === "string") {
+		return ISO_DATE_RE.test(value) ? new Date(value) : value;
+	}
+	if (Array.isArray(value)) return value.map(reviveValue);
+	return value;
+}
+
+function serializeValue(value: unknown): unknown {
+	if (value instanceof Date) return value.toISOString();
+	if (Array.isArray(value)) return value.map(serializeValue);
+	return value;
 }
 
 function toCondition(s: SerializedFilterCondition): FilterCondition {
@@ -40,11 +48,18 @@ function toCondition(s: SerializedFilterCondition): FilterCondition {
 			{ operator: String(s.o) },
 		);
 	}
+	if (s.b !== "and" && s.b !== "or") {
+		throw new DataExplorerError(
+			"INVALID_FILTER_JSON",
+			`Invalid combinator "${String(s.b)}" in filter JSON`,
+			{ combinator: String(s.b) },
+		);
+	}
 	return {
 		columnId: s.c,
-		combinator: s.b === "or" ? ("or" as const) : ("and" as const),
+		combinator: s.b,
 		id: typeof s.i === "string" && s.i.length > 0 ? s.i : nanoid(),
-		operator: s.o as FilterOperator,
+		operator: s.o,
 		value: reviveValue(s.v),
 	};
 }
@@ -55,7 +70,7 @@ function toSerialized(c: FilterCondition): SerializedFilterCondition {
 		c: c.columnId,
 		i: c.id,
 		o: c.operator,
-		v: c.value instanceof Date ? c.value.toISOString() : c.value,
+		v: serializeValue(c.value),
 	};
 }
 

@@ -1,10 +1,8 @@
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 
 /**
- * Which predicate to use:
- * - UI gating ("should I render a value input?") → {@link requiresValue}
- * - arity checks ("is this nullary?") → {@link isNullaryOperator}
- * - full dispatch → {@link getOperatorArity}
+ * Which predicate to use: arity questions ("is this nullary?", "should I
+ * render a value input?") go to {@link getOperatorArity} directly.
  */
 export type OperatorArity = "nullary" | "single" | "range" | "set" | "array";
 
@@ -104,7 +102,7 @@ for (const defs of Object.values(OPERATORS)) {
 	}
 }
 
-/** Full arity dispatch — use when `requiresValue` / `isNullaryOperator` are not specific enough. */
+/** Full arity dispatch for nullary / gating / editor checks. */
 export function getOperatorArity(operator: FilterOperator): OperatorArity {
 	return OPERATOR_DEFS.get(operator)?.arity ?? "single";
 }

@@ -6,7 +6,7 @@ import {
 	commitDraft,
 	editorKind,
 	formatFilterValue,
-	isSearchDraft,
+	quickAddCondition,
 } from "./filter-draft.ts";
 
 function column(overrides: Partial<ColumnConfig> = {}): ColumnConfig {
@@ -58,10 +58,28 @@ describe("buildDraftCondition", () => {
 	});
 });
 
-describe("isSearchDraft", () => {
-	it("detects the global search column without string compares at call sites", () => {
-		expect(isSearchDraft("_search")).toBe(true);
-		expect(isSearchDraft("name")).toBe(false);
+describe("quickAddCondition", () => {
+	it("commits scalar eq for plain columns", () => {
+		const cond = quickAddCondition(column(), "x");
+		expect(cond).toMatchObject({
+			columnId: "name",
+			combinator: "and",
+			operator: "eq",
+			value: "x",
+		});
+		expect(cond.id).toBeTruthy();
+	});
+
+	it("commits includeAny arrays for multiEnum columns", () => {
+		const cond = quickAddCondition(
+			column({ id: "tags", type: "multiEnum" }),
+			"a",
+		);
+		expect(cond).toMatchObject({
+			columnId: "tags",
+			operator: "includeAny",
+			value: ["a"],
+		});
 	});
 });
 

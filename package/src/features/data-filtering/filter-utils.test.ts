@@ -159,6 +159,35 @@ describe("serializeFilters / deserializeFilters", () => {
 			deserializeFilters(JSON.stringify({ filters: [], v: 999 })),
 		).toThrow(/version/i);
 	});
+
+	it("rejects invalid combinators instead of coercing to and", () => {
+		const bad = JSON.stringify([
+			{ b: "xor", c: "name", i: "x", o: "eq", v: "foo" },
+		]);
+		expect(() => deserializeFilters(bad)).toThrow(/combinator/i);
+	});
+
+	it("round-trips Date tuples for range operators", () => {
+		const range: FilterCondition[] = [
+			{
+				columnId: "createdAt",
+				combinator: "and",
+				id: "x",
+				operator: "between",
+				value: [
+					new Date("2024-01-01T00:00:00.000Z"),
+					new Date("2024-12-31T00:00:00.000Z"),
+				],
+			},
+		];
+		const result = deserializeFilters(serializeFilters(range));
+		expect(result).toHaveLength(1);
+		const value = result[0]?.value;
+		expect(value).toEqual([
+			new Date("2024-01-01T00:00:00.000Z"),
+			new Date("2024-12-31T00:00:00.000Z"),
+		]);
+	});
 });
 
 describe("serializeDisplay / deserializeDisplay", () => {

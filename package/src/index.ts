@@ -49,7 +49,7 @@ export {
 	editorKind,
 	type FilterEditorKind,
 	formatFilterValue,
-	isSearchDraft,
+	quickAddCondition,
 } from "./features/data-filtering/filter-draft.ts";
 export { groupConditions } from "./features/data-filtering/filter-grouping.ts";
 export {
@@ -62,13 +62,7 @@ export {
 export {
 	type CoercedFilterValue,
 	coerceFilterValue,
-	isNullaryOperator,
-	isRangeOperator,
-	isValidOperatorValue,
-	requiresArrayValue,
-	requiresValue,
 	validateFilterValue,
-	validateOperatorValue,
 } from "./features/data-filtering/filter-semantics.ts";
 export {
 	deserializeDisplay,

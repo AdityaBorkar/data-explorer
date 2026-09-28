@@ -28,15 +28,11 @@ export const DEFAULT_PAGE_SIZE = 20;
  */
 export const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
-/** Refine slice that participates in the data query key. */
+/** Refine slice that participates in the data query key: only the slices the fetcher filters/sorts/groups by. Display-only state (`columnSizing`, `columnVisibility`, `density`, `viewType`) is passed to the `queryBuilder` but deliberately excluded so resizing columns or toggling density never busts the data cache. */
 export interface DataQueryKeyRefine {
-	columnSizing: ColumnSizingState;
-	columnVisibility: ColumnVisibilityState;
 	dataFilters: FilterCondition[];
-	density: Density;
 	grouping: GroupingState;
 	sorting: SortingState;
-	viewType: ViewType;
 }
 
 /** Stable structural hash of the refine state (backed by `stableStringify`). */
@@ -65,9 +61,11 @@ const EMPTY_ITEMS: never[] = [];
 
 /**
  * Infinite data query for the explorer table. The stable hashed key
- * (`dataQueryKey`) covers every refine slice; `pageSize` sets the fetch
- * limit and `debounceFiltersMs` keeps filter keystrokes from refetching
- * per character. Returns `allItems` memoized on `[query.data]`.
+ * (`dataQueryKey`) covers the data-affecting refine slices (filters,
+ * sorting, grouping); display-only state still reaches the `queryBuilder`
+ * but never busts the cache. `pageSize` sets the fetch limit and
+ * `debounceFiltersMs` keeps filter keystrokes from refetching per
+ * character. Returns `allItems` memoized on `[query.data]`.
  *
  * @example
  * ```tsx
@@ -111,13 +109,12 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	} = opts;
 
 	// Debounce filter typing so each keystroke does not mint a new query key.
+	// When debouncing is off there is no intermediate state to sync —
+	// `effectiveFilters` reads `dataFilters` directly.
 	const [debouncedFilters, setDebouncedFilters] =
 		useState<FilterCondition[]>(dataFilters);
 	useEffect(() => {
-		if (debounceFiltersMs <= 0) {
-			setDebouncedFilters(dataFilters);
-			return;
-		}
+		if (debounceFiltersMs <= 0) return;
 		const t = setTimeout(
 			() => setDebouncedFilters(dataFilters),
 			debounceFiltersMs,
@@ -129,23 +126,11 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 
 	const keyRefine: DataQueryKeyRefine = useMemo(
 		() => ({
-			columnSizing,
-			columnVisibility,
 			dataFilters: effectiveFilters,
-			density,
 			grouping,
 			sorting,
-			viewType,
 		}),
-		[
-			columnSizing,
-			columnVisibility,
-			effectiveFilters,
-			density,
-			grouping,
-			sorting,
-			viewType,
-		],
+		[effectiveFilters, grouping, sorting],
 	);
 
 	const query = useInfiniteQuery({
@@ -191,7 +176,6 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	});
 	const allItems = useMemo(
 		() => query.data?.pages.flatMap((p) => p.items) ?? EMPTY_ITEMS,
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[query.data],
 	);
 

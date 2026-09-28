@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { FilterCondition, FilterViewDisplay } from "../../types.ts";
+import { mergeDisplay } from "../display-snapshot.ts";
 import {
 	computeOverrides,
 	conditionsEqual,
 	filterKey,
-	mergeDisplay,
 	mergeFilters,
 } from "./filter-merge.ts";
 

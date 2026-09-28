@@ -52,6 +52,11 @@ export function makeFilterConditionSchema(columnsConfig: ColumnConfig[]) {
 						code: z.ZodIssueCode.custom,
 						message: 'Invalid operator for search (must be "contains")',
 					});
+				} else if (typeof data.value !== "string" || data.value.length === 0) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Search filter requires a non-empty string value",
+					});
 				}
 				return;
 			}

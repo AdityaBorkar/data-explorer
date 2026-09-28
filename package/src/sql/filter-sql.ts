@@ -12,11 +12,10 @@
  * / `excludeAny` use overlap (`&&`).
  */
 
+import type { DataExplorerErrorCode } from "../errors.ts";
 import { DataExplorerError } from "../errors.ts";
-import { filterConditionSchema } from "../features/data-filtering/filter-condition-schema.ts";
+import { makeFilterConditionSchema } from "../features/data-filtering/filter-condition-schema.ts";
 import { groupConditions } from "../features/data-filtering/filter-grouping.ts";
-import { validateFilterValue } from "../features/data-filtering/filter-semantics.ts";
-import { getOperatorsForType } from "../features/data-filtering/operators.ts";
 import type {
 	ColumnConfig,
 	FilterCondition,
@@ -139,68 +138,31 @@ function escapeLikePattern(value: string): string {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
+/**
+ * Single validation entry point: delegates to the column-aware zod
+ * schema (the same contract form-level callers use) and maps the first
+ * issue to a matchable `DataExplorerError` code.
+ */
 function validateConditions(
 	conditions: FilterCondition[],
 	columnMap: Map<string, ColumnConfig>,
 ): void {
+	const schema = makeFilterConditionSchema([...columnMap.values()]);
 	for (const cond of conditions) {
-		const parsed = filterConditionSchema.safeParse(cond);
-		if (!parsed.success) {
-			throw new DataExplorerError(
-				"INVALID_FILTER_VALUE",
-				`Invalid filter condition: ${parsed.error.message}`,
-				{ columnId: cond.columnId },
-			);
-		}
-
-		if (isSearchColumn(cond.columnId)) {
-			if (cond.operator !== "contains") {
-				throw new DataExplorerError(
-					"INVALID_OPERATOR",
-					`Invalid operator "${cond.operator}" for search`,
-					{ columnId: cond.columnId, operator: cond.operator },
-				);
-			}
-			if (typeof cond.value !== "string" || cond.value.length === 0) {
-				throw new DataExplorerError(
-					"INVALID_FILTER_VALUE",
-					"Search filter requires a non-empty string value",
-					{ columnId: cond.columnId },
-				);
-			}
-			continue;
-		}
-
-		const colConfig = columnMap.get(cond.columnId);
-		if (!colConfig) {
-			throw new DataExplorerError(
-				"UNKNOWN_COLUMN",
-				`Unknown column: "${cond.columnId}"`,
-				{ columnId: cond.columnId },
-			);
-		}
-
-		const validOperators =
-			colConfig.operators ?? getOperatorsForType(colConfig.type);
-		if (!validOperators.includes(cond.operator)) {
-			throw new DataExplorerError(
-				"INVALID_OPERATOR",
-				`Invalid operator "${cond.operator}" for column "${cond.columnId}" (type: ${colConfig.type})`,
-				{ columnId: cond.columnId, operator: cond.operator },
-			);
-		}
-
-		const error = validateFilterValue(
-			cond.operator,
-			cond.value,
-			colConfig.type,
-		);
-		if (error) {
-			throw new DataExplorerError("INVALID_FILTER_VALUE", error, {
-				columnId: cond.columnId,
-				operator: cond.operator,
-			});
-		}
+		const parsed = schema.safeParse(cond);
+		if (parsed.success) continue;
+		const message =
+			parsed.error.issues[0]?.message ?? "Invalid filter condition";
+		const code: DataExplorerErrorCode =
+			message === "Unknown column"
+				? "UNKNOWN_COLUMN"
+				: message.startsWith("Invalid operator")
+					? "INVALID_OPERATOR"
+					: "INVALID_FILTER_VALUE";
+		throw new DataExplorerError(code, `Invalid filter condition: ${message}`, {
+			columnId: cond.columnId,
+			...(code === "UNKNOWN_COLUMN" ? {} : { operator: cond.operator }),
+		});
 	}
 }
 

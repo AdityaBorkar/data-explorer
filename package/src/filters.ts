@@ -46,9 +46,7 @@ export interface FilterGroup {
 	id: string;
 }
 
-export function isFilterGroup(
-	item: FilterCondition | FilterGroup,
-): item is FilterGroup {
+export function isFilterGroup(item: unknown): item is FilterGroup {
 	return (
 		typeof item === "object" &&
 		item !== null &&

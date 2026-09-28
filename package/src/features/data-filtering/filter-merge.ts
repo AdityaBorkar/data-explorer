@@ -1,11 +1,4 @@
 import type { FilterCondition } from "../../types.ts";
-import { mergeDisplay } from "../display-snapshot.ts";
-
-/**
- * @deprecated Import from `../display-snapshot.ts` (canonical home).
- * Kept as a shim for one minor.
- */
-export { mergeDisplay };
 
 export function stableStringify(value: unknown): string {
 	if (value === null) return "null";
@@ -46,15 +39,6 @@ function keyedMultiset<T>(
 	return pool;
 }
 
-/** Cache `filterKey` per condition id so merge paths hash each item once. */
-function keyCache(items: FilterCondition[]): Map<string, string> {
-	const cache = new Map<string, string>();
-	for (const item of items) {
-		if (!cache.has(item.id)) cache.set(item.id, filterKey(item));
-	}
-	return cache;
-}
-
 /**
  * Merge by id first, then by structural key with multiset matching so
  * duplicate column+operator conditions are preserved instead of collapsing.
@@ -63,11 +47,10 @@ export function mergeFilters(
 	base: FilterCondition[],
 	overrides: FilterCondition[],
 ): FilterCondition[] {
-	const keys = keyCache([...base, ...overrides]);
 	const baseIds = new Set(base.map((b) => b.id));
 	const structuralPool = keyedMultiset(
 		overrides.filter((o) => !baseIds.has(o.id)),
-		(o) => keys.get(o.id) as string,
+		(o) => filterKey(o),
 	);
 
 	const overridesById = new Map(overrides.map((o) => [o.id, o]));
@@ -78,12 +61,11 @@ export function mergeFilters(
 			consumed.add(byId.id);
 			return byId;
 		}
-		const key = keys.get(b.id) as string;
-		const pool = structuralPool.get(key);
+		const pool = structuralPool.get(filterKey(b));
 		const structural = pool?.shift();
 		if (structural) {
 			consumed.add(structural.id);
-			if (pool?.length === 0) structuralPool.delete(key);
+			if (pool?.length === 0) structuralPool.delete(filterKey(b));
 			return structural;
 		}
 		return b;

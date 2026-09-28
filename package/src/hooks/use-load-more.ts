@@ -18,10 +18,8 @@ export function useLoadMore(
 
 	const triggerRef = useCallback(
 		(el: Element | null) => {
-			if (observerRef.current) {
-				observerRef.current.disconnect();
-				observerRef.current = null;
-			}
+			observerRef.current?.disconnect();
+			observerRef.current = null;
 
 			if (!el) return;
 
