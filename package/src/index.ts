@@ -4,9 +4,10 @@
  * Explicit allow-list (no `export *`): every name here is the stable
  * contract — renames elsewhere don't break consumers, and bundlers can
  * tree-shake cleanly. Canonical home per domain:
- * columns → `./columns.ts`, filters → `./filters.ts`, display →
- * `./features/display-snapshot.ts`, serialization →
- * `./features/data-filtering/filter-utils.ts`.
+ * columns → `./columns.ts`, filters → `./filters.ts`, display +
+ * share-link codec → `./features/display-snapshot.ts`, filter
+ * serialization → `./features/data-filtering/filter-utils.ts`, query keys
+ * → `./query.ts` (re-exported through `./hooks/use-data-query.ts`).
  * (`types.ts` is the internal composition root; only the names
  * re-exported here are public.)
  */
@@ -21,6 +22,7 @@ export {
 	extractColumnConfigs,
 	extractColumnConfigsDetailed,
 	isSearchColumn,
+	isSearchColumnId,
 	SEARCH_COLUMN_ID,
 } from "./columns.ts";
 // --- Context + provider shell. ---
@@ -49,32 +51,17 @@ export {
 	editorKind,
 	type FilterEditorKind,
 	formatFilterValue,
-	isSearchDraft,
+	quickAddCondition,
 } from "./features/data-filtering/filter-draft.ts";
 export { groupConditions } from "./features/data-filtering/filter-grouping.ts";
 export {
-	computeOverrides,
-	conditionsEqual,
-	filterKey,
-	mergeFilters,
-	stableStringify,
-} from "./features/data-filtering/filter-merge.ts";
-export {
 	type CoercedFilterValue,
 	coerceFilterValue,
-	isNullaryOperator,
-	isRangeOperator,
-	isValidOperatorValue,
-	requiresArrayValue,
-	requiresValue,
 	validateFilterValue,
-	validateOperatorValue,
 } from "./features/data-filtering/filter-semantics.ts";
 export {
-	deserializeDisplay,
 	deserializeFilters,
 	FILTER_SERIALIZATION_VERSION,
-	serializeDisplay,
 	serializeFilters,
 } from "./features/data-filtering/filter-utils.ts";
 export {
@@ -91,11 +78,13 @@ export {
 	useInlineFilterFlow,
 } from "./features/data-filtering/use-inline-filter-flow.ts";
 export { displayMetaFeature } from "./features/display-meta/displayMetaFeature.ts";
-// --- Display snapshots (canonical home for `mergeDisplay`). ---
+// --- Display snapshots (canonical home for `mergeDisplay` + share-link codec). ---
 export {
 	applyDisplaySnapshot,
 	DENSITIES,
+	deserializeDisplay,
 	mergeDisplay,
+	serializeDisplay,
 	toDisplaySnapshot,
 	toInitialColumnVisibility,
 	toInitialGrouping,
@@ -120,7 +109,7 @@ export {
 	DEFAULT_PAGE_SIZE,
 	dataQueryKey,
 	hashRefine,
-	PAGE_SIZE,
+	stableStringify,
 	useDataQuery,
 } from "./hooks/use-data-query.ts";
 export { useLoadMore } from "./hooks/use-load-more.ts";
@@ -156,7 +145,6 @@ export {
 export type {
 	BoardMoveArgs,
 	BoardMoveHandler,
-	DataExplorerContextType,
 	DataExplorerContextValue,
 	DataExplorerViewState,
 	TableFeatures,

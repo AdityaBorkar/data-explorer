@@ -13,7 +13,6 @@
  */
 
 import { DataExplorerError } from "../errors.ts";
-import { filterConditionSchema } from "../features/data-filtering/filter-condition-schema.ts";
 import { groupConditions } from "../features/data-filtering/filter-grouping.ts";
 import { validateFilterValue } from "../features/data-filtering/filter-semantics.ts";
 import { getOperatorsForType } from "../features/data-filtering/operators.ts";
@@ -60,56 +59,53 @@ function ansiQuote(name: string): string {
 	return `"${name.replace(/"/g, '""')}"`;
 }
 
-function postgresDialect(caseSensitive: boolean): DialectImpl {
-	return {
-		assertArraySupported: () => {},
-		buildLike: (col, param, not) => {
-			if (!caseSensitive) {
-				const keyword = not ? "NOT ILIKE" : "ILIKE";
-				return `${col} ${keyword} ${param} ESCAPE '\\'`;
-			}
-			const keyword = not ? "NOT LIKE" : "LIKE";
-			return `${col} ${keyword} ${param} ESCAPE '\\'`;
-		},
-		quoteIdent: ansiQuote,
-	};
+function mysqlQuote(name: string): string {
+	return `\`${name.replace(/`/g, "``")}\``;
 }
 
-function genericDialect(
+function quoteIdent(name: string, dialect: SqlDialect): string {
+	return dialect === "mysql" ? mysqlQuote(name) : ansiQuote(name);
+}
+
+function buildLikeFrag(
+	col: string,
+	param: string,
+	not: boolean,
 	dialect: SqlDialect,
 	caseSensitive: boolean,
-	quote: (name: string) => string,
-): DialectImpl {
-	return {
-		assertArraySupported: (operator) => {
-			throw new DataExplorerError(
-				"UNSUPPORTED_DIALECT",
-				`Operator "${operator}" needs Postgres text[] containment; no equivalent exists for dialect "${dialect}".`,
-				{ dialect, operator },
-			);
-		},
-		buildLike: (col, param, not) => {
-			const keyword = not ? "NOT LIKE" : "LIKE";
-			if (caseSensitive) return `${col} ${keyword} ${param} ESCAPE '\\'`;
-			return `LOWER(${col}) ${keyword} LOWER(${param}) ESCAPE '\\'`;
-		},
-		quoteIdent: quote,
-	};
+): string {
+	const keyword = not ? "NOT LIKE" : "LIKE";
+	if (dialect === "postgres" && caseSensitive) {
+		return `${col} ${keyword} ${param} ESCAPE '\\'`;
+	}
+	if (dialect === "postgres") {
+		const ilike = not ? "NOT ILIKE" : "ILIKE";
+		return `${col} ${ilike} ${param} ESCAPE '\\'`;
+	}
+	if (caseSensitive) return `${col} ${keyword} ${param} ESCAPE '\\'`;
+	return `LOWER(${col}) ${keyword} LOWER(${param}) ESCAPE '\\'`;
+}
+
+function assertArraySupported(operator: string, dialect: SqlDialect): void {
+	if (dialect !== "postgres") {
+		throw new DataExplorerError(
+			"UNSUPPORTED_DIALECT",
+			`Operator "${operator}" needs Postgres text[] containment; no equivalent exists for dialect "${dialect}".`,
+			{ dialect, operator },
+		);
+	}
 }
 
 function resolveDialect(
 	dialect: SqlDialect,
 	caseSensitive: boolean,
 ): DialectImpl {
-	if (dialect === "postgres") return postgresDialect(caseSensitive);
-	if (dialect === "mysql") {
-		return genericDialect(
-			dialect,
-			caseSensitive,
-			(name) => `\`${name.replace(/`/g, "``")}\``,
-		);
-	}
-	return genericDialect(dialect, caseSensitive, ansiQuote);
+	return {
+		assertArraySupported: (operator) => assertArraySupported(operator, dialect),
+		buildLike: (col, param, not) =>
+			buildLikeFrag(col, param, not, dialect, caseSensitive),
+		quoteIdent: (name) => quoteIdent(name, dialect),
+	};
 }
 
 interface BuildContext {
@@ -139,25 +135,36 @@ function escapeLikePattern(value: string): string {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
+/**
+ * Historical aliases, canonicalized once before SQL generation so the
+ * operator table only carries the canonical names. Accepted everywhere
+ * (stored filters, zod schema) but never branched on downstream.
+ */
+const OPERATOR_ALIASES: Partial<Record<FilterOperator, FilterOperator>> = {
+	exclude: "excludeAll",
+	include: "includeAll",
+};
+
+function canonicalOperator(operator: FilterOperator): FilterOperator {
+	return OPERATOR_ALIASES[operator] ?? operator;
+}
+
+/**
+ * Single validation entry point with explicit matchable codes.
+ * Mirrors the column-aware zod schema (`makeFilterConditionSchema`, the
+ * contract form-level callers use) but branches on structure — never on
+ * zod message text — so copy edits to messages can't re-code SQL errors.
+ */
 function validateConditions(
 	conditions: FilterCondition[],
 	columnMap: Map<string, ColumnConfig>,
 ): void {
 	for (const cond of conditions) {
-		const parsed = filterConditionSchema.safeParse(cond);
-		if (!parsed.success) {
-			throw new DataExplorerError(
-				"INVALID_FILTER_VALUE",
-				`Invalid filter condition: ${parsed.error.message}`,
-				{ columnId: cond.columnId },
-			);
-		}
-
 		if (isSearchColumn(cond.columnId)) {
 			if (cond.operator !== "contains") {
 				throw new DataExplorerError(
 					"INVALID_OPERATOR",
-					`Invalid operator "${cond.operator}" for search`,
+					`Invalid operator "${cond.operator}" for search (must be "contains")`,
 					{ columnId: cond.columnId, operator: cond.operator },
 				);
 			}
@@ -165,41 +172,41 @@ function validateConditions(
 				throw new DataExplorerError(
 					"INVALID_FILTER_VALUE",
 					"Search filter requires a non-empty string value",
-					{ columnId: cond.columnId },
+					{ columnId: cond.columnId, operator: cond.operator },
 				);
 			}
 			continue;
 		}
-
-		const colConfig = columnMap.get(cond.columnId);
-		if (!colConfig) {
+		const col = columnMap.get(cond.columnId);
+		if (!col) {
 			throw new DataExplorerError(
 				"UNKNOWN_COLUMN",
-				`Unknown column: "${cond.columnId}"`,
+				`Invalid filter condition: Unknown column "${cond.columnId}"`,
 				{ columnId: cond.columnId },
 			);
 		}
-
-		const validOperators =
-			colConfig.operators ?? getOperatorsForType(colConfig.type);
-		if (!validOperators.includes(cond.operator)) {
+		const valid = col.operators ?? getOperatorsForType(col.type);
+		if (
+			!valid.includes(canonicalOperator(cond.operator)) &&
+			!valid.includes(cond.operator)
+		) {
 			throw new DataExplorerError(
 				"INVALID_OPERATOR",
-				`Invalid operator "${cond.operator}" for column "${cond.columnId}" (type: ${colConfig.type})`,
+				`Invalid filter condition: Invalid operator "${cond.operator}" for column "${cond.columnId}"`,
 				{ columnId: cond.columnId, operator: cond.operator },
 			);
 		}
-
 		const error = validateFilterValue(
-			cond.operator,
+			canonicalOperator(cond.operator),
 			cond.value,
-			colConfig.type,
+			col.type,
 		);
 		if (error) {
-			throw new DataExplorerError("INVALID_FILTER_VALUE", error, {
-				columnId: cond.columnId,
-				operator: cond.operator,
-			});
+			throw new DataExplorerError(
+				"INVALID_FILTER_VALUE",
+				`Invalid filter condition: ${error}`,
+				{ columnId: cond.columnId, operator: cond.operator },
+			);
 		}
 	}
 }
@@ -260,7 +267,7 @@ function comparisonBuilder(op: string): SqlBuilder {
 }
 
 const OPERATOR_SQL_BUILDERS: Record<
-	Exclude<FilterOperator, "isEmpty" | "isNotEmpty">,
+	Exclude<FilterOperator, "isEmpty" | "isNotEmpty" | "include" | "exclude">,
 	SqlBuilder
 > = {
 	between: (col, value, ctx) => betweenOp(col, value, ctx, false),
@@ -268,7 +275,6 @@ const OPERATOR_SQL_BUILDERS: Record<
 		likeOp(col, value, ctx, (v) => `%${v}%`, false),
 	endsWith: (col, value, ctx) => likeOp(col, value, ctx, (v) => `%${v}`, false),
 	eq: comparisonBuilder("="),
-	exclude: (col, value, ctx) => notArrayOp(col, value, ctx, "@>", "exclude"),
 	excludeAll: (col, value, ctx) =>
 		notArrayOp(col, value, ctx, "@>", "excludeAll"),
 	excludeAny: (col, value, ctx) =>
@@ -279,7 +285,6 @@ const OPERATOR_SQL_BUILDERS: Record<
 		if (!Array.isArray(value) || value.length === 0) return "(1=0)";
 		return `${col} IN (${arrayPlaceholders(value, ctx)})`;
 	},
-	include: (col, value, ctx) => arrayOp(col, value, ctx, "@>", "include"),
 	includeAll: (col, value, ctx) => arrayOp(col, value, ctx, "@>", "includeAll"),
 	includeAny: (col, value, ctx) => arrayOp(col, value, ctx, "&&", "includeAny"),
 	lt: comparisonBuilder("<"),
@@ -339,7 +344,10 @@ function buildConditionSql(
 			: `${col} IS NOT NULL`;
 	}
 
-	const builder = OPERATOR_SQL_BUILDERS[condition.operator];
+	const canonical = canonicalOperator(condition.operator);
+	const builder: SqlBuilder | undefined = (
+		OPERATOR_SQL_BUILDERS as Partial<Record<FilterOperator, SqlBuilder>>
+	)[canonical];
 	if (!builder) {
 		throw new DataExplorerError(
 			"INVALID_OPERATOR",
@@ -361,25 +369,30 @@ function buildSearchSql(
 		(c) => c.searchable && !isSearchColumn(c.id),
 	);
 
-	const conditions = searchableCols.map((colConfig) => {
-		const columnName = columnMapping[colConfig.id];
-		if (!columnName) {
-			throw new DataExplorerError(
-				"MISSING_MAPPING",
-				`Missing column mapping for "${colConfig.id}"`,
-				{ columnId: colConfig.id },
-			);
-		}
-		const col = colRef(columnName, tableAlias, ctx.impl);
-		return likeOp(col, searchTerm, ctx, (v) => `%${v}%`, false);
-	});
-
-	if (conditions.length === 0) {
+	if (searchableCols.length === 0) {
 		throw new DataExplorerError(
 			"NO_SEARCHABLE_COLUMN",
 			"Search filter requires at least one searchable column",
 		);
 	}
+
+	// Reuse the regular `contains` path per column so mapping, quoting, and
+	// LIKE rendering stay in one place. Synthetic conditions can't recurse:
+	// their `columnId` is never `_search`.
+	const conditions = searchableCols.map((colConfig) =>
+		buildConditionSql(
+			{
+				columnId: colConfig.id,
+				combinator: "and",
+				id: `search-${colConfig.id}`,
+				operator: "contains",
+				value: searchTerm,
+			},
+			columnMapping,
+			ctx,
+			tableAlias,
+		),
+	);
 
 	return conditions.length === 1
 		? (conditions[0] as string)

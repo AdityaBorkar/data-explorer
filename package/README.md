@@ -54,7 +54,9 @@ const query = (opts: RefineOptions): UseQueryOptions<ListQueryResult<Task>> => (
 `DataExplorerError("INVALID_QUERY_OPTIONS")`. Paging: `pageSize` prop
 (default `DEFAULT_PAGE_SIZE`, 20), `staleTime` / `debounceFiltersMs`
 passthroughs. Cache keys: `dataQueryKey(domain, refine)`,
-`viewQueryKey(domain)`.
+`viewQueryKey(domain)`. Only data-affecting slices (`dataFilters`,
+`sorting`, `grouping`) enter the data key — display-only state never
+invalidates cached pages.
 
 ## `buildFilterWhere` — Postgres + SQLite
 

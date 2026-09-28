@@ -1,4 +1,3 @@
-import { DataExplorerError } from "../../errors.ts";
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 import { getOperatorArity } from "./operators.ts";
 
@@ -7,29 +6,25 @@ import { getOperatorArity } from "./operators.ts";
  * "is this operator + value legal, and what does committing it mean?".
  *
  * `operators.ts` owns the operator catalog (which operators exist per
- * column type); this module owns the policy over that catalog (arity
- * predicates, validation, commit coercion). All callers — the inline
- * flow, chips, the zod schema, the SQL builder — route through here so
- * operator/value rules concentrate behind one seam.
+ * column type); this module owns the policy over that catalog
+ * (validation, commit coercion). Arity questions ("is this nullary?",
+ * "should I render a value input?") go directly to
+ * {@link getOperatorArity} so there is one way to ask. All callers —
+ * the inline flow, chips, the zod schema, the SQL builder — route
+ * through here so operator/value rules concentrate behind one seam.
  */
 
-/** Arity check ("is this nullary?"). For UI gating use {@link requiresValue}. */
-export function isNullaryOperator(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) === "nullary";
-}
-
-export function isRangeOperator(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) === "range";
-}
-
-export function requiresArrayValue(operator: FilterOperator): boolean {
-	const arity = getOperatorArity(operator);
-	return arity === "set" || arity === "array";
-}
-
-/** UI gating ("should I render a value input?"). For arity checks use {@link isNullaryOperator}; for full dispatch use `getOperatorArity`. */
-export function requiresValue(operator: FilterOperator): boolean {
-	return getOperatorArity(operator) !== "nullary";
+/**
+ * Shared blank check for valued operators: `null`, `undefined`, empty
+ * strings (including whitespace-only), and empty arrays all mean "no value
+ * yet". Single source so `validateFilterValue` and `coerceFilterValue`
+ * can't disagree about what commits.
+ */
+function isBlankValue(value: unknown): boolean {
+	if (value === undefined || value === null) return true;
+	if (typeof value === "string") return value.trim() === "";
+	if (Array.isArray(value)) return value.length === 0;
+	return false;
 }
 
 export function validateFilterValue(
@@ -37,7 +32,7 @@ export function validateFilterValue(
 	value: unknown,
 	type?: ColumnDataType,
 ): string | undefined {
-	if (isNullaryOperator(operator)) {
+	if (getOperatorArity(operator) === "nullary") {
 		return value === null
 			? undefined
 			: `Operator "${operator}" requires null value`;
@@ -56,35 +51,17 @@ export function validateFilterValue(
 		return undefined;
 	}
 
-	if (requiresArrayValue(operator)) {
+	if (arity === "set" || arity === "array") {
+		// Empty arrays are legal here (SQL renders `IN ()` as `(1=0)`);
+		// the commit path still blocks them via `coerceFilterValue`.
 		return Array.isArray(value)
 			? undefined
 			: `Operator "${operator}" requires string[] value`;
 	}
 
-	return value !== null && value !== undefined && value !== ""
+	return !isBlankValue(value)
 		? undefined
 		: `Operator "${operator}" requires a non-null value`;
-}
-
-export function isValidOperatorValue(
-	operator: FilterOperator,
-	value: unknown,
-	type?: ColumnDataType,
-): boolean {
-	return validateFilterValue(operator, value, type) === undefined;
-}
-
-export function validateOperatorValue(
-	operator: FilterOperator,
-	value: unknown,
-	type?: ColumnDataType,
-): void {
-	const error = validateFilterValue(operator, value, type);
-	if (error)
-		throw new DataExplorerError("INVALID_FILTER_VALUE", error, {
-			operator,
-		});
 }
 
 export interface CoercedFilterValue {
@@ -101,16 +78,9 @@ export function coerceFilterValue(
 	operator: FilterOperator,
 	pendingValue: unknown,
 ): CoercedFilterValue {
-	if (isNullaryOperator(operator)) return { hasValue: true, value: null };
-	if (
-		pendingValue === undefined ||
-		pendingValue === null ||
-		pendingValue === "" ||
-		(Array.isArray(pendingValue) && pendingValue.length === 0)
-	) {
-		return { hasValue: false, value: pendingValue };
-	}
-	if (typeof pendingValue === "string" && pendingValue.trim() === "") {
+	if (getOperatorArity(operator) === "nullary")
+		return { hasValue: true, value: null };
+	if (isBlankValue(pendingValue)) {
 		return { hasValue: false, value: pendingValue };
 	}
 	return { hasValue: true, value: pendingValue };

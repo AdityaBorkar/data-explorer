@@ -12,11 +12,6 @@ export interface SelectionState {
 	clearSelection: () => void;
 	/** Row-level membership check for `React.memo` rows (stable callback). */
 	isSelected: (id: string) => boolean;
-	/**
-	 * Select every loaded row (pagination scope: only rows already fetched).
-	 * @deprecated Use {@link SelectionState.selectLoadedRows} — same behavior, honest name.
-	 */
-	selectAll: () => void;
 	/** Number of selected rows — prefer over `selectedRowIds.size` in memoized rows. */
 	selectedCount: number;
 	/** Selected row ids snapshot. Memoized on selection state only. */
@@ -91,7 +86,6 @@ export function useSelectionContext(): SelectionState {
 			allSelected: allRowIds.length > 0 && selectedCount === allRowIds.length,
 			clearSelection,
 			isSelected,
-			selectAll: selectLoadedRows,
 			selectedCount,
 			selectedRowIds,
 			selectLoadedRows,

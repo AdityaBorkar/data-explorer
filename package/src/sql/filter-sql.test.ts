@@ -168,6 +168,21 @@ describe("buildFilterWhere typed errors", () => {
 		}
 	});
 
+	it("canonicalizes include/exclude aliases", () => {
+		const withAlias = buildFilterWhere(
+			[cond("tags", "include", ["a"])],
+			COLUMNS,
+			MAPPING,
+		);
+		const canonical = buildFilterWhere(
+			[cond("tags", "includeAll", ["a"])],
+			COLUMNS,
+			MAPPING,
+		);
+		expect(withAlias.sql).toBe(canonical.sql);
+		expect(withAlias.params).toEqual(canonical.params);
+	});
+
 	it("requires searchable columns for _search", () => {
 		const nonSearchable: ColumnConfig[] = [
 			{ displayName: "N", id: "estimate", type: "number" },

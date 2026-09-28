@@ -12,10 +12,20 @@ import type {
 import { useEffect, useMemo, useState } from "react";
 
 import { DataExplorerError } from "../errors.ts";
-import { stableStringify } from "../features/data-filtering/filter-merge.ts";
 import type { FilterCondition } from "../filters.ts";
-import type { ListQueryResult, RefineOptions } from "../query.ts";
+import {
+	type DataQueryKeyRefine,
+	dataQueryKey,
+	type ListQueryResult,
+	type RefineOptions,
+} from "../query.ts";
 import type { Density, ViewType } from "../views.ts";
+
+// Re-exported from the canonical home (`../query.ts`) so existing
+// `import { dataQueryKey } from "@adistack/data-explorer"` call sites keep
+// working while the implementation lives with the query types.
+export type { DataQueryKeyRefine } from "../query.ts";
+export { dataQueryKey, hashRefine, stableStringify } from "../query.ts";
 
 /**
  * Default page size when `Provider` gets no `pageSize`.
@@ -24,37 +34,22 @@ import type { Density, ViewType } from "../views.ts";
 export const DEFAULT_PAGE_SIZE = 20;
 
 /**
- * @deprecated Use {@link DEFAULT_PAGE_SIZE}. Kept as an alias for one minor.
+ * Debounced copy of the filter list. Always mounted (hooks can't be
+ * conditional) but inert when `debounceMs <= 0` — callers must read the
+ * return value only when debouncing, and read `dataFilters` directly
+ * otherwise, so the stale initial state never leaks onto the fast path.
  */
-export const PAGE_SIZE = DEFAULT_PAGE_SIZE;
-
-/** Refine slice that participates in the data query key. */
-export interface DataQueryKeyRefine {
-	columnSizing: ColumnSizingState;
-	columnVisibility: ColumnVisibilityState;
-	dataFilters: FilterCondition[];
-	density: Density;
-	grouping: GroupingState;
-	sorting: SortingState;
-	viewType: ViewType;
-}
-
-/** Stable structural hash of the refine state (backed by `stableStringify`). */
-export function hashRefine(refine: DataQueryKeyRefine): string {
-	return stableStringify(refine);
-}
-
-/**
- * Cache-key factory for the infinite data query. Prefer this over inline
- * `["data-explorer", domain]` arrays so invalidations stay in sync.
- */
-export function dataQueryKey(
-	domain: string,
-	refine?: DataQueryKeyRefine,
-): readonly unknown[] {
-	return refine === undefined
-		? (["data-explorer", domain] as const)
-		: (["data-explorer", domain, hashRefine(refine)] as const);
+function useDebouncedFilters(
+	dataFilters: FilterCondition[],
+	debounceMs: number,
+): FilterCondition[] {
+	const [debounced, setDebounced] = useState<FilterCondition[]>(dataFilters);
+	useEffect(() => {
+		if (debounceMs <= 0) return;
+		const t = setTimeout(() => setDebounced(dataFilters), debounceMs);
+		return () => clearTimeout(t);
+	}, [dataFilters, debounceMs]);
+	return debounced;
 }
 
 /**
@@ -65,9 +60,11 @@ const EMPTY_ITEMS: never[] = [];
 
 /**
  * Infinite data query for the explorer table. The stable hashed key
- * (`dataQueryKey`) covers every refine slice; `pageSize` sets the fetch
- * limit and `debounceFiltersMs` keeps filter keystrokes from refetching
- * per character. Returns `allItems` memoized on `[query.data]`.
+ * (`dataQueryKey`) covers the data-affecting refine slices (filters,
+ * sorting, grouping); display-only state still reaches the `queryBuilder`
+ * but never busts the cache. `pageSize` sets the fetch limit and
+ * `debounceFiltersMs` keeps filter keystrokes from refetching per
+ * character. Returns `allItems` memoized on `[query.data]`.
  *
  * @example
  * ```tsx
@@ -111,41 +108,19 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	} = opts;
 
 	// Debounce filter typing so each keystroke does not mint a new query key.
-	const [debouncedFilters, setDebouncedFilters] =
-		useState<FilterCondition[]>(dataFilters);
-	useEffect(() => {
-		if (debounceFiltersMs <= 0) {
-			setDebouncedFilters(dataFilters);
-			return;
-		}
-		const t = setTimeout(
-			() => setDebouncedFilters(dataFilters),
-			debounceFiltersMs,
-		);
-		return () => clearTimeout(t);
-	}, [dataFilters, debounceFiltersMs]);
+	// The helper is inert when debouncing is off — `effectiveFilters` reads
+	// `dataFilters` directly so the helper's stale initial state never leaks.
+	const debouncedFilters = useDebouncedFilters(dataFilters, debounceFiltersMs);
 	const effectiveFilters =
 		debounceFiltersMs <= 0 ? dataFilters : debouncedFilters;
 
 	const keyRefine: DataQueryKeyRefine = useMemo(
 		() => ({
-			columnSizing,
-			columnVisibility,
 			dataFilters: effectiveFilters,
-			density,
 			grouping,
 			sorting,
-			viewType,
 		}),
-		[
-			columnSizing,
-			columnVisibility,
-			effectiveFilters,
-			density,
-			grouping,
-			sorting,
-			viewType,
-		],
+		[effectiveFilters, grouping, sorting],
 	);
 
 	const query = useInfiniteQuery({
@@ -172,17 +147,19 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 				viewType,
 			});
 			// Fail fast on the builder contract before any network work.
+			// The wrapper owns the cache key (`dataQueryKey` below): the
+			// builder's `queryKey` is still required by the contract (standalone
+			// use, devtools display) but the fetch always runs under the outer
+			// key so cache and network never diverge.
 			if (typeof built.queryFn !== "function" || !built.queryKey) {
 				throw new DataExplorerError(
 					"INVALID_QUERY_OPTIONS",
 					"query() must return { queryKey, queryFn }.",
 				);
 			}
-			// Honor the builder's key when present; otherwise fall back to the
-			// stable outer key so structurally identical refines share cache.
-			const queryKey = built.queryKey ?? dataQueryKey(domain, keyRefine);
+			const outerKey = dataQueryKey(domain, keyRefine);
 			return built.queryFn({
-				queryKey,
+				queryKey: outerKey,
 				signal,
 			} as QueryFunctionContext) as Promise<ListQueryResult<TItem>>;
 		},
@@ -191,7 +168,6 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	});
 	const allItems = useMemo(
 		() => query.data?.pages.flatMap((p) => p.items) ?? EMPTY_ITEMS,
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[query.data],
 	);
 

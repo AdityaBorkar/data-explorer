@@ -1,15 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-	coerceFilterValue,
-	isNullaryOperator,
-	isRangeOperator,
-	isValidOperatorValue,
-	requiresArrayValue,
-	requiresValue,
-	validateFilterValue,
-	validateOperatorValue,
-} from "./filter-semantics.ts";
+import { coerceFilterValue, validateFilterValue } from "./filter-semantics.ts";
+import { getOperatorArity } from "./operators.ts";
 
 describe("validateFilterValue", () => {
 	it("requires null for nullary operators", () => {
@@ -47,24 +39,20 @@ describe("validateFilterValue", () => {
 	});
 });
 
-describe("predicates", () => {
-	it("classifies arity", () => {
-		expect(isNullaryOperator("isEmpty")).toBe(true);
-		expect(isNullaryOperator("eq")).toBe(false);
-		expect(isRangeOperator("between")).toBe(true);
-		expect(isRangeOperator("eq")).toBe(false);
-		expect(requiresArrayValue("in")).toBe(true);
-		expect(requiresArrayValue("includeAll")).toBe(true);
-		expect(requiresArrayValue("eq")).toBe(false);
-		expect(requiresValue("isEmpty")).toBe(false);
-		expect(requiresValue("eq")).toBe(true);
+describe("getOperatorArity", () => {
+	it("classifies nullary, range, set/array, and single operators", () => {
+		expect(getOperatorArity("isEmpty")).toBe("nullary");
+		expect(getOperatorArity("eq")).toBe("single");
+		expect(getOperatorArity("between")).toBe("range");
+		expect(getOperatorArity("in")).toBe("set");
+		expect(getOperatorArity("includeAll")).toBe("array");
 	});
 
-	it("validates boolean-style checks", () => {
-		expect(isValidOperatorValue("eq", "x")).toBe(true);
-		expect(isValidOperatorValue("eq", "")).toBe(false);
-		expect(() => validateOperatorValue("eq", "")).toThrow();
-		expect(() => validateOperatorValue("eq", "x")).not.toThrow();
+	it("answers the former predicate questions through one seam", () => {
+		expect(getOperatorArity("eq") !== "nullary").toBe(true);
+		expect(getOperatorArity("isEmpty") !== "nullary").toBe(false);
+		expect(validateFilterValue("eq", "x") === undefined).toBe(true);
+		expect(validateFilterValue("eq", "") === undefined).toBe(false);
 	});
 });
 

@@ -1,12 +1,26 @@
 import type { FilterCondition, FilterGroup } from "../../types.ts";
 
+/**
+ * Bounded deterministic group id: a short hash of the member ids so ids
+ * stay stable across renders without growing with the filter count.
+ */
+function hashIds(ids: string[]): string {
+	let hash = 5381;
+	for (const id of ids) {
+		for (let i = 0; i < id.length; i++) {
+			hash = (hash * 33 + id.charCodeAt(i)) | 0;
+		}
+		hash = (hash * 33 + 31) | 0;
+	}
+	return (hash >>> 0).toString(36);
+}
+
 function stableGroupId(
 	combinator: "and" | "or",
 	members: FilterCondition[],
 	segment: number,
 ): string {
-	const fingerprint = members.map((c) => c.id).join("+");
-	return `group-${combinator}-${segment}-${members.length}-${fingerprint}`;
+	return `group-${combinator}-${segment}-${members.length}-${hashIds(members.map((c) => c.id))}`;
 }
 
 /**
@@ -31,17 +45,13 @@ export function groupConditions(conditions: FilterCondition[]): FilterGroup {
 	}
 
 	if (segments.length === 1) {
+		// A single segment means no `or` combinator was seen (each `or`
+		// starts a new segment), so the root is always `and`.
 		const only = segments[0] as FilterCondition[];
-		const root: "and" | "or" =
-			conditions.length === 1
-				? "and"
-				: conditions.slice(1).every((c) => c.combinator === "or")
-					? "or"
-					: "and";
 		return {
-			combinator: root,
+			combinator: "and",
 			conditions: [...only],
-			id: stableGroupId(root, only, 0),
+			id: stableGroupId("and", only, 0),
 		};
 	}
 

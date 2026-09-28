@@ -1,10 +1,8 @@
 import type { ColumnDataType, FilterOperator } from "../../types.ts";
 
 /**
- * Which predicate to use:
- * - UI gating ("should I render a value input?") → {@link requiresValue}
- * - arity checks ("is this nullary?") → {@link isNullaryOperator}
- * - full dispatch → {@link getOperatorArity}
+ * Which predicate to use: arity questions ("is this nullary?", "should I
+ * render a value input?") go to {@link getOperatorArity} directly.
  */
 export type OperatorArity = "nullary" | "single" | "range" | "set" | "array";
 
@@ -14,109 +12,123 @@ interface OperatorDef {
 	label: string;
 }
 
-const OPERATORS: Record<ColumnDataType, OperatorDef[]> = {
-	boolean: [
-		{ arity: "single", key: "eq", label: "is" },
-		{ arity: "single", key: "neq", label: "is not" },
-	],
+/**
+ * Canonical operator definitions: arity + label live here exactly once.
+ * Per-type lists below reference these keys, so shared operators (`eq`,
+ * `neq`) can't silently change meaning when a per-type list is reordered.
+ */
+const OPERATOR_DEFS: Record<FilterOperator, OperatorDef> = {
+	between: { arity: "range", key: "between", label: "is between" },
+	contains: { arity: "single", key: "contains", label: "contains" },
+	endsWith: { arity: "single", key: "endsWith", label: "ends with" },
+	eq: { arity: "single", key: "eq", label: "is" },
+	exclude: { arity: "array", key: "exclude", label: "excludes" },
+	excludeAll: { arity: "array", key: "excludeAll", label: "excludes if all" },
+	excludeAny: {
+		arity: "array",
+		key: "excludeAny",
+		label: "excludes if any of",
+	},
+	gt: { arity: "single", key: "gt", label: "is after" },
+	gte: {
+		arity: "single",
+		key: "gte",
+		label: "is on or after",
+	},
+	in: { arity: "set", key: "in", label: "is any of" },
+	include: { arity: "array", key: "include", label: "includes" },
+	includeAll: { arity: "array", key: "includeAll", label: "includes all of" },
+	includeAny: { arity: "array", key: "includeAny", label: "includes any of" },
+	isEmpty: { arity: "nullary", key: "isEmpty", label: "is empty" },
+	isNotEmpty: { arity: "nullary", key: "isNotEmpty", label: "is not empty" },
+	lt: { arity: "single", key: "lt", label: "is before" },
+	lte: { arity: "single", key: "lte", label: "is on or before" },
+	neq: { arity: "single", key: "neq", label: "is not" },
+	notBetween: { arity: "range", key: "notBetween", label: "is not between" },
+	notContains: {
+		arity: "single",
+		key: "notContains",
+		label: "does not contain",
+	},
+	notIn: { arity: "set", key: "notIn", label: "is none of" },
+	startsWith: { arity: "single", key: "startsWith", label: "starts with" },
+};
+
+/** Operators available per column type (references into `OPERATOR_DEFS`). */
+const OPERATORS: Record<ColumnDataType, FilterOperator[]> = {
+	boolean: ["eq", "neq"],
 	date: [
-		{ arity: "single", key: "eq", label: "is" },
-		{ arity: "single", key: "neq", label: "is not" },
-		{ arity: "single", key: "gt", label: "is after" },
-		{ arity: "single", key: "gte", label: "is on or after" },
-		{ arity: "single", key: "lt", label: "is before" },
-		{ arity: "single", key: "lte", label: "is on or before" },
-		{ arity: "range", key: "between", label: "is between" },
-		{ arity: "range", key: "notBetween", label: "is not between" },
-		{
-			arity: "nullary",
-			key: "isEmpty",
-			label: "is empty",
-		},
-		{
-			arity: "nullary",
-			key: "isNotEmpty",
-			label: "is not empty",
-		},
+		"eq",
+		"neq",
+		"gt",
+		"gte",
+		"lt",
+		"lte",
+		"between",
+		"notBetween",
+		"isEmpty",
+		"isNotEmpty",
 	],
-	enum: [
-		{ arity: "single", key: "eq", label: "is" },
-		{ arity: "single", key: "neq", label: "is not" },
-		{ arity: "set", key: "in", label: "is any of" },
-		{ arity: "set", key: "notIn", label: "is none of" },
-	],
+	enum: ["eq", "neq", "in", "notIn"],
 	multiEnum: [
-		{ arity: "array", key: "include", label: "includes" },
-		{ arity: "array", key: "exclude", label: "excludes" },
-		{ arity: "array", key: "includeAny", label: "includes any of" },
-		{ arity: "array", key: "includeAll", label: "includes all of" },
-		{ arity: "array", key: "excludeAny", label: "excludes if any of" },
-		{ arity: "array", key: "excludeAll", label: "excludes if all" },
+		"include",
+		"exclude",
+		"includeAny",
+		"includeAll",
+		"excludeAny",
+		"excludeAll",
 	],
 	number: [
-		{ arity: "single", key: "eq", label: "is" },
-		{ arity: "single", key: "neq", label: "is not" },
-		{ arity: "single", key: "gt", label: "is greater than" },
-		{ arity: "single", key: "gte", label: "is greater than or equal to" },
-		{ arity: "single", key: "lt", label: "is less than" },
-		{ arity: "single", key: "lte", label: "is less than or equal to" },
-		{ arity: "range", key: "between", label: "is between" },
-		{ arity: "range", key: "notBetween", label: "is not between" },
-		{
-			arity: "nullary",
-			key: "isEmpty",
-			label: "is empty",
-		},
-		{
-			arity: "nullary",
-			key: "isNotEmpty",
-			label: "is not empty",
-		},
+		"eq",
+		"neq",
+		"gt",
+		"gte",
+		"lt",
+		"lte",
+		"between",
+		"notBetween",
+		"isEmpty",
+		"isNotEmpty",
 	],
 	string: [
-		{ arity: "single", key: "eq", label: "is" },
-		{ arity: "single", key: "neq", label: "is not" },
-		{ arity: "single", key: "contains", label: "contains" },
-		{ arity: "single", key: "notContains", label: "does not contain" },
-		{ arity: "single", key: "startsWith", label: "starts with" },
-		{ arity: "single", key: "endsWith", label: "ends with" },
-		{
-			arity: "nullary",
-			key: "isEmpty",
-			label: "is empty",
-		},
-		{
-			arity: "nullary",
-			key: "isNotEmpty",
-			label: "is not empty",
-		},
+		"eq",
+		"neq",
+		"contains",
+		"notContains",
+		"startsWith",
+		"endsWith",
+		"isEmpty",
+		"isNotEmpty",
 	],
 };
 
-export const FILTER_OPERATORS: readonly FilterOperator[] = Array.from(
-	new Set(Object.values(OPERATORS).flatMap((defs) => defs.map((d) => d.key))),
-);
+/** Explicit default operator per column type (not "first in list"). */
+const DEFAULT_OPERATORS: Record<ColumnDataType, FilterOperator> = {
+	boolean: "eq",
+	date: "eq",
+	enum: "eq",
+	multiEnum: "include",
+	number: "eq",
+	string: "eq",
+};
 
-const OPERATOR_DEFS = new Map<FilterOperator, OperatorDef>();
-for (const defs of Object.values(OPERATORS)) {
-	for (const def of defs) {
-		if (!OPERATOR_DEFS.has(def.key)) OPERATOR_DEFS.set(def.key, def);
-	}
-}
+export const FILTER_OPERATORS: readonly FilterOperator[] = Object.keys(
+	OPERATOR_DEFS,
+) as FilterOperator[];
 
-/** Full arity dispatch — use when `requiresValue` / `isNullaryOperator` are not specific enough. */
+/** Full arity dispatch for nullary / gating / editor checks. */
 export function getOperatorArity(operator: FilterOperator): OperatorArity {
-	return OPERATOR_DEFS.get(operator)?.arity ?? "single";
+	return OPERATOR_DEFS[operator]?.arity ?? "single";
 }
 
 export function getOperatorsForType(type: ColumnDataType): FilterOperator[] {
-	return OPERATORS[type].map((d) => d.key);
+	return [...OPERATORS[type]];
 }
 
 export function getOperatorLabel(operator: FilterOperator): string {
-	return OPERATOR_DEFS.get(operator)?.label ?? operator;
+	return OPERATOR_DEFS[operator]?.label ?? operator;
 }
 
 export function getDefaultOperator(type: ColumnDataType): FilterOperator {
-	return OPERATORS[type][0]?.key ?? "eq";
+	return DEFAULT_OPERATORS[type];
 }

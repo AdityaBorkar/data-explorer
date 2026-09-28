@@ -2,12 +2,19 @@ import type { UseQueryOptions } from "@tanstack/react-query";
 import { QueryClientContext } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useTable } from "@tanstack/react-table";
-import { useContext, useEffect, useMemo, useState } from "react";
+import {
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 import type { ExtractColumnConfigOptions } from "./columns.ts";
+import { extractColumnConfigs } from "./columns.ts";
 import { DataExplorerContext } from "./context.tsx";
 import { DataExplorerError } from "./errors.ts";
-import { extractColumnConfigs } from "./extract-column-config.ts";
 import { toInitialTableState } from "./features/display-snapshot.ts";
 import { TableFeatures } from "./features/index.ts";
 import { useDataQuery } from "./hooks/use-data-query.ts";
@@ -41,6 +48,7 @@ export interface DataExplorerProviderProps<
 	getRowId: (row: TItem) => string;
 	/** Called once per skipped column definition (library never logs). */
 	onInvalidColumn?: ExtractColumnConfigOptions["onInvalidColumn"];
+	/** Board card moves. Held in a ref — inlining the handler won't re-render consumers. */
 	onMove?: BoardMoveHandler;
 	/** Rows per page. @default DEFAULT_PAGE_SIZE (20) */
 	pageSize?: number;
@@ -97,6 +105,20 @@ export function Provider<TItem extends Record<string, unknown>>({
 	strictColumns,
 }: DataExplorerProviderProps<TItem>) {
 	useQueryClientGuard();
+
+	// Latest `onMove` rides a ref so the context value stays stable when a
+	// consumer inlines the handler. Presence (`undefined` vs defined) is
+	// still derived from the prop, so board drop-targets keep working.
+	const onMoveRef = useRef(onMove);
+	useEffect(() => {
+		onMoveRef.current = onMove;
+	}, [onMove]);
+	const handleMove = useCallback(
+		(...args: Parameters<NonNullable<typeof onMove>>) =>
+			onMoveRef.current?.(...args),
+		[],
+	);
+	const stableOnMove = onMove ? handleMove : undefined;
 
 	const columnsConfig = useMemo(
 		() =>
@@ -170,7 +192,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 
 	const { triggerRef } = useLoadMore(
 		query.fetchNextPage,
-		query.hasNextPage ?? false,
+		query.hasNextPage,
 		query.isFetchingNextPage,
 	);
 
@@ -190,7 +212,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 		views,
 	} = viewHook;
 
-	const hasNextPage = query.hasNextPage ?? false;
+	const hasNextPage = query.hasNextPage;
 	const isLoading = query.isLoading;
 	const isFetchingNextPage = query.isFetchingNextPage;
 
@@ -204,7 +226,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 				items: allItems,
 				loadMoreRef: triggerRef,
 			},
-			onMove,
+			onMove: stableOnMove,
 			table,
 			view: {
 				activeView,
@@ -227,7 +249,7 @@ export function Provider<TItem extends Record<string, unknown>>({
 			isFetchingNextPage,
 			allItems,
 			triggerRef,
-			onMove,
+			stableOnMove,
 			table,
 			activeView,
 			activeViewId,
@@ -246,6 +268,8 @@ export function Provider<TItem extends Record<string, unknown>>({
 	return (
 		<DataExplorerContext
 			value={
+				// The context is intentionally non-generic (one shared
+				// instance); the cast restores the row type at consumption.
 				contextValue as unknown as DataExplorerContextValue<
 					Record<string, unknown>
 				>

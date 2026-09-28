@@ -110,7 +110,10 @@ export function mergeDisplay(
 	overrides: Partial<FilterViewDisplay>,
 ): FilterViewDisplay {
 	return {
-		columnWidths: overrides.columnWidths ?? base.columnWidths,
+		columnWidths: {
+			...base.columnWidths,
+			...(overrides.columnWidths ?? {}),
+		},
 		density: overrides.density ?? base.density,
 		fields: overrides.fields ?? base.fields,
 		groupBy: overrides.groupBy ?? base.groupBy,
@@ -120,31 +123,29 @@ export function mergeDisplay(
 	};
 }
 
+/** Parse JSON safely, returning `null` instead of throwing. */
+function safeJsonParse(text: string): unknown {
+	try {
+		return JSON.parse(text) as unknown;
+	} catch {
+		return null;
+	}
+}
+
+function isWidthMap(value: unknown): value is Record<string, number> {
+	return typeof value === "object" && value !== null;
+}
+
 function decodeWidths(
 	raw: string,
 	defaults: Record<string, number>,
 ): Record<string, number> {
-	const parse = (text: string): Record<string, number> | null => {
-		try {
-			const value = JSON.parse(text) as unknown;
-			if (typeof value === "object" && value !== null) {
-				return value as Record<string, number>;
-			}
-		} catch {
-			// handled below
-		}
-		return null;
-	};
-	const direct = parse(raw);
-	if (direct) return direct;
+	const direct = safeJsonParse(raw);
+	if (isWidthMap(direct)) return direct as Record<string, number>;
 	// Legacy `b64:` links (pre-raw-JSON encoder) still decode.
 	if (raw.startsWith("b64:") && typeof atob === "function") {
-		try {
-			const decoded = parse(atob(raw.slice(4)));
-			if (decoded) return decoded;
-		} catch {
-			// fall through to defaults
-		}
+		const decoded = safeJsonParse(atob(raw.slice(4)));
+		if (isWidthMap(decoded)) return decoded as Record<string, number>;
 	}
 	return defaults;
 }

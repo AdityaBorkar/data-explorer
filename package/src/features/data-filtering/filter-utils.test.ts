@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { FilterCondition, FilterViewDisplay } from "../../types.ts";
-import {
-	deserializeDisplay,
-	deserializeFilters,
-	serializeDisplay,
-	serializeFilters,
-} from "./filter-utils.ts";
+import type { FilterCondition } from "../../types.ts";
+import { deserializeFilters, serializeFilters } from "./filter-utils.ts";
 
 function cond(
 	columnId: string,
@@ -159,58 +154,49 @@ describe("serializeFilters / deserializeFilters", () => {
 			deserializeFilters(JSON.stringify({ filters: [], v: 999 })),
 		).toThrow(/version/i);
 	});
-});
 
-describe("serializeDisplay / deserializeDisplay", () => {
-	const defaults: FilterViewDisplay = {
-		columnWidths: {},
-		density: "comfortable",
-		fields: ["name", "slug"],
-		groupBy: null,
-		orderBy: "createdAt",
-		orderType: "desc",
-		type: "table",
-	};
-
-	it("serializes and deserializes display state", () => {
-		const params = serializeDisplay(defaults);
-		const result = deserializeDisplay(params, defaults);
-
-		expect(result.orderBy).toBe("createdAt");
-		expect(result.orderType).toBe("desc");
-		expect(result.fields).toEqual(["name", "slug"]);
-		expect(result.density).toBe("comfortable");
-		expect(result.type).toBe("table");
-		expect(result.groupBy).toBeNull();
+	it("rejects invalid combinators instead of coercing to and", () => {
+		const bad = JSON.stringify([
+			{ b: "xor", c: "name", i: "x", o: "eq", v: "foo" },
+		]);
+		expect(() => deserializeFilters(bad)).toThrow(/combinator/i);
 	});
 
-	it("overrides individual display params", () => {
-		const params = new URLSearchParams();
-		params.set("sort", "name");
-		params.set("dir", "asc");
-		params.set("cols", "name,legalName,slug");
-		params.set("density", "compact");
-		params.set("widths", JSON.stringify({ name: 200 }));
-		params.set("type", "board");
-		params.set("groupBy", "status");
-
-		const result = deserializeDisplay(params, defaults);
-
-		expect(result.orderBy).toBe("name");
-		expect(result.orderType).toBe("asc");
-		expect(result.fields).toEqual(["name", "legalName", "slug"]);
-		expect(result.density).toBe("compact");
-		expect(result.columnWidths).toEqual({ name: 200 });
-		expect(result.type).toBe("board");
-		expect(result.groupBy).toBe("status");
+	it("round-trips Date tuples for range operators", () => {
+		const range: FilterCondition[] = [
+			{
+				columnId: "createdAt",
+				combinator: "and",
+				id: "x",
+				operator: "between",
+				value: [
+					new Date("2024-01-01T00:00:00.000Z"),
+					new Date("2024-12-31T00:00:00.000Z"),
+				],
+			},
+		];
+		const result = deserializeFilters(serializeFilters(range));
+		expect(result).toHaveLength(1);
+		const value = result[0]?.value;
+		expect(value).toEqual([
+			new Date("2024-01-01T00:00:00.000Z"),
+			new Date("2024-12-31T00:00:00.000Z"),
+		]);
 	});
-
-	it("falls back to defaults for missing params", () => {
-		const params = new URLSearchParams();
-		const result = deserializeDisplay(params, defaults);
-
-		expect(result.orderBy).toBe("createdAt");
-		expect(result.orderType).toBe("desc");
-		expect(result.density).toBe("comfortable");
+	it("round-trips Dates nested in objects", () => {
+		const conditions: FilterCondition[] = [
+			{
+				columnId: "meta",
+				combinator: "and",
+				id: "x",
+				operator: "eq",
+				value: { at: new Date("2024-06-15T12:00:00.000Z"), label: "x" },
+			},
+		];
+		const result = deserializeFilters(serializeFilters(conditions));
+		expect(result).toHaveLength(1);
+		const value = result[0]?.value as { at: unknown; label: unknown };
+		expect(value.at).toBeInstanceOf(Date);
+		expect(value.label).toBe("x");
 	});
 });

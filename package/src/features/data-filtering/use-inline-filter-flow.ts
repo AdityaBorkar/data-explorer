@@ -1,17 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer } from "react";
 
+import { isSearchColumn } from "../../columns.ts";
 import type {
 	ColumnConfig,
 	FilterCondition,
 	FilterOperator,
 } from "../../types.ts";
-import {
-	buildDraftCondition,
-	commitDraft,
-	isSearchDraft,
-} from "./filter-draft.ts";
-import { isNullaryOperator, requiresValue } from "./filter-semantics.ts";
-import { getDefaultOperator } from "./operators.ts";
+import { commitDraft, quickAddCondition } from "./filter-draft.ts";
+import { getDefaultOperator, getOperatorArity } from "./operators.ts";
 
 type Phase = "idle" | "column" | "operator" | "value";
 
@@ -48,6 +44,96 @@ export interface InlineFilterActions {
 	setSearchText: (value: string) => void;
 }
 
+interface FlowState {
+	error: string | null;
+	inputValue: string;
+	pendingValue: unknown;
+	phase: Phase;
+	searchText: string;
+	selectedColumnId: string | null;
+	selectedOperator: FilterOperator | null;
+}
+
+const INITIAL_FLOW: FlowState = {
+	error: null,
+	inputValue: "",
+	pendingValue: undefined,
+	phase: "idle",
+	searchText: "",
+	selectedColumnId: null,
+	selectedOperator: null,
+};
+
+type FlowAction =
+	| { type: "input"; value: string }
+	| { type: "column/missing"; columnId: string }
+	| {
+			type: "column/select";
+			columnId: string;
+			operator: FilterOperator;
+			phase: "operator" | "value";
+	  }
+	| { type: "operator"; operator: FilterOperator }
+	| { type: "commit/error"; error: string }
+	| { type: "pending"; value: unknown }
+	| { type: "search"; value: string }
+	| { type: "clearError" }
+	| { type: "reset" };
+
+/**
+ * Single transition table: every phase advance clears the text inputs in
+ * one place. Column policy (search fast-path vs default operator) is
+ * decided by the caller before dispatch — the reducer only applies the
+ * chosen `column/select`, so there is one column-advance path instead of
+ * two near-duplicate actions.
+ */
+function flowReducer(state: FlowState, action: FlowAction): FlowState {
+	switch (action.type) {
+		case "input": {
+			const blank = action.value.trim().length === 0;
+			let phase = state.phase;
+			if (!blank && phase === "idle") phase = "column";
+			else if (blank && phase === "column") phase = "idle";
+			return {
+				...state,
+				inputValue: action.value,
+				phase,
+				searchText: action.value,
+			};
+		}
+		case "column/missing":
+			return { ...state, selectedColumnId: action.columnId };
+		case "column/select":
+			return {
+				...state,
+				inputValue: "",
+				phase: action.phase,
+				searchText: "",
+				selectedColumnId: action.columnId,
+				selectedOperator: action.operator,
+			};
+		case "operator":
+			return {
+				...state,
+				inputValue: "",
+				pendingValue: undefined,
+				phase: "value",
+				searchText: "",
+				selectedOperator: action.operator,
+			};
+		case "commit/error":
+			return { ...state, error: action.error };
+		case "pending":
+			return { ...state, pendingValue: action.value };
+		case "search":
+			return { ...state, searchText: action.value };
+		case "clearError":
+			return { ...state, error: null };
+		case "reset":
+			return INITIAL_FLOW;
+	}
+}
+
 /**
  * Guided `idle → column → operator → value` draft machine for the filter bar.
  *
@@ -72,16 +158,17 @@ export function useInlineFilterFlow(opts: {
 }): { actions: InlineFilterActions; state: InlineFilterState } {
 	const { columnsConfig, onAdd } = opts;
 
-	const [phase, setPhase] = useState<Phase>("idle");
-	const [inputValue, setInputValue] = useState("");
-	const [searchText, setSearchText] = useState("");
-	const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
-	const [selectedOperator, setSelectedOperator] =
-		useState<FilterOperator | null>(null);
-	const [pendingValue, setPendingValue] = useState<unknown>(undefined);
-	const [error, setError] = useState<string | null>(null);
+	const [flow, dispatch] = useReducer(flowReducer, INITIAL_FLOW);
+	const {
+		error,
+		inputValue,
+		pendingValue,
+		phase,
+		searchText,
+		selectedColumnId,
+		selectedOperator,
+	} = flow;
 
-	// O(1) column lookup; pays off past ~50 columns vs a linear scan per select.
 	const columnById = useMemo(
 		() => new Map(columnsConfig.map((c) => [c.id, c])),
 		[columnsConfig],
@@ -92,25 +179,26 @@ export function useInlineFilterFlow(opts: {
 		[columnById],
 	);
 
-	const selectedColumn = useMemo(
-		() => (selectedColumnId ? getColumn(selectedColumnId) : undefined),
-		[selectedColumnId, getColumn],
-	);
+	const selectedColumn =
+		selectedColumnId !== null ? columnById.get(selectedColumnId) : undefined;
 
 	const needsNullValue =
-		selectedOperator !== null && !requiresValue(selectedOperator);
+		selectedOperator !== null &&
+		getOperatorArity(selectedOperator) === "nullary";
 
-	const clearError = useCallback(() => setError(null), []);
+	const clearError = useCallback(() => dispatch({ type: "clearError" }), []);
 
-	const reset = useCallback(() => {
-		setPhase("idle");
-		setSelectedColumnId(null);
-		setSelectedOperator(null);
-		setPendingValue(undefined);
-		setInputValue("");
-		setSearchText("");
-		setError(null);
-	}, []);
+	const reset = useCallback(() => dispatch({ type: "reset" }), []);
+
+	const setPendingValue = useCallback(
+		(value: unknown) => dispatch({ type: "pending", value }),
+		[],
+	);
+
+	const setSearchText = useCallback(
+		(value: string) => dispatch({ type: "search", value }),
+		[],
+	);
 
 	const commit = useCallback(() => {
 		if (!(selectedColumnId && selectedOperator)) return;
@@ -122,70 +210,65 @@ export function useInlineFilterFlow(opts: {
 			getColumn(selectedColumnId)?.type,
 		);
 		if (!result.ok) {
-			setError(result.error);
+			dispatch({ error: result.error, type: "commit/error" });
 			return;
 		}
 
-		setError(null);
+		dispatch({ type: "reset" });
 		onAdd(result.condition);
-		reset();
-	}, [
-		selectedColumnId,
-		selectedOperator,
-		pendingValue,
-		getColumn,
-		onAdd,
-		reset,
-	]);
+	}, [selectedColumnId, selectedOperator, pendingValue, getColumn, onAdd]);
 
 	const commitNullary = useCallback(
 		(columnId: string, operator: FilterOperator) => {
-			onAdd(buildDraftCondition(columnId, operator, null));
-			reset();
+			// Route through the single commit policy so nullary validation
+			// lives in `filter-draft.ts`, not in a second ad-hoc path.
+			const result = commitDraft(columnId, operator, null);
+			if (!result.ok) {
+				dispatch({ error: result.error, type: "commit/error" });
+				return;
+			}
+			onAdd(result.condition);
+			dispatch({ type: "reset" });
 		},
-		[onAdd, reset],
+		[onAdd],
 	);
 
 	const handleInputChange = useCallback(
-		(value: string) => {
-			setInputValue(value);
-			setSearchText(value);
-			const isBlank = value.trim().length === 0;
-			if (!isBlank && phase === "idle") {
-				setPhase("column");
-			}
-			if (isBlank && phase === "column") {
-				setPhase("idle");
-			}
-		},
-		[phase],
+		(value: string) => dispatch({ type: "input", value }),
+		[],
 	);
 
 	const handleColumnSelect = useCallback(
 		(columnId: string) => {
-			setSelectedColumnId(columnId);
 			const col = getColumn(columnId);
-			if (!col) return;
+			if (!col) {
+				dispatch({ columnId, type: "column/missing" });
+				return;
+			}
 
-			if (isSearchDraft(columnId)) {
-				setSelectedOperator("contains");
-				setPhase("value");
-				setInputValue("");
-				setSearchText("");
+			if (isSearchColumn(columnId)) {
+				dispatch({
+					columnId,
+					operator: "contains",
+					phase: "value",
+					type: "column/select",
+				});
 				return;
 			}
 
 			const defaultOp = col.operators?.[0] ?? getDefaultOperator(col.type);
 
-			if (isNullaryOperator(defaultOp)) {
+			if (getOperatorArity(defaultOp) === "nullary") {
 				commitNullary(columnId, defaultOp);
 				return;
 			}
 
-			setSelectedOperator(defaultOp);
-			setPhase("operator");
-			setInputValue("");
-			setSearchText("");
+			dispatch({
+				columnId,
+				operator: defaultOp,
+				phase: "operator",
+				type: "column/select",
+			});
 		},
 		[getColumn, commitNullary],
 	);
@@ -195,28 +278,21 @@ export function useInlineFilterFlow(opts: {
 			const col = getColumn(columnId);
 			if (!col) return;
 
-			const operator: FilterOperator =
-				col.type === "multiEnum" ? "includeAny" : "eq";
-			const commitValue = operator === "includeAny" ? [value] : value;
-			onAdd(buildDraftCondition(columnId, operator, commitValue));
-			reset();
+			onAdd(quickAddCondition(col, value));
+			dispatch({ type: "reset" });
 		},
-		[getColumn, onAdd, reset],
+		[getColumn, onAdd],
 	);
 
 	const handleOperatorSelect = useCallback(
 		(operator: FilterOperator) => {
 			if (!selectedColumnId) return;
-			if (isNullaryOperator(operator)) {
+			if (getOperatorArity(operator) === "nullary") {
 				commitNullary(selectedColumnId, operator);
 				return;
 			}
 
-			setSelectedOperator(operator);
-			setPendingValue(undefined);
-			setPhase("value");
-			setInputValue("");
-			setSearchText("");
+			dispatch({ operator, type: "operator" });
 		},
 		[selectedColumnId, commitNullary],
 	);
@@ -266,6 +342,8 @@ export function useInlineFilterFlow(opts: {
 			handleOperatorSelect,
 			handleQuickValueSelect,
 			reset,
+			setPendingValue,
+			setSearchText,
 		],
 	);
 

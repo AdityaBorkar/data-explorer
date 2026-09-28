@@ -22,10 +22,14 @@ export type ColumnDataType =
  */
 export const SEARCH_COLUMN_ID = "_search" as const;
 
+export function isSearchColumnId(id: string): boolean {
+	return id === SEARCH_COLUMN_ID;
+}
+
 export function isSearchColumn(col: { id: string } | string): boolean {
 	return typeof col === "string"
-		? col === SEARCH_COLUMN_ID
-		: col.id === SEARCH_COLUMN_ID;
+		? isSearchColumnId(col)
+		: isSearchColumnId(col.id);
 }
 
 export interface DataExplorerColumnMeta<TIcon = unknown> {
