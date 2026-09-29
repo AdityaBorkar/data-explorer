@@ -11,21 +11,23 @@
 		"check:lint": "biome check .",
 		"check:types": "tsc -b",
 		"clean": "bunx rimraf --glob \"**/{node_modules,.output,.local,.tanstack,.wrangler,bun.lockb}\"",
-		"fix:format": "biome format --fix .",
 		"fix:lint": "biome check --fix .",
 		"prepare": "husky",
 		"update-deps": "bun taze -rw --maturity-period 3 && bun install"
 	},
-	"dependencies": {
-		"shadcn": "^4.21.0"
+	"lint-staged": {
+		"*": "biome check --fix ."
 	},
-	"devDependencies": {
+	"dependencies": {
 		"@biomejs/biome": "^2.5.12",
 		"@changesets/cli": "^3.0.2",
 		"@commitlint/cli": "^21.2.2",
 		"@commitlint/config-conventional": "^21.2.2",
 		"@types/bun": "latest",
+		"commitlint": "^21.2.3",
 		"husky": "^9.1.7",
+		"lint-staged": "^17.6.0",
+		"shadcn": "^4.21.0",
 		"taze": "21",
 		"typescript": "^7.0.2"
 	}
