@@ -6,6 +6,7 @@
 	],
 	"scripts": {
 		"analyze:deps": "bun audit",
+		"build:shadcn": "bun shadcn build --output ./.shadcn",
 		"check:conform": "echo 'Todo'",
 		"check:lint": "biome check .",
 		"check:types": "tsc -b",
@@ -14,6 +15,9 @@
 		"fix:lint": "biome check --fix .",
 		"prepare": "husky",
 		"update-deps": "bun taze -rw --maturity-period 3 && bun install"
+	},
+	"dependencies": {
+		"shadcn": "^4.21.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.12",
