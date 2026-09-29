@@ -53,11 +53,6 @@
 					"type": "registry:lib"
 				},
 				{
-					"path": "package/src/extract-column-config.ts",
-					"target": "components/data-explorer/extract-column-config.ts",
-					"type": "registry:lib"
-				},
-				{
 					"path": "package/src/features/index.ts",
 					"target": "components/data-explorer/features/index.ts",
 					"type": "registry:lib"
@@ -100,11 +95,6 @@
 				{
 					"path": "package/src/features/data-filtering/filter-grouping.ts",
 					"target": "components/data-explorer/features/data-filtering/filter-grouping.ts",
-					"type": "registry:lib"
-				},
-				{
-					"path": "package/src/features/data-filtering/filter-merge.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-merge.ts",
 					"type": "registry:lib"
 				},
 				{

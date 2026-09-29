@@ -1,6 +1,6 @@
 import {
+	getOperatorArity,
 	isSearchColumn,
-	requiresValue,
 	useDataExplorerContext,
 	useInlineFilterFlow,
 } from "@adistack/data-explorer";
@@ -222,7 +222,7 @@ function FilterPopoverContent({
 				onSearchChange={actions.setSearchText}
 				onSelect={(op) => {
 					actions.handleOperatorSelect(op);
-					if (!requiresValue(op)) {
+					if (getOperatorArity(op) === "nullary") {
 						onCloseAndFocus();
 					}
 				}}

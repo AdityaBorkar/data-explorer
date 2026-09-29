@@ -293,7 +293,6 @@ function matchesCondition(row: Task, cond: FilterCondition): boolean {
 			return toStringList(val).includes(asString(cell));
 		case "notIn":
 			return !toStringList(val).includes(asString(cell));
-		case "include":
 		case "includeAll": {
 			const wanted = toStringList(val);
 			const have = toStringList(cell);
@@ -304,7 +303,6 @@ function matchesCondition(row: Task, cond: FilterCondition): boolean {
 			const have = toStringList(cell);
 			return wanted.some((v) => have.includes(v));
 		}
-		case "exclude":
 		case "excludeAll": {
 			const wanted = toStringList(val);
 			const have = toStringList(cell);
