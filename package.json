@@ -6,7 +6,7 @@
 	],
 	"scripts": {
 		"analyze:deps": "bun audit",
-		"build:shadcn": "bun shadcn build --output ./.shadcn",
+		"build:shadcn": "bunx rimraf ./.shadcn && bun shadcn build --output ./.shadcn",
 		"check:conform": "echo 'Todo'",
 		"check:lint": "biome check .",
 		"check:types": "tsc -b",

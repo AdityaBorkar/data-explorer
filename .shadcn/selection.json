@@ -10,23 +10,23 @@
 		{
 			"content": "import type { TableFeatures } from \"@adistack/data-explorer\";\nimport { useDataExplorerContext } from \"@adistack/data-explorer\";\nimport type { Row } from \"@tanstack/react-table\";\n\nimport { Checkbox } from \"@/components/ui/checkbox\";\n\ninterface SelectionCheckboxProps<TItem extends Record<string, unknown>> {\n\trow: Row<TableFeatures, TItem>;\n}\n\nexport function SelectionCheckbox<TItem extends Record<string, unknown>>({\n\trow,\n}: SelectionCheckboxProps<TItem>): React.JSX.Element {\n\treturn (\n\t\t<div className=\"flex items-center justify-center\">\n\t\t\t<Checkbox\n\t\t\t\tchecked={row.getIsSelected()}\n\t\t\t\tonCheckedChange={() => row.toggleSelected()}\n\t\t\t/>\n\t\t</div>\n\t);\n}\n\nexport function SelectAllCheckbox(): React.JSX.Element {\n\tconst { table } = useDataExplorerContext();\n\n\tconst checked = table.getIsAllRowsSelected();\n\tconst indeterminate = table.getIsSomeRowsSelected() && !checked;\n\n\treturn (\n\t\t<div className=\"flex items-center justify-center\">\n\t\t\t<Checkbox\n\t\t\t\tchecked={indeterminate ? \"indeterminate\" : checked}\n\t\t\t\tonCheckedChange={() => table.toggleAllRowsSelected(!checked)}\n\t\t\t/>\n\t\t</div>\n\t);\n}\n",
 			"path": "components/src/batch-menu/selection-checkbox.tsx",
-			"target": "components/data-explorer/ui/batch-menu/selection-checkbox.tsx",
+			"target": "@components/data-explorer/ui/selection-checkbox.tsx",
 			"type": "registry:component"
 		},
 		{
 			"content": "import { useSelectionContext } from \"@adistack/data-explorer\";\nimport { IconX } from \"@tabler/icons-react\";\nimport { useEffect } from \"react\";\n\ninterface BatchMenuBarProps {\n\tchildren: React.ReactNode;\n}\n\nexport function BatchMenuBar({\n\tchildren,\n}: BatchMenuBarProps): React.JSX.Element | null {\n\tconst { clearSelection, selectedRowIds } = useSelectionContext();\n\n\tuseEffect(() => {\n\t\tconst handleEscape = (e: KeyboardEvent) => {\n\t\t\tif (e.key === \"Escape\") clearSelection();\n\t\t};\n\t\tdocument.addEventListener(\"keydown\", handleEscape);\n\t\treturn () => document.removeEventListener(\"keydown\", handleEscape);\n\t}, [clearSelection]);\n\n\tif (selectedRowIds.size === 0) return null;\n\n\treturn (\n\t\t<div className=\"fade-in slide-in-from-bottom-2 fixed bottom-4 left-1/2 z-50 -translate-x-1/2 animate-in duration-150\">\n\t\t\t<div className=\"flex items-center gap-3 rounded-lg border bg-background px-4 py-2.5 shadow-lg\">\n\t\t\t\t{children}\n\t\t\t\t<button\n\t\t\t\t\taria-label=\"Clear selection\"\n\t\t\t\t\tclassName=\"ml-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground\"\n\t\t\t\t\tonClick={clearSelection}\n\t\t\t\t\ttype=\"button\"\n\t\t\t\t>\n\t\t\t\t\t<IconX className=\"size-4\" />\n\t\t\t\t</button>\n\t\t\t</div>\n\t\t</div>\n\t);\n}\n",
 			"path": "components/src/batch-menu/batch-menu-bar.tsx",
-			"target": "components/data-explorer/ui/batch-menu/batch-menu-bar.tsx",
+			"target": "@components/data-explorer/ui/batch-menu-bar.tsx",
 			"type": "registry:component"
 		},
 		{
 			"content": "import { useSelectionContext } from \"@adistack/data-explorer\";\n\nexport function SelectedCount(): React.JSX.Element {\n\tconst { selectedRowIds } = useSelectionContext();\n\n\treturn (\n\t\t<span className=\"font-medium text-sm\">{selectedRowIds.size} selected</span>\n\t);\n}\n",
 			"path": "components/src/batch-menu/selected-count.tsx",
-			"target": "components/data-explorer/ui/batch-menu/selected-count.tsx",
+			"target": "@components/data-explorer/ui/selected-count.tsx",
 			"type": "registry:component"
 		}
 	],
-	"name": "data-explorer-selection",
+	"name": "selection",
 	"registryDependencies": ["checkbox"],
 	"title": "Data Explorer Selection",
 	"type": "registry:block"

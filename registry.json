@@ -14,176 +14,176 @@
 			"files": [
 				{
 					"path": "package/src/index.ts",
-					"target": "components/data-explorer/index.ts",
+					"target": "@components/data-explorer/index.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/context.tsx",
-					"target": "components/data-explorer/context.tsx",
+					"target": "@components/data-explorer/context.tsx",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/provider.tsx",
-					"target": "components/data-explorer/provider.tsx",
+					"target": "@components/data-explorer/provider.tsx",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/types.ts",
-					"target": "components/data-explorer/types.ts",
+					"target": "@components/data-explorer/types.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/columns.ts",
-					"target": "components/data-explorer/columns.ts",
+					"target": "@components/data-explorer/columns.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/errors.ts",
-					"target": "components/data-explorer/errors.ts",
+					"target": "@components/data-explorer/errors.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/filters.ts",
-					"target": "components/data-explorer/filters.ts",
+					"target": "@components/data-explorer/filters.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/views.ts",
-					"target": "components/data-explorer/views.ts",
+					"target": "@components/data-explorer/views.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/query.ts",
-					"target": "components/data-explorer/query.ts",
+					"target": "@components/data-explorer/query.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/index.ts",
-					"target": "components/data-explorer/features/index.ts",
+					"target": "@components/data-explorer/features/index.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/display-snapshot.ts",
-					"target": "components/data-explorer/features/display-snapshot.ts",
+					"target": "@components/data-explorer/features/display-snapshot.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/display-meta/displayMetaFeature.ts",
-					"target": "components/data-explorer/features/display-meta/displayMetaFeature.ts",
+					"target": "@components/data-explorer/features/display-meta/displayMetaFeature.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/display-meta/displayMetaFeature.types.ts",
-					"target": "components/data-explorer/features/display-meta/displayMetaFeature.types.ts",
+					"target": "@components/data-explorer/features/display-meta/displayMetaFeature.types.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/dataFilteringFeature.ts",
-					"target": "components/data-explorer/features/data-filtering/dataFilteringFeature.ts",
+					"target": "@components/data-explorer/features/data-filtering/dataFilteringFeature.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/dataFilteringFeature.types.ts",
-					"target": "components/data-explorer/features/data-filtering/dataFilteringFeature.types.ts",
+					"target": "@components/data-explorer/features/data-filtering/dataFilteringFeature.types.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/filter-condition-schema.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-condition-schema.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-condition-schema.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/filter-draft.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-draft.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-draft.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/filter-grouping.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-grouping.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-grouping.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/filter-semantics.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-semantics.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-semantics.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/filter-utils.ts",
-					"target": "components/data-explorer/features/data-filtering/filter-utils.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-utils.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/operators.ts",
-					"target": "components/data-explorer/features/data-filtering/operators.ts",
+					"target": "@components/data-explorer/features/data-filtering/operators.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/features/data-filtering/use-inline-filter-flow.ts",
-					"target": "components/data-explorer/features/data-filtering/use-inline-filter-flow.ts",
+					"target": "@components/data-explorer/features/data-filtering/use-inline-filter-flow.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/hooks/use-data-query.ts",
-					"target": "components/data-explorer/hooks/use-data-query.ts",
+					"target": "@components/data-explorer/hooks/use-data-query.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/hooks/use-load-more.ts",
-					"target": "components/data-explorer/hooks/use-load-more.ts",
+					"target": "@components/data-explorer/hooks/use-load-more.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/hooks/use-selection.ts",
-					"target": "components/data-explorer/hooks/use-selection.ts",
+					"target": "@components/data-explorer/hooks/use-selection.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/hooks/use-view.ts",
-					"target": "components/data-explorer/hooks/use-view.ts",
+					"target": "@components/data-explorer/hooks/use-view.ts",
 					"type": "registry:lib"
 				}
 			],
-			"name": "data-explorer-core",
+			"name": "core",
 			"title": "Data Explorer Core",
 			"type": "registry:lib"
 		},
 		{
 			"$schema": "https://ui.shadcn.com/schema/registry-item.json",
-			"description": "Filter-to-SQL helper (buildFilterWhere) for @adistack/data-explorer, plus the Postgres-only ./backend server entry (buildFilterWherePg, $n placeholders, ILIKE, text[] ops — no React/TanStack/zod in its import closure). Uses relative imports into the vendored core, so it must be installed alongside data-explorer-core.",
+			"description": "Filter-to-SQL helper (buildFilterWhere) for @adistack/data-explorer, plus the Postgres-only ./backend server entry (buildFilterWherePg, $n placeholders, ILIKE, text[] ops — no React/TanStack/zod in its import closure). Uses relative imports into the vendored core, so it must be installed alongside core.",
 			"files": [
 				{
 					"path": "package/src/sql/index.ts",
-					"target": "components/data-explorer/sql/index.ts",
+					"target": "@components/data-explorer/sql/index.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/sql/filter-sql.ts",
-					"target": "components/data-explorer/sql/filter-sql.ts",
+					"target": "@components/data-explorer/sql/filter-sql.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/sql/backend.ts",
-					"target": "components/data-explorer/sql/backend.ts",
+					"target": "@components/data-explorer/sql/backend.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/sql/pg-where.ts",
-					"target": "components/data-explorer/sql/pg-where.ts",
+					"target": "@components/data-explorer/sql/pg-where.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/sql/pg-identifiers.ts",
-					"target": "components/data-explorer/sql/pg-identifiers.ts",
+					"target": "@components/data-explorer/sql/pg-identifiers.ts",
 					"type": "registry:lib"
 				},
 				{
 					"path": "package/src/errors.ts",
-					"target": "components/data-explorer/errors.ts",
+					"target": "@components/data-explorer/errors.ts",
 					"type": "registry:lib"
 				}
 			],
-			"name": "data-explorer-sql",
-			"registryDependencies": ["data-explorer-core"],
+			"name": "sql",
+			"registryDependencies": ["core"],
 			"title": "Data Explorer SQL",
 			"type": "registry:lib"
 		},
@@ -194,51 +194,51 @@
 			"files": [
 				{
 					"path": "components/src/filter-input/index.tsx",
-					"target": "components/data-explorer/ui/filter-input/index.tsx",
+					"target": "@components/data-explorer/ui/index.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/column-selector.tsx",
-					"target": "components/data-explorer/ui/filter-input/column-selector.tsx",
+					"target": "@components/data-explorer/ui/column-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/operator-selector.tsx",
-					"target": "components/data-explorer/ui/filter-input/operator-selector.tsx",
+					"target": "@components/data-explorer/ui/operator-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/value-input.tsx",
-					"target": "components/data-explorer/ui/filter-input/value-input.tsx",
+					"target": "@components/data-explorer/ui/value-input.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-chip.tsx",
-					"target": "components/data-explorer/ui/filter-input/filter-chip.tsx",
+					"target": "@components/data-explorer/ui/filter-chip.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-chip-group.tsx",
-					"target": "components/data-explorer/ui/filter-input/filter-chip-group.tsx",
+					"target": "@components/data-explorer/ui/filter-chip-group.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-combinator-toggle.tsx",
-					"target": "components/data-explorer/ui/filter-input/filter-combinator-toggle.tsx",
+					"target": "@components/data-explorer/ui/filter-combinator-toggle.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/use-filter-bar-keyboard.ts",
-					"target": "components/data-explorer/ui/filter-input/use-filter-bar-keyboard.ts",
+					"target": "@components/data-explorer/ui/use-filter-bar-keyboard.ts",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/lib/dates.ts",
-					"target": "components/data-explorer/lib/dates.ts",
+					"target": "@lib/data-explorer.ts",
 					"type": "registry:lib"
 				}
 			],
-			"name": "data-explorer-filter-bar",
+			"name": "filter-bar",
 			"registryDependencies": [
 				"calendar",
 				"checkbox",
@@ -258,32 +258,32 @@
 				"@tabler/icons-react",
 				"motion"
 			],
-			"description": "FilterSentence: saved filters rendered as a plain-language sentence that morphs in place into a Where/And/Or builder (Edit ↔ Save shared-element morph, motion). Reads/writes dataFilters via the DataExplorer context; Save validates every row (validateCondition) and commits atomically. Reuses OperatorSelector/ValueInput from the filter-bar block via preserved relative imports — requires data-explorer-filter-bar and a DataExplorer Provider ancestor.",
+			"description": "FilterSentence: saved filters rendered as a plain-language sentence that morphs in place into a Where/And/Or builder (Edit ↔ Save shared-element morph, motion). Reads/writes dataFilters via the DataExplorer context; Save validates every row (validateCondition) and commits atomically. Reuses OperatorSelector/ValueInput from the filter-bar block via preserved relative imports — requires filter-bar and a DataExplorer Provider ancestor.",
 			"files": [
 				{
 					"path": "components/src/filter-sentence/filter-sentence.tsx",
-					"target": "components/data-explorer/ui/filter-sentence/filter-sentence.tsx",
+					"target": "@components/data-explorer/ui/filter-sentence.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-sentence/sentence-view.tsx",
-					"target": "components/data-explorer/ui/filter-sentence/sentence-view.tsx",
+					"target": "@components/data-explorer/ui/sentence-view.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-sentence/builder-row.tsx",
-					"target": "components/data-explorer/ui/filter-sentence/builder-row.tsx",
+					"target": "@components/data-explorer/ui/builder-row.tsx",
 					"type": "registry:component"
 				}
 			],
-			"name": "data-explorer-filter-sentence",
+			"name": "filter-sentence",
 			"registryDependencies": [
 				"button",
 				"command",
 				"input",
 				"popover",
 				"select",
-				"data-explorer-filter-bar",
+				"filter-bar",
 				"utils"
 			],
 			"title": "Data Explorer Filter Sentence",
@@ -300,26 +300,26 @@
 			"files": [
 				{
 					"path": "components/src/display-dropdown/display-component.tsx",
-					"target": "components/data-explorer/ui/display-dropdown/display-component.tsx",
+					"target": "@components/data-explorer/ui/display-component.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/display-column-selector.tsx",
-					"target": "components/data-explorer/ui/display-dropdown/display-column-selector.tsx",
+					"target": "@components/data-explorer/ui/display-column-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/sorting-selector.tsx",
-					"target": "components/data-explorer/ui/display-dropdown/sorting-selector.tsx",
+					"target": "@components/data-explorer/ui/sorting-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/spacing-density-selector.tsx",
-					"target": "components/data-explorer/ui/display-dropdown/spacing-density-selector.tsx",
+					"target": "@components/data-explorer/ui/spacing-density-selector.tsx",
 					"type": "registry:component"
 				}
 			],
-			"name": "data-explorer-display",
+			"name": "display",
 			"registryDependencies": ["checkbox", "popover", "select", "utils"],
 			"title": "Data Explorer Display Options",
 			"type": "registry:block"
@@ -335,21 +335,21 @@
 			"files": [
 				{
 					"path": "components/src/batch-menu/selection-checkbox.tsx",
-					"target": "components/data-explorer/ui/batch-menu/selection-checkbox.tsx",
+					"target": "@components/data-explorer/ui/selection-checkbox.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/batch-menu/batch-menu-bar.tsx",
-					"target": "components/data-explorer/ui/batch-menu/batch-menu-bar.tsx",
+					"target": "@components/data-explorer/ui/batch-menu-bar.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/batch-menu/selected-count.tsx",
-					"target": "components/data-explorer/ui/batch-menu/selected-count.tsx",
+					"target": "@components/data-explorer/ui/selected-count.tsx",
 					"type": "registry:component"
 				}
 			],
-			"name": "data-explorer-selection",
+			"name": "selection",
 			"registryDependencies": ["checkbox"],
 			"title": "Data Explorer Selection",
 			"type": "registry:block"
@@ -366,12 +366,12 @@
 			"files": [
 				{
 					"path": "components/src/views/table.tsx",
-					"target": "components/data-explorer/ui/views/table.tsx",
+					"target": "@components/data-explorer/ui/table.tsx",
 					"type": "registry:component"
 				}
 			],
-			"name": "data-explorer-table-view",
-			"registryDependencies": ["data-explorer-selection", "utils"],
+			"name": "table-view",
+			"registryDependencies": ["selection", "utils"],
 			"title": "Data Explorer Table View",
 			"type": "registry:block"
 		},
@@ -382,11 +382,11 @@
 			"files": [
 				{
 					"path": "components/src/views/board.tsx",
-					"target": "components/data-explorer/ui/views/board.tsx",
+					"target": "@components/data-explorer/ui/board.tsx",
 					"type": "registry:component"
 				}
 			],
-			"name": "data-explorer-board-view",
+			"name": "board-view",
 			"title": "Data Explorer Board View",
 			"type": "registry:block"
 		},
@@ -397,17 +397,17 @@
 			"files": [
 				{
 					"path": "components/src/views/gantt.tsx",
-					"target": "components/data-explorer/ui/views/gantt.tsx",
+					"target": "@components/data-explorer/ui/gantt.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/lib/dates.ts",
-					"target": "components/data-explorer/lib/dates.ts",
+					"target": "@lib/data-explorer.ts",
 					"type": "registry:lib"
 				}
 			],
-			"name": "data-explorer-timeline-view",
-			"registryDependencies": ["data-explorer-filter-bar", "utils"],
+			"name": "timeline-view",
+			"registryDependencies": ["filter-bar", "utils"],
 			"title": "Data Explorer Timeline View",
 			"type": "registry:block"
 		},
@@ -417,21 +417,21 @@
 			"files": [
 				{
 					"path": "components/src/index.ts",
-					"target": "components/data-explorer/ui/index.ts",
+					"target": "@components/data-explorer/ui/index.ts",
 					"type": "registry:component"
 				}
 			],
 			"name": "data-explorer",
 			"registryDependencies": [
-				"data-explorer-core",
-				"data-explorer-sql",
-				"data-explorer-filter-bar",
-				"data-explorer-filter-sentence",
-				"data-explorer-display",
-				"data-explorer-selection",
-				"data-explorer-table-view",
-				"data-explorer-board-view",
-				"data-explorer-timeline-view",
+				"core",
+				"sql",
+				"filter-bar",
+				"filter-sentence",
+				"display",
+				"selection",
+				"table-view",
+				"board-view",
+				"timeline-view",
 				"calendar",
 				"checkbox",
 				"command",
