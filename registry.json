@@ -98,6 +98,11 @@
 					"type": "registry:lib"
 				},
 				{
+					"path": "package/src/features/data-filtering/filter-flow-reducer.ts",
+					"target": "@components/data-explorer/features/data-filtering/filter-flow-reducer.ts",
+					"type": "registry:lib"
+				},
+				{
 					"path": "package/src/features/data-filtering/filter-grouping.ts",
 					"target": "@components/data-explorer/features/data-filtering/filter-grouping.ts",
 					"type": "registry:lib"
@@ -194,42 +199,42 @@
 			"files": [
 				{
 					"path": "components/src/filter-input/index.tsx",
-					"target": "@components/data-explorer/ui/index.tsx",
+					"target": "@components/data-explorer/index.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/column-selector.tsx",
-					"target": "@components/data-explorer/ui/column-selector.tsx",
+					"target": "@components/data-explorer/column-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/operator-selector.tsx",
-					"target": "@components/data-explorer/ui/operator-selector.tsx",
+					"target": "@components/data-explorer/operator-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/value-input.tsx",
-					"target": "@components/data-explorer/ui/value-input.tsx",
+					"target": "@components/data-explorer/value-input.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-chip.tsx",
-					"target": "@components/data-explorer/ui/filter-chip.tsx",
+					"target": "@components/data-explorer/filter-chip.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-chip-group.tsx",
-					"target": "@components/data-explorer/ui/filter-chip-group.tsx",
+					"target": "@components/data-explorer/filter-chip-group.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/filter-combinator-toggle.tsx",
-					"target": "@components/data-explorer/ui/filter-combinator-toggle.tsx",
+					"target": "@components/data-explorer/filter-combinator-toggle.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-input/use-filter-bar-keyboard.ts",
-					"target": "@components/data-explorer/ui/use-filter-bar-keyboard.ts",
+					"target": "@components/data-explorer/use-filter-bar-keyboard.ts",
 					"type": "registry:component"
 				},
 				{
@@ -258,28 +263,27 @@
 				"@tabler/icons-react",
 				"motion"
 			],
-			"description": "FilterSentence: saved filters rendered as a plain-language sentence that morphs in place into a Where/And/Or builder (Edit ↔ Save shared-element morph, motion). Reads/writes dataFilters via the DataExplorer context; Save validates every row (validateCondition) and commits atomically. Reuses OperatorSelector/ValueInput from the filter-bar block via preserved relative imports — requires filter-bar and a DataExplorer Provider ancestor.",
+			"description": "FilterSentence: saved filters rendered as a plain-language sentence that morphs in place into a Where/And/Or builder (Edit ↔ Save shared-element morph, motion). Reads/writes dataFilters via the DataExplorer context; Save validates every row (validateCondition) and commits atomically. Reuses ValueInput from the filter-bar block via a preserved relative import — requires filter-bar and a DataExplorer Provider ancestor.",
 			"files": [
 				{
 					"path": "components/src/filter-sentence/filter-sentence.tsx",
-					"target": "@components/data-explorer/ui/filter-sentence.tsx",
+					"target": "@components/data-explorer/filter-sentence.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-sentence/sentence-view.tsx",
-					"target": "@components/data-explorer/ui/sentence-view.tsx",
+					"target": "@components/data-explorer/sentence-view.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/filter-sentence/builder-row.tsx",
-					"target": "@components/data-explorer/ui/builder-row.tsx",
+					"target": "@components/data-explorer/builder-row.tsx",
 					"type": "registry:component"
 				}
 			],
 			"name": "filter-sentence",
 			"registryDependencies": [
 				"button",
-				"command",
 				"input",
 				"popover",
 				"select",
@@ -300,22 +304,22 @@
 			"files": [
 				{
 					"path": "components/src/display-dropdown/display-component.tsx",
-					"target": "@components/data-explorer/ui/display-component.tsx",
+					"target": "@components/data-explorer/display-component.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/display-column-selector.tsx",
-					"target": "@components/data-explorer/ui/display-column-selector.tsx",
+					"target": "@components/data-explorer/display-column-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/sorting-selector.tsx",
-					"target": "@components/data-explorer/ui/sorting-selector.tsx",
+					"target": "@components/data-explorer/sorting-selector.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/display-dropdown/spacing-density-selector.tsx",
-					"target": "@components/data-explorer/ui/spacing-density-selector.tsx",
+					"target": "@components/data-explorer/spacing-density-selector.tsx",
 					"type": "registry:component"
 				}
 			],
@@ -335,17 +339,17 @@
 			"files": [
 				{
 					"path": "components/src/batch-menu/selection-checkbox.tsx",
-					"target": "@components/data-explorer/ui/selection-checkbox.tsx",
+					"target": "@components/data-explorer/selection-checkbox.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/batch-menu/batch-menu-bar.tsx",
-					"target": "@components/data-explorer/ui/batch-menu-bar.tsx",
+					"target": "@components/data-explorer/batch-menu-bar.tsx",
 					"type": "registry:component"
 				},
 				{
 					"path": "components/src/batch-menu/selected-count.tsx",
-					"target": "@components/data-explorer/ui/selected-count.tsx",
+					"target": "@components/data-explorer/selected-count.tsx",
 					"type": "registry:component"
 				}
 			],
@@ -366,7 +370,7 @@
 			"files": [
 				{
 					"path": "components/src/views/table.tsx",
-					"target": "@components/data-explorer/ui/table.tsx",
+					"target": "@components/data-explorer/table.tsx",
 					"type": "registry:component"
 				}
 			],
@@ -382,7 +386,7 @@
 			"files": [
 				{
 					"path": "components/src/views/board.tsx",
-					"target": "@components/data-explorer/ui/board.tsx",
+					"target": "@components/data-explorer/board.tsx",
 					"type": "registry:component"
 				}
 			],
@@ -397,7 +401,7 @@
 			"files": [
 				{
 					"path": "components/src/views/gantt.tsx",
-					"target": "@components/data-explorer/ui/gantt.tsx",
+					"target": "@components/data-explorer/gantt.tsx",
 					"type": "registry:component"
 				},
 				{
@@ -407,7 +411,7 @@
 				}
 			],
 			"name": "timeline-view",
-			"registryDependencies": ["filter-bar", "utils"],
+			"registryDependencies": ["utils"],
 			"title": "Data Explorer Timeline View",
 			"type": "registry:block"
 		},
@@ -417,7 +421,7 @@
 			"files": [
 				{
 					"path": "components/src/index.ts",
-					"target": "@components/data-explorer/ui/index.ts",
+					"target": "@components/data-explorer/index.ts",
 					"type": "registry:component"
 				}
 			],
@@ -432,6 +436,7 @@
 				"table-view",
 				"board-view",
 				"timeline-view",
+				"button",
 				"calendar",
 				"checkbox",
 				"command",
