@@ -15,6 +15,8 @@ export { FilterCombinatorToggle } from "./filter-input/filter-combinator-toggle.
 export { FilterBar } from "./filter-input/index.tsx";
 export { OperatorSelector } from "./filter-input/operator-selector.tsx";
 export { ValueInput } from "./filter-input/value-input.tsx";
+export { FilterSentence } from "./filter-sentence/filter-sentence.tsx";
+export { SentenceView } from "./filter-sentence/sentence-view.tsx";
 export { BoardView } from "./views/board.tsx";
 export { TimelineView } from "./views/gantt.tsx";
 export { VirtualTable } from "./views/table.tsx";

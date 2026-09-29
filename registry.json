@@ -226,6 +226,44 @@
 			"dependencies": [
 				"@adistack/data-explorer",
 				"@tabler/icons-react",
+				"motion"
+			],
+			"description": "FilterSentence: saved filters rendered as a plain-language sentence that morphs in place into a Where/And/Or builder (Edit ↔ Save shared-element morph, motion). Reads/writes dataFilters via the DataExplorer context; Save validates every row (validateCondition) and commits atomically. Reuses OperatorSelector/ValueInput from the filter-bar block via preserved relative imports — requires data-explorer-filter-bar and a DataExplorer Provider ancestor.",
+			"files": [
+				{
+					"path": "components/src/filter-sentence/filter-sentence.tsx",
+					"target": "components/data-explorer/ui/filter-sentence/filter-sentence.tsx",
+					"type": "registry:component"
+				},
+				{
+					"path": "components/src/filter-sentence/sentence-view.tsx",
+					"target": "components/data-explorer/ui/filter-sentence/sentence-view.tsx",
+					"type": "registry:component"
+				},
+				{
+					"path": "components/src/filter-sentence/builder-row.tsx",
+					"target": "components/data-explorer/ui/filter-sentence/builder-row.tsx",
+					"type": "registry:component"
+				}
+			],
+			"name": "data-explorer-filter-sentence",
+			"registryDependencies": [
+				"button",
+				"command",
+				"input",
+				"popover",
+				"select",
+				"data-explorer-filter-bar",
+				"utils"
+			],
+			"title": "Data Explorer Filter Sentence",
+			"type": "registry:block"
+		},
+		{
+			"$schema": "https://ui.shadcn.com/schema/registry-item.json",
+			"dependencies": [
+				"@adistack/data-explorer",
+				"@tabler/icons-react",
 				"@tanstack/react-table"
 			],
 			"description": "DisplayComponent popover with DisplayColumnSelector, SortingSelector and SpacingDensitySelector. Requires a DataExplorer Provider ancestor and the @adistack/data-explorer npm package.",
@@ -353,6 +391,7 @@
 				"data-explorer-core",
 				"data-explorer-sql",
 				"data-explorer-filter-bar",
+				"data-explorer-filter-sentence",
 				"data-explorer-display",
 				"data-explorer-selection",
 				"data-explorer-table-view",

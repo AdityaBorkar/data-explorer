@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { BoardViewExample } from "./board-view.tsx";
 import { DisplayOptions } from "./display-options.tsx";
 import { FilterBarExample } from "./filter-bar.tsx";
+import { FilterSentenceExample } from "./filter-sentence.tsx";
 import { InfiniteScroll } from "./infinite-scroll.tsx";
 import { SavedViews } from "./saved-views.tsx";
 import { SelectionBatch } from "./selection-batch.tsx";
@@ -39,6 +40,17 @@ export const EXAMPLES: ExampleMeta[] = [
 		],
 		slug: "filter-bar",
 		title: "Filter Bar",
+	},
+	{
+		component: FilterSentenceExample,
+		description: "Sentence ↔ builder morph, draft-then-commit.",
+		files: [
+			"examples/filter-sentence.tsx",
+			"components/explorer-shell.tsx",
+			"lib/tasks.ts",
+		],
+		slug: "filter-sentence",
+		title: "Filter Sentence",
 	},
 	{
 		component: DisplayOptions,
