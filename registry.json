@@ -38,6 +38,11 @@
 					"type": "registry:lib"
 				},
 				{
+					"path": "package/src/errors.ts",
+					"target": "components/data-explorer/errors.ts",
+					"type": "registry:lib"
+				},
+				{
 					"path": "package/src/filters.ts",
 					"target": "components/data-explorer/filters.ts",
 					"type": "registry:lib"
@@ -144,7 +149,7 @@
 		},
 		{
 			"$schema": "https://ui.shadcn.com/schema/registry-item.json",
-			"description": "Filter-to-SQL helper (buildFilterWhere) for @adistack/data-explorer. Uses relative imports into the vendored core, so it must be installed alongside data-explorer-core.",
+			"description": "Filter-to-SQL helper (buildFilterWhere) for @adistack/data-explorer, plus the Postgres-only ./backend server entry (buildFilterWherePg, $n placeholders, ILIKE, text[] ops — no React/TanStack/zod in its import closure). Uses relative imports into the vendored core, so it must be installed alongside data-explorer-core.",
 			"files": [
 				{
 					"path": "package/src/sql/index.ts",
@@ -154,6 +159,26 @@
 				{
 					"path": "package/src/sql/filter-sql.ts",
 					"target": "components/data-explorer/sql/filter-sql.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/sql/backend.ts",
+					"target": "components/data-explorer/sql/backend.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/sql/pg-where.ts",
+					"target": "components/data-explorer/sql/pg-where.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/sql/pg-identifiers.ts",
+					"target": "components/data-explorer/sql/pg-identifiers.ts",
+					"type": "registry:lib"
+				},
+				{
+					"path": "package/src/errors.ts",
+					"target": "components/data-explorer/errors.ts",
 					"type": "registry:lib"
 				}
 			],
@@ -206,6 +231,11 @@
 					"path": "components/src/filter-input/use-filter-bar-keyboard.ts",
 					"target": "components/data-explorer/ui/filter-input/use-filter-bar-keyboard.ts",
 					"type": "registry:component"
+				},
+				{
+					"path": "components/src/lib/dates.ts",
+					"target": "components/data-explorer/lib/dates.ts",
+					"type": "registry:lib"
 				}
 			],
 			"name": "data-explorer-filter-bar",
@@ -363,12 +393,17 @@
 		{
 			"$schema": "https://ui.shadcn.com/schema/registry-item.json",
 			"dependencies": ["@adistack/data-explorer"],
-			"description": "TimelineView (gantt): zoomable timeline driven by startOf/endOf columns. Requires a DataExplorer Provider ancestor and the @adistack/data-explorer npm package. Reuses parseDateValue from the filter-bar block via a preserved relative import.",
+			"description": "TimelineView (gantt): zoomable timeline driven by startOf/endOf columns. Requires a DataExplorer Provider ancestor and the @adistack/data-explorer npm package. Imports parseDateValue from @/lib/dates, shipped alongside this block (lib/dates.ts).",
 			"files": [
 				{
 					"path": "components/src/views/gantt.tsx",
 					"target": "components/data-explorer/ui/views/gantt.tsx",
 					"type": "registry:component"
+				},
+				{
+					"path": "components/src/lib/dates.ts",
+					"target": "components/data-explorer/lib/dates.ts",
+					"type": "registry:lib"
 				}
 			],
 			"name": "data-explorer-timeline-view",

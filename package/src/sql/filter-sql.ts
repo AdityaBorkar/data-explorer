@@ -24,6 +24,7 @@ import type {
 	FilterOperator,
 } from "../filters.ts";
 import { isFilterGroup } from "../filters.ts";
+import { escapeLikePattern, quotePgIdent } from "./pg-identifiers.ts";
 
 export interface ParameterizedSql {
 	params: unknown[];
@@ -50,16 +51,12 @@ export interface BuildFilterOptions {
 	tableAlias?: string;
 }
 
-function ansiQuote(name: string): string {
-	return `"${name.replace(/"/g, '""')}"`;
-}
-
 function mysqlQuote(name: string): string {
 	return `\`${name.replace(/`/g, "``")}\``;
 }
 
 function quoteIdent(name: string, dialect: SqlDialect): string {
-	return dialect === "mysql" ? mysqlQuote(name) : ansiQuote(name);
+	return dialect === "mysql" ? mysqlQuote(name) : quotePgIdent(name);
 }
 
 function buildLike(
@@ -109,11 +106,6 @@ function colRef(
 ): string {
 	const quoted = quoteIdent(columnName, dialect);
 	return tableAlias ? `${quoteIdent(tableAlias, dialect)}.${quoted}` : quoted;
-}
-
-/** Escape LIKE wildcards so user input matches literally. */
-function escapeLikePattern(value: string): string {
-	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
 /** Single validation entry point with explicit matchable codes (see `validateCondition`). */

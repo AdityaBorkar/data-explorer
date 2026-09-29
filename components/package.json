@@ -8,16 +8,10 @@
 		"#/*": "./src/*"
 	},
 	"exports": {
-		".": "./index.ts"
+		".": "./src/index.ts"
 	},
 	"files": [
-		"batch-menu",
-		"display-dropdown",
-		"filter-input",
-		"primitives",
-		"views",
-		"index.ts",
-		"selection-checkbox.tsx"
+		"src"
 	],
 	"scripts": {
 		"check:lint": "biome check --fix .",

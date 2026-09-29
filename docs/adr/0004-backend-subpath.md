@@ -1,0 +1,3 @@
+# Backend subpath export (`./backend`)
+
+Exception to ADR-0001's single-export rule: `@adistack/data-explorer/backend` is a second, Postgres-only entry (`package/src/sql/backend.ts`) so server bundles (Aspen OS on Bun) can build `WHERE` fragments without resolving `react`, `@tanstack/*`, or `zod`. It is a subpath — not a split package — because the version-skew and sync-by-test cost of a second package outweighs the peer-installation noise, and parity with the root `buildFilterWhere({ dialect: "postgres" })` stays free: `buildFilterWherePg` is a wrapper over the shared engine (proven byte-identical by `sql/pg-where.test.ts`), not a fork. The import-graph constraint (React-free closure) is enforced by `sql/no-ui-imports.test.ts`, not by review.

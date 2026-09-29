@@ -4,9 +4,9 @@ Bun monorepo: `package/` = `@adistack/data-explorer` (headless core + SQL, ships
 
 ## Layout
 
-- `package/src/index.ts` is the sole export (explicit allow-list, no `export *`); SQL helper `buildFilterWhere` re-exports from `./sql/index.ts` — no `./sql` subpath. Canonical homes: columns → `columns.ts` (`extractColumnConfigs`, `SEARCH_COLUMN_ID`); filters → `filters.ts`; display → `features/display-snapshot.ts`; serialization → `features/data-filtering/filter-utils.ts`.
+- `package/src/index.ts` is one of two exports (explicit allow-list, no `export *`): `.` (UI + SQL) and `./backend` (Postgres-only server-side; its transitive closure is React-free per `sql/no-ui-imports.test.ts`; entry file is `sql/backend.ts`). SQL helper `buildFilterWhere` re-exports from `./sql/index.ts` — no `./sql` subpath. Canonical homes: columns → `columns.ts` (`extractColumnConfigs`, `SEARCH_COLUMN_ID`); filters → `filters.ts`; display → `features/display-snapshot.ts`; serialization → `features/data-filtering/filter-utils.ts`.
 - `components/src/`: `filter-input/` (FilterBar), `display-dropdown/`, `batch-menu/`, `views/` (`table.tsx` → `VirtualTable`, `board.tsx` → `BoardView`, `gantt.tsx` → `TimelineView`), `primitives/`, `lib/` (`utils.ts` `cn`, `dates.ts` `parseDateValue`).
-- `registry.json` is the ship contract (9 items: `data-explorer-core`, `-sql`, `-filter-bar`, `-display`, `-selection`, `-table-view`, `-board-view`, `-timeline-view`, `data-explorer` aggregator). Keep `files[].path` in sync when moving sources. Known staleness: `timeline-view` description mentions a relative `parseDateValue` import (actual `@/lib/dates`, and `lib/dates.ts` is in no item); `components/package.json` `files`/`exports` reference root `index.ts` and stray `selection-checkbox.tsx`.
+- `registry.json` is the ship contract (9 items: `data-explorer-core`, `-sql`, `-filter-bar`, `-display`, `-selection`, `-table-view`, `-board-view`, `-timeline-view`, `data-explorer` aggregator). Keep `files[].path` in sync when moving sources. `lib/dates.ts` ships in the `filter-bar` and `timeline-view` items (their sources import `@/lib/dates`); `lib/utils.ts` is deliberately not shipped — vendored blocks rely on shadcn's `utils` dependency.
 - `examples/` dev app: run `bun run dev` (=`bun --hot server.ts`) from `examples/` (port 4000). Canonical `Provider` wiring: `examples/src/components/explorer-shell.tsx`. Demos in `examples/src/examples/` (+ `index.ts` registry).
 
 ## Commands
@@ -22,7 +22,7 @@ Verify in order: lint → types → test.
 
 - Bun for install/scripts. TS 7 strict: `verbatimModuleSyntax` (use `import type`), relative imports keep `.ts`/`.tsx` extensions, `noUncheckedIndexedAccess` + `noUnusedLocals/Parameters` on.
 - Root `biome.json` (`files.includes: ["**"]`, git-aware, organize-imports preset `all`). Conventional commits via husky + commitlint (`build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|wip`); pre-commit runs `bun fix:format`.
-- Path aliases: `#/*` → `./src/*` per workspace; `components/` adds `@/*` → `src/*` (incl. `@/lib/dates`, `@/components/ui/*` → `src/primitives/*`); `examples/` mirrors `#/components/ui/*` → `../components/src/primitives/*`. Most code uses relative imports.
+- Path aliases: `#/*` → `./src/*` per workspace; `components/` adds `@/*` → `src/*` (incl. `@/lib/dates`, `@/components/ui/*` → `src/primitives/*`); `examples/` resolves all `#/*` locally — demo-app chrome (`components/ui/card`, `lib/utils`) is local, library UI blocks come via `@adistack/data-explorer-ui` (`components/src/index.ts` barrel). Most code uses relative imports.
 - TanStack table is v9 stable (`^9.2.4`, peer `>=9.0.0-beta.1`) — use v9 APIs, not v8.
 
 ## Architecture (agent gotchas)

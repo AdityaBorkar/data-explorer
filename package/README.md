@@ -77,6 +77,27 @@ buildFilterWhere(filters, columns, mapping, { dialect: "sqlite" });
 `code` (`UNKNOWN_COLUMN`, `MISSING_MAPPING`, …) and the offending
 `columnId` in `details` — highlight the chip instead of parsing messages.
 
+### `backend` — Postgres-only server entry
+
+```ts
+import { buildFilterWherePg, pgColRef } from "@adistack/data-explorer/backend";
+
+// $n numbered placeholders, ILIKE … ESCAPE '\', text[] @>/&&, ANSI "ident" quoting
+buildFilterWherePg(filters, columns, mapping, { tableAlias: "tasks" });
+// → { sql: '"tasks"."title" ILIKE $1 ESCAPE \'\'…', params: ["%x%"] }
+
+// Compose identifiers (e.g. ORDER BY) with the same quoting rules:
+pgColRef("estimate", "tasks"); // → '"tasks"."estimate"'
+```
+
+`./backend` is a wrapper over the same engine pinned to Postgres: the
+transitive import closure is React / TanStack / zod free (enforced by
+`sql/no-ui-imports.test.ts`), so Bun server bundles can import it
+directly. `caseSensitive: true` switches to binary `LIKE`; there is no
+`dialect` / `placeholderStyle` option. Pass `caseSensitive`, `tableAlias`
+only — for the multi-dialect builder use the root export. Empty filters →
+`{ sql: "", params: [] }` (never undefined).
+
 ## Persisted views
 
 ```tsx
