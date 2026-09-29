@@ -3,28 +3,17 @@ import type {
 	UseQueryOptions,
 } from "@tanstack/react-query";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import type {
-	ColumnSizingState,
-	ColumnVisibilityState,
-	GroupingState,
-	SortingState,
-} from "@tanstack/react-table";
+import type { GroupingState, SortingState } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 
 import { DataExplorerError } from "../errors.ts";
 import type { FilterCondition } from "../filters.ts";
 import {
 	type DataQueryKeyRefine,
+	type DataRefineOptions,
 	dataQueryKey,
 	type ListQueryResult,
-	type RefineOptions,
 } from "../query.ts";
-import type { Density, ViewType } from "../views.ts";
-
-// Backwards-compat re-exports for existing deep imports. New code should
-// import these from the canonical home (`../query.ts`).
-export type { DataQueryKeyRefine } from "../query.ts";
-export { dataQueryKey, hashRefine, stableStringify } from "../query.ts";
 
 /**
  * Default page size when `Provider` gets no `pageSize`.
@@ -57,13 +46,11 @@ const EMPTY_ITEMS: never[] = [];
 /**
  * Infinite data query for the explorer table. The stable hashed key
  * (`dataQueryKey`) covers the data-affecting refine slices (filters,
- * sorting, grouping). Display-only state (`columnSizing`,
- * `columnVisibility`, `density`, `viewType`) is passed through to the
- * `queryBuilder` at fetch time for contextual queries, but display-only
- * changes alone never invalidate the cache — the builder sees the display
- * values from the render that triggered the fetch. `pageSize` sets the
- * fetch limit and `debounceFiltersMs` keeps filter keystrokes from
- * refetching per character. Returns `allItems` memoized on `[query.data]`.
+ * sorting, grouping). `pageSize` sets the fetch limit and
+ * `debounceFiltersMs` keeps filter keystrokes from refetching per
+ * character. Returns `allItems` memoized on `[query.data]`. Display-only
+ * table state never enters this hook — read `table.state` directly when a
+ * query needs display context.
  *
  * @example
  * ```tsx
@@ -73,17 +60,13 @@ const EMPTY_ITEMS: never[] = [];
  * ```
  */
 export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
-	columnSizing: ColumnSizingState;
-	columnVisibility: ColumnVisibilityState;
 	dataFilters: FilterCondition[];
-	density: Density;
 	domain: string;
 	grouping: GroupingState;
 	queryBuilder: (
-		opts: RefineOptions,
+		opts: DataRefineOptions,
 	) => UseQueryOptions<ListQueryResult<TItem>>;
 	sorting: SortingState;
-	viewType: ViewType;
 	/** @default DEFAULT_PAGE_SIZE */
 	pageSize?: number;
 	/** Forwarded to TanStack as `staleTime`. */
@@ -92,15 +75,11 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 	debounceFiltersMs?: number;
 }) {
 	const {
-		columnSizing,
-		columnVisibility,
 		dataFilters,
-		density,
 		domain,
 		grouping,
 		queryBuilder,
 		sorting,
-		viewType,
 		pageSize = DEFAULT_PAGE_SIZE,
 		staleTime,
 		debounceFiltersMs = 0,
@@ -134,10 +113,7 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 		}: QueryFunctionContext<readonly unknown[], string | undefined>) => {
 			const firstSort = sorting[0];
 			const built = queryBuilder({
-				columnSizing,
-				columnVisibility,
 				cursor: pageParam,
-				density,
 				filters: effectiveFilters,
 				grouping,
 				limit: pageSize,
@@ -146,7 +122,6 @@ export function useDataQuery<TItem extends Record<string, unknown>>(opts: {
 					direction: firstSort?.desc ? "desc" : "asc",
 				},
 				sorting,
-				viewType,
 			});
 			// Fail fast on the builder contract before any network work.
 			// The wrapper owns the cache key (`queryKey` above): the

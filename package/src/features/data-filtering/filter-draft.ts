@@ -64,21 +64,24 @@ export function commitDraft(
 }
 
 /**
- * Quick-add policy for single-click value selection: `multiEnum` columns
- * commit an `includeAny` array, everything else commits a scalar `eq`.
- * Lives here (not in the React flow) so the operator choice stays with
- * the rest of the draft policy and is testable without React.
+ * Quick-add policy for single-click value selection: uses the column's
+ * `quickOperator` when set, otherwise `multiEnum` columns commit an
+ * `includeAny` array and everything else commits a scalar `eq`. Array-arity
+ * operators wrap the value; scalar operators commit it directly. Lives
+ * here (not in the React flow) so the operator choice stays with the rest
+ * of the draft policy and is testable without React.
  */
 export function quickAddCondition(
-	column: Pick<ColumnConfig, "id" | "type">,
+	column: Pick<ColumnConfig, "id" | "quickOperator" | "type">,
 	value: string,
 ): FilterCondition {
 	const operator: FilterOperator =
-		column.type === "multiEnum" ? "includeAny" : "eq";
+		column.quickOperator ?? (column.type === "multiEnum" ? "includeAny" : "eq");
+	const arity = getOperatorArity(operator);
 	return buildDraftCondition(
 		column.id,
 		operator,
-		operator === "includeAny" ? [value] : value,
+		arity === "set" || arity === "array" ? [value] : value,
 	);
 }
 
@@ -107,44 +110,48 @@ export function editorKind(
 	return "single";
 }
 
-const MAX_INLINE_LABELS = 2;
-const MAX_INLINE_CHARS = 20;
+const DEFAULT_MAX_INLINE_LABELS = 2;
+const DEFAULT_MAX_INLINE_CHARS = 20;
 
-/**
- * Single display formatter for committed values. Returns null when
- * there is nothing to render (nullary operators, empty values).
- */
-export function formatFilterValue(
+/** Truncation budget for `formatFilterValue`. Defaults preserve historical output. */
+export interface FormatFilterValueOptions {
+	/** Max scalar chars before `...`. @default 20 */
+	maxInlineChars?: number;
+	/** Max array labels before `...`. @default 2 */
+	maxInlineLabels?: number;
+}
+
+function formatRangeValue(value: unknown): string | null {
+	if (!Array.isArray(value)) return null;
+	const [min, max] = value;
+	if (min === undefined || min === "" || max === undefined || max === "")
+		return null;
+	return `${String(min)} – ${String(max)}`;
+}
+
+function formatSetValue(
 	value: unknown,
-	operator: FilterOperator,
 	column: Pick<ColumnConfig, "options" | "type">,
+	maxInlineLabels: number,
 ): string | null {
-	if (getOperatorArity(operator) === "nullary") return null;
-	if (value === null || value === undefined) return null;
+	// Committed set/array values are always arrays (see `commitDraft`);
+	// anything else has nothing to render.
+	if (!Array.isArray(value)) return null;
+	if (value.length === 0) return null;
+	const labels = value.map((v) => {
+		const opt = column.options?.find((o) => o.value === String(v));
+		return opt?.label ?? String(v);
+	});
+	return labels.length > maxInlineLabels
+		? `${labels.slice(0, maxInlineLabels).join(", ")}...`
+		: labels.join(", ");
+}
 
-	if (operator === "between" || operator === "notBetween") {
-		if (!Array.isArray(value)) return null;
-		const [min, max] = value;
-		if (min === undefined || min === "" || max === undefined || max === "")
-			return null;
-		return `${String(min)} – ${String(max)}`;
-	}
-
-	const arity = getOperatorArity(operator);
-	if (arity === "set" || arity === "array") {
-		// Committed set/array values are always arrays (see `commitDraft`);
-		// anything else has nothing to render.
-		if (!Array.isArray(value)) return null;
-		if (value.length === 0) return null;
-		const labels = value.map((v) => {
-			const opt = column.options?.find((o) => o.value === String(v));
-			return opt?.label ?? String(v);
-		});
-		return labels.length > MAX_INLINE_LABELS
-			? `${labels.slice(0, MAX_INLINE_LABELS).join(", ")}...`
-			: labels.join(", ");
-	}
-
+function formatScalarValue(
+	value: unknown,
+	column: Pick<ColumnConfig, "options" | "type">,
+	maxInlineChars: number,
+): string | null {
 	if (column.type === "boolean") {
 		if (value === true) return "Yes";
 		if (value === false) return "No";
@@ -155,7 +162,37 @@ export function formatFilterValue(
 		? value.map(String).join(", ")
 		: String(value);
 	if (str === "") return null;
-	return str.length > MAX_INLINE_CHARS
-		? `${str.slice(0, MAX_INLINE_CHARS)}...`
+	return str.length > maxInlineChars
+		? `${str.slice(0, maxInlineChars)}...`
 		: str;
+}
+
+/**
+ * Single display formatter for committed values. Returns null when
+ * there is nothing to render (nullary operators, empty values).
+ * Truncation is configurable via `opts` so UI callers own the budget —
+ * the headless default preserves historical output.
+ */
+export function formatFilterValue(
+	value: unknown,
+	operator: FilterOperator,
+	column: Pick<ColumnConfig, "options" | "type">,
+	opts?: FormatFilterValueOptions,
+): string | null {
+	if (getOperatorArity(operator) === "nullary") return null;
+	if (value === null || value === undefined) return null;
+
+	const maxInlineLabels = opts?.maxInlineLabels ?? DEFAULT_MAX_INLINE_LABELS;
+	const maxInlineChars = opts?.maxInlineChars ?? DEFAULT_MAX_INLINE_CHARS;
+
+	if (operator === "between" || operator === "notBetween") {
+		return formatRangeValue(value);
+	}
+
+	const arity = getOperatorArity(operator);
+	if (arity === "set" || arity === "array") {
+		return formatSetValue(value, column, maxInlineLabels);
+	}
+
+	return formatScalarValue(value, column, maxInlineChars);
 }

@@ -31,6 +31,34 @@ describe("validateFilterValue", () => {
 		expect(validateFilterValue("excludeAll", "a")).toMatch(/string\[\]/);
 	});
 
+	it("rejects non-scalar elements in set/array operators", () => {
+		expect(validateFilterValue("in", [["a"]])).toMatch(/string\[\]/);
+		expect(validateFilterValue("in", [null])).toMatch(/string\[\]/);
+		expect(validateFilterValue("includeAny", [{ v: "a" }])).toMatch(
+			/string\[\]/,
+		);
+	});
+
+	it("validates date range contents", () => {
+		expect(
+			validateFilterValue("between", ["2024-01-01", "2024-12-31"], "date"),
+		).toBeUndefined();
+		expect(
+			validateFilterValue(
+				"between",
+				[
+					new Date("2024-01-01T00:00:00.000Z"),
+					new Date("2024-12-31T00:00:00.000Z"),
+				],
+				"date",
+			),
+		).toBeUndefined();
+		expect(validateFilterValue("between", ["", "2024-12-31"], "date")).toMatch(
+			/date/,
+		);
+		expect(validateFilterValue("between", ["a", "b"], "date")).toBeUndefined();
+	});
+
 	it("requires a non-blank value for single operators", () => {
 		expect(validateFilterValue("eq", "x")).toBeUndefined();
 		expect(validateFilterValue("eq", "")).toMatch(/non-null/);

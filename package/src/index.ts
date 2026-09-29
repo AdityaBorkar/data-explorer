@@ -16,6 +16,7 @@ export {
 	type ColumnConfig,
 	type ColumnDataType,
 	type ColumnIssue,
+	type ColumnSemantics,
 	type DataExplorerColumnMeta,
 	type ExtractColumnConfigOptions,
 	extractColumnConfigs,
@@ -49,9 +50,20 @@ export {
 	type DraftCommit,
 	editorKind,
 	type FilterEditorKind,
+	type FormatFilterValueOptions,
 	formatFilterValue,
 	quickAddCondition,
 } from "./features/data-filtering/filter-draft.ts";
+export {
+	type ColumnSelectDecision,
+	type FlowAction,
+	type FlowState,
+	flowReducer,
+	INITIAL_FLOW,
+	type Phase,
+	resolveColumnSelect,
+	resolveOperatorSelect,
+} from "./features/data-filtering/filter-flow-reducer.ts";
 export { groupConditions } from "./features/data-filtering/filter-grouping.ts";
 export {
 	type CoercedFilterValue,
@@ -83,6 +95,7 @@ export { displayMetaFeature } from "./features/display-meta/displayMetaFeature.t
 // --- Display snapshots (canonical home for `mergeDisplay` + share-link codec). ---
 export {
 	applyDisplaySnapshot,
+	applyTableSnapshot,
 	DENSITIES,
 	deserializeDisplay,
 	mergeDisplay,

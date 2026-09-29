@@ -40,10 +40,18 @@ export interface DataExplorerColumnMeta<TIcon = unknown> {
 	min?: number;
 	operators?: FilterOperator[];
 	options?: { label: string; value: string }[];
+	/** Override for single-click quick-add (`quickAddCondition`). Defaults to `includeAny` on `multiEnum`, `eq` elsewhere. */
+	quickOperator?: FilterOperator;
 	searchable?: boolean;
 	startOf?: "timeline";
 	type: ColumnDataType;
 }
+
+/** Minimal column shape for filter semantics (operator allow-list + type). */
+export type ColumnSemantics = Pick<
+	DataExplorerColumnMeta,
+	"operators" | "type"
+>;
 
 /** Headless column descriptor derived from a TanStack column def's `meta`. */
 export interface ColumnConfig<TIcon = unknown>
@@ -70,14 +78,14 @@ export interface ExtractColumnConfigOptions {
 	strict?: boolean;
 }
 
-const KNOWN_COLUMN_TYPES: readonly string[] = [
+const KNOWN_COLUMN_TYPES: ReadonlySet<string> = new Set([
 	"string",
 	"number",
 	"date",
 	"boolean",
 	"enum",
 	"multiEnum",
-];
+]);
 
 /** Explicit meta boundary: rejects non-objects and unknown types instead of spreading garbage. */
 function isColumnMeta(meta: unknown): meta is DataExplorerColumnMeta {
@@ -86,8 +94,35 @@ function isColumnMeta(meta: unknown): meta is DataExplorerColumnMeta {
 	return (
 		typeof candidate.displayName === "string" &&
 		typeof candidate.type === "string" &&
-		KNOWN_COLUMN_TYPES.includes(candidate.type)
+		KNOWN_COLUMN_TYPES.has(candidate.type)
 	);
+}
+
+function toColumnConfig(
+	id: string,
+	meta: DataExplorerColumnMeta,
+): ColumnConfig {
+	const config: ColumnConfig = {
+		displayName: meta.displayName,
+		id,
+		type: meta.type,
+	};
+	if (meta.endOf !== undefined) config.endOf = meta.endOf;
+	if (meta.icon !== undefined) config.icon = meta.icon;
+	if (meta.max !== undefined) config.max = meta.max;
+	if (meta.min !== undefined) config.min = meta.min;
+	if (meta.operators !== undefined) config.operators = [...meta.operators];
+	if (meta.options !== undefined) {
+		config.options = meta.options.map((o) => ({
+			label: o.label,
+			value: o.value,
+		}));
+	}
+	if (meta.quickOperator !== undefined)
+		config.quickOperator = meta.quickOperator;
+	if (meta.searchable !== undefined) config.searchable = meta.searchable;
+	if (meta.startOf !== undefined) config.startOf = meta.startOf;
+	return config;
 }
 
 /**
@@ -119,10 +154,10 @@ export function extractColumnConfigsDetailed(
 			});
 			return;
 		}
-		configs.push({ id: def.id, ...meta });
+		configs.push(toColumnConfig(def.id, meta));
 	});
-	if (options?.strict && issues.length > 0) {
-		const first = issues[0] as ColumnIssue;
+	const first = issues[0];
+	if (options?.strict && first !== undefined) {
 		const details: Record<string, unknown> = { index: first.index };
 		if (first.id !== undefined) details.id = first.id;
 		throw new DataExplorerError("INVALID_COLUMN_DEF", first.message, details);

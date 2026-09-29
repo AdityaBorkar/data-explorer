@@ -1,12 +1,6 @@
-import type {
-	ColumnSizingState,
-	ColumnVisibilityState,
-	GroupingState,
-	SortingState,
-} from "@tanstack/react-table";
+import type { GroupingState, SortingState } from "@tanstack/react-table";
 
 import type { FilterCondition } from "./filters.ts";
-import type { Density, ViewType } from "./views.ts";
 
 export interface ListQueryResult<TItem> {
 	items: TItem[];
@@ -31,12 +25,16 @@ export type DataRefineOptions = {
 	sorting: SortingState;
 };
 
-export type RefineOptions = DataRefineOptions & {
-	columnSizing: ColumnSizingState;
-	columnVisibility: ColumnVisibilityState;
-	density: Density;
-	viewType: ViewType;
-};
+/**
+ * Data refine options for the `query` builder. The builder receives only
+ * data-affecting state — display-only state (`columnSizing`,
+ * `columnVisibility`, `density`, `viewType`) never enters the data path.
+ * Read it from `table.state` directly when a query needs display context.
+ *
+ * Kept as an alias for backwards compatibility with existing `query`
+ * callbacks typed against `RefineOptions`.
+ */
+export type RefineOptions = DataRefineOptions;
 
 /**
  * Deterministic structural stringify with sorted object keys.
@@ -58,7 +56,7 @@ export function stableStringify(value: unknown): string {
 	return `{${entries.join(",")}}`;
 }
 
-/** Refine slice that participates in the data query key. Display-only state (`columnSizing`, `columnVisibility`, `density`, `viewType`) still reaches the `queryBuilder` but is deliberately excluded so resizing columns or toggling density never busts the data cache. */
+/** Data-affecting refine slice that participates in the query key (`dataFilters`, `sorting`, `grouping`). */
 export interface DataQueryKeyRefine {
 	dataFilters: FilterCondition[];
 	grouping: GroupingState;

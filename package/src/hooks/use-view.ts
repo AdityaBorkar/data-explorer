@@ -1,14 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactTable } from "@tanstack/react-table";
-import { startTransition, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { ColumnConfig } from "../columns.ts";
 import { DataExplorerError } from "../errors.ts";
 import {
-	applyDisplaySnapshot,
+	applyTableSnapshot,
 	mergeDisplay,
 	toDisplaySnapshot,
-	toInitialTableState,
 } from "../features/display-snapshot.ts";
 import type { FilterCondition } from "../filters.ts";
 import type { TableFeatures } from "../types.ts";
@@ -120,28 +119,17 @@ export function useView<TItem extends Record<string, unknown>>({
 	);
 
 	const resetToDefault = useCallback(() => {
-		table.setDataFilters([]);
-		applyDisplaySnapshot(defaultDisplay, table, columnsConfig);
+		applyTableSnapshot(table, columnsConfig, {
+			display: defaultDisplay,
+			refine: [],
+		});
 	}, [table, defaultDisplay, columnsConfig]);
 
 	const applySnapshot = useCallback(
 		(refine: FilterCondition[], display: FilterViewDisplay) => {
-			// One transaction for filters + the 6 display setters so
-			// subscribers never observe a half-applied view. Inlined here
-			// (instead of calling `applyDisplaySnapshot`, which owns its own
-			// transition) so nesting never splits the update.
-			const next = toInitialTableState(
-				mergeDisplay(defaultDisplay, display),
-				columnsConfig,
-			);
-			startTransition(() => {
-				table.setDataFilters(refine);
-				table.setSorting(next.sorting);
-				table.setGrouping(next.grouping);
-				table.setColumnVisibility(next.columnVisibility);
-				table.setColumnSizing(next.columnSizing);
-				table.setDensity(next.density);
-				table.setViewType(next.viewType);
+			applyTableSnapshot(table, columnsConfig, {
+				display: mergeDisplay(defaultDisplay, display),
+				refine,
 			});
 		},
 		[table, defaultDisplay, columnsConfig],

@@ -1,9 +1,9 @@
 import type {
 	ColumnConfig,
+	DataRefineOptions,
 	FilterCondition,
 	FilterViewDisplay,
 	ListQueryResult,
-	RefineOptions,
 	TableFeatures,
 } from "@adistack/data-explorer";
 import { SEARCH_COLUMN_ID } from "@adistack/data-explorer";
@@ -347,8 +347,8 @@ export function applyFilters(rows: Task[], filters: FilterCondition[]): Task[] {
 export function createMemoryQuery(
 	source: Task[],
 	opts?: { delayMs?: number },
-): (refine: RefineOptions) => UseQueryOptions<ListQueryResult<Task>> {
-	return (refine: RefineOptions) => ({
+): (refine: DataRefineOptions) => UseQueryOptions<ListQueryResult<Task>> {
+	return (refine: DataRefineOptions) => ({
 		queryFn: async () => {
 			if (opts?.delayMs) {
 				await new Promise((r) => setTimeout(r, opts.delayMs));

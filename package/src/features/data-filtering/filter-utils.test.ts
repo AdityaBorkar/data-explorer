@@ -100,7 +100,7 @@ describe("serializeFilters / deserializeFilters", () => {
 		expect(result).toHaveLength(0);
 	});
 
-	it("serializes Date values as ISO strings", () => {
+	it("serializes Date values as tagged objects", () => {
 		const date = new Date("2024-06-15T12:00:00.000Z");
 		const conditions: FilterCondition[] = [
 			{
@@ -113,11 +113,13 @@ describe("serializeFilters / deserializeFilters", () => {
 		];
 		const json = serializeFilters(conditions);
 		const parsed = JSON.parse(json) as {
-			filters: { v: string }[];
+			filters: { v: unknown }[];
 			v: number;
 		};
-		expect(parsed.v).toBe(1);
-		expect(parsed.filters[0]?.v).toBe("2024-06-15T12:00:00.000Z");
+		expect(parsed.v).toBe(2);
+		expect(parsed.filters[0]?.v).toEqual({
+			__date: "2024-06-15T12:00:00.000Z",
+		});
 	});
 
 	it("revives Date values on deserialize", () => {
@@ -198,5 +200,36 @@ describe("serializeFilters / deserializeFilters", () => {
 		const value = result[0]?.value as { at: unknown; label: unknown };
 		expect(value.at).toBeInstanceOf(Date);
 		expect(value.label).toBe("x");
+	});
+
+	it("leaves ISO-like strings as strings", () => {
+		const conditions: FilterCondition[] = [
+			{
+				columnId: "name",
+				combinator: "and",
+				id: "x",
+				operator: "eq",
+				value: "2024-06-15T12:00:00.000Z",
+			},
+		];
+		const result = deserializeFilters(serializeFilters(conditions));
+		expect(result[0]?.value).toBe("2024-06-15T12:00:00.000Z");
+	});
+
+	it("reads legacy v1 bare ISO strings as Dates", () => {
+		const legacy = JSON.stringify({
+			filters: [
+				{
+					b: "and",
+					c: "createdAt",
+					i: "legacy-date",
+					o: "eq",
+					v: "2024-06-15T12:00:00.000Z",
+				},
+			],
+			v: 1,
+		});
+		const result = deserializeFilters(legacy);
+		expect(result[0]?.value).toBeInstanceOf(Date);
 	});
 });

@@ -2,6 +2,7 @@ import type { ReactTable } from "@tanstack/react-table";
 import { startTransition } from "react";
 
 import type { ColumnConfig } from "../columns.ts";
+import type { FilterCondition } from "../filters.ts";
 import type { TableFeatures } from "../types.ts";
 import type { Density, FilterViewDisplay, ViewType } from "../views.ts";
 
@@ -86,6 +87,28 @@ export function toDisplaySnapshot<TItem extends Record<string, unknown>>(
 	};
 }
 
+// Single owner of the display setter list: both public apply paths run
+// through here so adding a display field touches one place. Called without
+// a transition — callers wrap it in their own `startTransition`.
+function setDisplayState<TItem extends Record<string, unknown>>(
+	table: ReactTable<TableFeatures, TItem>,
+	next: {
+		columnSizing: Record<string, number>;
+		columnVisibility: Record<string, boolean>;
+		density: Density;
+		grouping: string[];
+		sorting: { desc: boolean; id: string }[];
+		viewType: ViewType;
+	},
+): void {
+	table.setSorting(next.sorting);
+	table.setGrouping(next.grouping);
+	table.setColumnVisibility(next.columnVisibility);
+	table.setColumnSizing(next.columnSizing);
+	table.setDensity(next.density);
+	table.setViewType(next.viewType);
+}
+
 // Single transaction: callers get one function instead of 6 sequential setters.
 export function applyDisplaySnapshot<TItem extends Record<string, unknown>>(
 	snapshot: FilterViewDisplay,
@@ -96,12 +119,27 @@ export function applyDisplaySnapshot<TItem extends Record<string, unknown>>(
 	// Atomic from the subscriber's perspective: one transition instead of 6
 	// sequential renders.
 	startTransition(() => {
-		table.setSorting(next.sorting);
-		table.setGrouping(next.grouping);
-		table.setColumnVisibility(next.columnVisibility);
-		table.setColumnSizing(next.columnSizing);
-		table.setDensity(next.density);
-		table.setViewType(next.viewType);
+		setDisplayState(table, next);
+	});
+}
+
+/**
+ * Atomic view application: filters + the 6 display setters in one
+ * transition so subscribers never observe a half-applied view. This is the
+ * single transaction behind `useView` (`applySnapshot`, `resetToDefault`);
+ * `applyDisplaySnapshot` above is the display-only projection of the same
+ * setter list.
+ */
+export function applyTableSnapshot<TItem extends Record<string, unknown>>(
+	table: ReactTable<TableFeatures, TItem>,
+	columnsConfig: ColumnConfig[],
+	args: { display: FilterViewDisplay; refine: FilterCondition[] },
+): void {
+	const next = toInitialTableState(args.display, columnsConfig);
+	const refine = args.refine;
+	startTransition(() => {
+		table.setDataFilters(refine);
+		setDisplayState(table, next);
 	});
 }
 
@@ -141,17 +179,29 @@ function isWidthMap(value: unknown): value is Record<string, number> {
 	);
 }
 
-function decodeBase64(input: string): string {
-	const globals = globalThis as {
-		atob?: (data: string) => string;
-		Buffer?: {
-			from(data: string, encoding: string): { toString(e: string): string };
-		};
+function decodeBase64(input: string): string | null {
+	const globals = globalThis as unknown as {
+		atob?: unknown;
+		Buffer?: unknown;
 	};
-	if (typeof globals.atob === "function") return globals.atob(input);
-	if (globals.Buffer)
-		return globals.Buffer.from(input, "base64").toString("utf-8");
-	throw new Error("no base64 decoder available");
+	if (typeof globals.atob === "function") {
+		try {
+			return (globals.atob as (data: string) => string)(input);
+		} catch {
+			return null;
+		}
+	}
+	const bufferCtor = globals.Buffer as
+		| { from(data: string, encoding: string): { toString(e: string): string } }
+		| undefined;
+	if (bufferCtor) {
+		try {
+			return bufferCtor.from(input, "base64").toString("utf-8");
+		} catch {
+			return null;
+		}
+	}
+	return null;
 }
 
 function decodeWidths(
@@ -161,14 +211,12 @@ function decodeWidths(
 	const direct = safeJsonParse(raw);
 	if (isWidthMap(direct)) return { ...direct };
 	// Legacy `b64:` links (pre-raw-JSON encoder) still decode. Malformed
-	// payloads fall back to defaults instead of throwing.
+	// payloads and missing decoders fall back to defaults instead of throwing.
 	if (raw.startsWith("b64:")) {
-		try {
-			const decoded = safeJsonParse(decodeBase64(raw.slice(4)));
-			if (isWidthMap(decoded)) return { ...decoded };
-		} catch {
-			return { ...defaults };
-		}
+		const text = decodeBase64(raw.slice(4));
+		if (text === null) return { ...defaults };
+		const decoded = safeJsonParse(text);
+		if (isWidthMap(decoded)) return { ...decoded };
 	}
 	return { ...defaults };
 }
@@ -215,21 +263,17 @@ export function deserializeDisplay(
 
 	return {
 		columnWidths,
-		density: isOneOf(DENSITIES, rawDensity) ? rawDensity : defaults.density,
+		density: (DENSITIES as readonly string[]).includes(rawDensity ?? "")
+			? (rawDensity as Density)
+			: defaults.density,
 		fields,
 		groupBy:
 			rawGroupBy === null || rawGroupBy === "" ? defaults.groupBy : rawGroupBy,
 		orderBy: rawSort === null || rawSort === "" ? defaults.orderBy : rawSort,
-		orderType: isOneOf(["asc", "desc"] as const, rawDir)
-			? rawDir
-			: defaults.orderType,
-		type: isOneOf(VIEW_TYPES, rawType) ? rawType : defaults.type,
+		orderType:
+			rawDir === "asc" || rawDir === "desc" ? rawDir : defaults.orderType,
+		type: (VIEW_TYPES as readonly string[]).includes(rawType ?? "")
+			? (rawType as ViewType)
+			: defaults.type,
 	};
-}
-
-function isOneOf<T extends string>(
-	list: readonly T[],
-	value: string | null,
-): value is T {
-	return value !== null && list.some((item) => item === value);
 }

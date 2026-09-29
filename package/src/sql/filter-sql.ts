@@ -69,16 +69,12 @@ function buildLike(
 	dialect: SqlDialect,
 	caseSensitive: boolean,
 ): string {
-	const keyword = not ? "NOT LIKE" : "LIKE";
-	if (dialect === "postgres" && caseSensitive) {
-		return `${col} ${keyword} ${param} ESCAPE '\\'`;
+	const ilike = dialect === "postgres" && !caseSensitive ? "ILIKE" : "LIKE";
+	const keyword = not ? `NOT ${ilike}` : ilike;
+	if (!caseSensitive && dialect !== "postgres") {
+		return `LOWER(${col}) ${keyword} LOWER(${param}) ESCAPE '\\'`;
 	}
-	if (dialect === "postgres") {
-		const ilike = not ? "NOT ILIKE" : "ILIKE";
-		return `${col} ${ilike} ${param} ESCAPE '\\'`;
-	}
-	if (caseSensitive) return `${col} ${keyword} ${param} ESCAPE '\\'`;
-	return `LOWER(${col}) ${keyword} LOWER(${param}) ESCAPE '\\'`;
+	return `${col} ${keyword} ${param} ESCAPE '\\'`;
 }
 
 function assertArraySupported(operator: string, dialect: SqlDialect): void {
@@ -98,6 +94,7 @@ interface BuildContext {
 	nextIdx: number;
 	params: unknown[];
 	placeholderStyle: PlaceholderStyle;
+	searchableCols: ColumnConfig[];
 }
 
 function pushParam(ctx: BuildContext, value: unknown): string {
@@ -138,40 +135,36 @@ type SqlBuilder = (
 	ctx: BuildContext,
 ) => string;
 
-function assertArrayValue(
+/**
+ * Single post-validation invariant for builder payloads. `validateCondition`
+ * already gates `buildFilterWhere`, so these only guard against direct
+ * internal misuse — one helper instead of three bespoke asserts with
+ * duplicated messages.
+ */
+function assertValue(
 	cond: FilterCondition,
-): asserts cond is FilterCondition & { value: unknown[] } {
-	if (!Array.isArray(cond.value)) {
+	predicate: (value: unknown) => boolean,
+	expected: string,
+): void {
+	if (!predicate(cond.value)) {
 		throw new DataExplorerError(
 			"INVALID_FILTER_VALUE",
-			`Invalid filter condition: Operator "${cond.operator}" requires string[] value`,
+			`Invalid filter condition: Operator "${cond.operator}" ${expected}`,
 			{ columnId: cond.columnId, operator: cond.operator },
 		);
 	}
 }
 
-function assertStringValue(
-	cond: FilterCondition,
-): asserts cond is FilterCondition & { value: string } {
-	if (typeof cond.value !== "string") {
-		throw new DataExplorerError(
-			"INVALID_FILTER_VALUE",
-			`Invalid filter condition: Operator "${cond.operator}" requires a non-null value`,
-			{ columnId: cond.columnId, operator: cond.operator },
-		);
-	}
+function isArrayValue(value: unknown): value is unknown[] {
+	return Array.isArray(value);
 }
 
-function assertRangeValue(
-	cond: FilterCondition,
-): asserts cond is FilterCondition & { value: [unknown, unknown] } {
-	if (!Array.isArray(cond.value) || cond.value.length !== 2) {
-		throw new DataExplorerError(
-			"INVALID_FILTER_VALUE",
-			`Invalid filter condition: Operator "${cond.operator}" requires [min, max] tuple`,
-			{ columnId: cond.columnId, operator: cond.operator },
-		);
-	}
+function isStringValue(value: unknown): value is string {
+	return typeof value === "string";
+}
+
+function isRangeValue(value: unknown): value is [unknown, unknown] {
+	return Array.isArray(value) && value.length === 2;
 }
 
 function arrayOp(
@@ -181,9 +174,10 @@ function arrayOp(
 	op: "@>" | "&&",
 ): string {
 	assertArraySupported(cond.operator, ctx.dialect);
-	assertArrayValue(cond);
+	assertValue(cond, isArrayValue, "requires string[] value");
+	const values = cond.value as unknown[];
 	// Postgres text[] containment/overlap.
-	return `${col} ${op} ARRAY[${cond.value.map((v) => pushParam(ctx, v)).join(", ")}]::text[]`;
+	return `${col} ${op} ARRAY[${values.map((v) => pushParam(ctx, v)).join(", ")}]::text[]`;
 }
 
 function notArrayOp(
@@ -201,8 +195,8 @@ function betweenOp(
 	ctx: BuildContext,
 	not: boolean,
 ): string {
-	assertRangeValue(cond);
-	const [min, max] = cond.value;
+	assertValue(cond, isRangeValue, "requires [min, max] tuple");
+	const [min, max] = cond.value as [unknown, unknown];
 	const keyword = not ? "NOT BETWEEN" : "BETWEEN";
 	return `${col} ${keyword} ${pushParam(ctx, min)} AND ${pushParam(ctx, max)}`;
 }
@@ -214,8 +208,9 @@ function likeOp(
 	pattern: (v: string) => string,
 	not: boolean,
 ): string {
-	assertStringValue(cond);
-	const param = pushParam(ctx, pattern(escapeLikePattern(cond.value)));
+	assertValue(cond, isStringValue, "requires a non-null value");
+	const value = cond.value as string;
+	const param = pushParam(ctx, pattern(escapeLikePattern(value)));
 	return buildLike(col, param, not, ctx.dialect, ctx.caseSensitive);
 }
 
@@ -235,9 +230,10 @@ const OPERATOR_SQL_BUILDERS: Record<NonNullaryOperator, SqlBuilder> = {
 	gt: comparisonBuilder(">"),
 	gte: comparisonBuilder(">="),
 	in: (col, cond, ctx) => {
-		assertArrayValue(cond);
-		if (cond.value.length === 0) return "(1=0)";
-		return `${col} IN (${cond.value.map((v) => pushParam(ctx, v)).join(", ")})`;
+		assertValue(cond, isArrayValue, "requires string[] value");
+		const values = cond.value as unknown[];
+		if (values.length === 0) return "(1=0)";
+		return `${col} IN (${values.map((v) => pushParam(ctx, v)).join(", ")})`;
 	},
 	includeAll: (col, cond, ctx) => arrayOp(col, cond, ctx, "@>"),
 	includeAny: (col, cond, ctx) => arrayOp(col, cond, ctx, "&&"),
@@ -248,9 +244,10 @@ const OPERATOR_SQL_BUILDERS: Record<NonNullaryOperator, SqlBuilder> = {
 	notContains: (col, cond, ctx) =>
 		likeOp(col, cond, ctx, (v) => `%${v}%`, true),
 	notIn: (col, cond, ctx) => {
-		assertArrayValue(cond);
-		if (cond.value.length === 0) return "(1=1)";
-		return `${col} NOT IN (${cond.value.map((v) => pushParam(ctx, v)).join(", ")})`;
+		assertValue(cond, isArrayValue, "requires string[] value");
+		const values = cond.value as unknown[];
+		if (values.length === 0) return "(1=1)";
+		return `${col} NOT IN (${values.map((v) => pushParam(ctx, v)).join(", ")})`;
 	},
 	startsWith: (col, cond, ctx) => likeOp(col, cond, ctx, (v) => `${v}%`, false),
 };
@@ -271,8 +268,13 @@ function buildConditionSql(
 	tableAlias: string | undefined,
 ): string {
 	if (isSearchColumnId(condition.columnId)) {
-		assertStringValue(condition);
-		return buildSearchSql(condition.value, columnMapping, ctx, tableAlias);
+		assertValue(condition, isStringValue, "requires a non-null value");
+		return buildSearchSql(
+			condition.value as string,
+			columnMapping,
+			ctx,
+			tableAlias,
+		);
 	}
 
 	const columnName = columnMapping[condition.columnId];
@@ -294,11 +296,13 @@ function buildConditionSql(
 			: `${col} IS NOT NULL`;
 	}
 
-	const canonical = normalizeOperator(condition.operator) ?? condition.operator;
+	// `validateConditions` already normalized aliases and rejected nullary
+	// operators here, so the lookup is a direct table hit.
+	const canonical = normalizeOperator(condition.operator);
 	const builder: SqlBuilder | undefined =
-		canonical === "isEmpty" || canonical === "isNotEmpty"
+		canonical === undefined
 			? undefined
-			: OPERATOR_SQL_BUILDERS[canonical];
+			: OPERATOR_SQL_BUILDERS[canonical as NonNullaryOperator];
 	if (!builder) {
 		throw new DataExplorerError(
 			"INVALID_OPERATOR",
@@ -316,9 +320,7 @@ function buildSearchSql(
 	ctx: BuildContext,
 	tableAlias: string | undefined,
 ): string {
-	const searchableCols = [...ctx.columnMap.values()].filter(
-		(c) => c.searchable && !isSearchColumnId(c.id),
-	);
+	const searchableCols = ctx.searchableCols;
 
 	if (searchableCols.length === 0) {
 		throw new DataExplorerError(
@@ -413,6 +415,9 @@ export function buildFilterWhere(
 		nextIdx: 1,
 		params: [],
 		placeholderStyle,
+		searchableCols: columnsConfig.filter(
+			(c) => c.searchable && !isSearchColumnId(c.id),
+		),
 	};
 
 	const sql = buildGroupSql(group, columnMapping, ctx, tableAlias);

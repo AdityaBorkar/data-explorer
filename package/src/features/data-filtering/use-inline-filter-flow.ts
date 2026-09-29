@@ -1,22 +1,16 @@
 import { useCallback, useMemo, useReducer } from "react";
 
 import type { ColumnConfig } from "../../columns.ts";
-import { isSearchColumnId } from "../../columns.ts";
 import type { FilterCondition, FilterOperator } from "../../filters.ts";
 import { commitDraft, quickAddCondition } from "./filter-draft.ts";
-import { getDefaultOperator, getOperatorArity } from "./operators.ts";
-
-type Phase = "idle" | "column" | "operator" | "value";
-
-interface FlowState {
-	error: string | null;
-	inputValue: string;
-	pendingValue: unknown;
-	phase: Phase;
-	searchText: string;
-	selectedColumnId: string | null;
-	selectedOperator: FilterOperator | null;
-}
+import {
+	type FlowState,
+	flowReducer,
+	INITIAL_FLOW,
+	resolveColumnSelect,
+	resolveOperatorSelect,
+} from "./filter-flow-reducer.ts";
+import { getOperatorArity } from "./operators.ts";
 
 /**
  * Read-only draft state. Mutations go through `actions` so the
@@ -48,83 +42,6 @@ export interface InlineFilterActions {
 	setSearchText: (value: string) => void;
 }
 
-const INITIAL_FLOW: FlowState = {
-	error: null,
-	inputValue: "",
-	pendingValue: undefined,
-	phase: "idle",
-	searchText: "",
-	selectedColumnId: null,
-	selectedOperator: null,
-};
-
-type FlowAction =
-	| { type: "input"; value: string }
-	| {
-			type: "column/select";
-			columnId: string;
-			operator: FilterOperator;
-			phase: "operator" | "value";
-	  }
-	| { type: "operator"; operator: FilterOperator }
-	| { type: "commit/error"; error: string }
-	| { type: "pending"; value: unknown }
-	| { type: "search"; value: string }
-	| { type: "clearError" }
-	| { type: "reset" };
-
-/**
- * Single transition table: every phase advance clears the text inputs in
- * one place. Column policy (search fast-path vs default operator) is
- * decided by the caller before dispatch — the reducer only applies the
- * chosen `column/select`, so there is one column-advance path instead of
- * two near-duplicate actions.
- */
-function flowReducer(state: FlowState, action: FlowAction): FlowState {
-	switch (action.type) {
-		case "input": {
-			const blank = action.value.trim().length === 0;
-			let phase = state.phase;
-			if (!blank && phase === "idle") phase = "column";
-			else if (blank && phase === "column") phase = "idle";
-			return {
-				...state,
-				inputValue: action.value,
-				phase,
-				searchText: action.value,
-			};
-		}
-		case "column/select":
-			return {
-				...state,
-				inputValue: "",
-				phase: action.phase,
-				searchText: "",
-				selectedColumnId: action.columnId,
-				selectedOperator: action.operator,
-			};
-		case "operator":
-			return {
-				...state,
-				inputValue: "",
-				pendingValue: undefined,
-				phase: "value",
-				searchText: "",
-				selectedOperator: action.operator,
-			};
-		case "commit/error":
-			return { ...state, error: action.error };
-		case "pending":
-			return { ...state, pendingValue: action.value };
-		case "search":
-			return { ...state, searchText: action.value };
-		case "clearError":
-			return { ...state, error: null };
-		case "reset":
-			return INITIAL_FLOW;
-	}
-}
-
 /**
  * Guided `idle → column → operator → value` draft machine for the filter bar.
  *
@@ -136,6 +53,10 @@ function flowReducer(state: FlowState, action: FlowAction): FlowState {
  * in the main input seeds `searchText` so the opening selector is
  * pre-filtered; clearing the selector shows all options without closing
  * the popover.
+ *
+ * Column/operator policy lives in `filter-flow-reducer.ts`
+ * (`resolveColumnSelect` / `resolveOperatorSelect`) so the hook only
+ * applies decisions — one nullary auto-commit path, not three.
  *
  * @example
  * ```tsx
@@ -203,6 +124,15 @@ export function useInlineFilterFlow(opts: {
 		[columnById, onAdd],
 	);
 
+	// Single nullary auto-commit wrapper so column- and operator-select
+	// fast-paths share one `null`-passing site.
+	const autoCommitNullary = useCallback(
+		(columnId: string, operator: FilterOperator) => {
+			commitCondition(columnId, operator, null);
+		},
+		[commitCondition],
+	);
+
 	const commit = useCallback(() => {
 		if (!(selectedColumnId && selectedOperator)) return;
 		commitCondition(selectedColumnId, selectedOperator, pendingValue);
@@ -224,31 +154,20 @@ export function useInlineFilterFlow(opts: {
 				return;
 			}
 
-			if (isSearchColumnId(columnId)) {
-				dispatch({
-					columnId,
-					operator: "contains",
-					phase: "value",
-					type: "column/select",
-				});
-				return;
-			}
-
-			const defaultOp = col.operators?.[0] ?? getDefaultOperator(col.type);
-
-			if (getOperatorArity(defaultOp) === "nullary") {
-				commitCondition(columnId, defaultOp, null);
+			const decision = resolveColumnSelect(col);
+			if ("autoCommit" in decision) {
+				autoCommitNullary(columnId, decision.autoCommit);
 				return;
 			}
 
 			dispatch({
 				columnId,
-				operator: defaultOp,
-				phase: "operator",
+				operator: decision.operator,
+				phase: decision.phase,
 				type: "column/select",
 			});
 		},
-		[columnById, commitCondition],
+		[columnById, autoCommitNullary],
 	);
 
 	const handleQuickValueSelect = useCallback(
@@ -265,14 +184,14 @@ export function useInlineFilterFlow(opts: {
 	const handleOperatorSelect = useCallback(
 		(operator: FilterOperator) => {
 			if (!selectedColumnId) return;
-			if (getOperatorArity(operator) === "nullary") {
-				commitCondition(selectedColumnId, operator, null);
+			if (resolveOperatorSelect(operator) === "autoCommit") {
+				autoCommitNullary(selectedColumnId, operator);
 				return;
 			}
 
 			dispatch({ operator, type: "operator" });
 		},
-		[selectedColumnId, commitCondition],
+		[selectedColumnId, autoCommitNullary],
 	);
 
 	const state: InlineFilterState = useMemo(

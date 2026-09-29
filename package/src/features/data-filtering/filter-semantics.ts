@@ -1,4 +1,4 @@
-import type { ColumnDataType } from "../../columns.ts";
+import type { ColumnDataType, ColumnSemantics } from "../../columns.ts";
 import { isSearchColumnId } from "../../columns.ts";
 import type { DataExplorerErrorCode } from "../../errors.ts";
 import type { FilterOperator } from "../../filters.ts";
@@ -34,6 +34,15 @@ function isBlankValue(value: unknown): boolean {
 	return false;
 }
 
+function isDateLike(value: unknown): boolean {
+	if (value instanceof Date) return !Number.isNaN(value.getTime());
+	return typeof value === "string" && value.trim() !== "";
+}
+
+function isScalarElement(value: unknown): boolean {
+	return typeof value === "string" || typeof value === "number";
+}
+
 export function validateFilterValue(
 	operator: FilterOperator,
 	value: unknown,
@@ -55,13 +64,24 @@ export function validateFilterValue(
 				? undefined
 				: `Operator "${operator}" on number requires [number, number]`;
 		}
-		return undefined;
+		if (type === "date") {
+			return isDateLike(value[0]) && isDateLike(value[1])
+				? undefined
+				: `Operator "${operator}" on date requires [date, date]`;
+		}
+		const [min, max] = value;
+		return !isBlankValue(min) && !isBlankValue(max)
+			? undefined
+			: `Operator "${operator}" requires [min, max] tuple`;
 	}
 
 	if (arity === "set" || arity === "array") {
 		// Empty arrays are legal here (SQL renders `IN ()` as `(1=0)`);
 		// the commit path still blocks them via `coerceFilterValue`.
-		return Array.isArray(value)
+		if (!Array.isArray(value)) {
+			return `Operator "${operator}" requires string[] value`;
+		}
+		return value.every(isScalarElement)
 			? undefined
 			: `Operator "${operator}" requires string[] value`;
 	}
@@ -106,10 +126,7 @@ export interface ConditionValidationError {
  */
 export function validateCondition(
 	cond: { columnId: string; operator: string; value: unknown },
-	columnsById: Map<
-		string,
-		{ operators?: FilterOperator[]; type: ColumnDataType }
-	>,
+	columnsById: Map<string, ColumnSemantics>,
 ): ConditionValidationError | undefined {
 	if (isSearchColumnId(cond.columnId)) {
 		if (cond.operator !== "contains") {

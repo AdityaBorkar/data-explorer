@@ -20,7 +20,7 @@ import { TableFeatures } from "./features/index.ts";
 import { useDataQuery } from "./hooks/use-data-query.ts";
 import { useLoadMore } from "./hooks/use-load-more.ts";
 import { useView } from "./hooks/use-view.ts";
-import type { ListQueryResult, RefineOptions } from "./query.ts";
+import type { DataRefineOptions, ListQueryResult } from "./query.ts";
 import type { BoardMoveHandler, DataExplorerContextValue } from "./types.ts";
 import type { FilterViewDisplay, ViewAdapter } from "./views.ts";
 
@@ -47,7 +47,7 @@ export interface DataExplorerProviderProps<
 	onMove?: BoardMoveHandler;
 	/** Rows per page. @default DEFAULT_PAGE_SIZE (20) */
 	pageSize?: number;
-	query: (opts: RefineOptions) => UseQueryOptions<ListQueryResult<TItem>>;
+	query: (opts: DataRefineOptions) => UseQueryOptions<ListQueryResult<TItem>>;
 	/** Forwarded to TanStack as `staleTime`. */
 	staleTime?: number;
 	/** Fail fast on invalid column definitions. */
@@ -159,25 +159,17 @@ export function Provider<TItem extends Record<string, unknown>>({
 
 	const sorting = table.state.sorting;
 	const grouping = table.state.grouping;
-	const columnVisibility = table.state.columnVisibility;
-	const columnSizing = table.state.columnSizing;
-	const density = table.state.density;
-	const viewType = table.state.viewType;
 	const dataFilters = table.state.dataFilters ?? [];
 
 	const { allItems, query } = useDataQuery<TItem>({
-		columnSizing,
-		columnVisibility,
 		dataFilters,
 		debounceFiltersMs,
-		density,
 		domain,
 		grouping,
 		pageSize,
 		queryBuilder,
 		sorting,
 		staleTime,
-		viewType,
 	});
 
 	useEffect(() => {

@@ -81,6 +81,20 @@ describe("quickAddCondition", () => {
 			value: ["a"],
 		});
 	});
+
+	it("honors per-column quickOperator overrides", () => {
+		const cond = quickAddCondition(
+			column({ id: "tags", quickOperator: "includeAll", type: "multiEnum" }),
+			"a",
+		);
+		expect(cond).toMatchObject({ operator: "includeAll", value: ["a"] });
+
+		const scalar = quickAddCondition(
+			column({ quickOperator: "neq", type: "string" }),
+			"x",
+		);
+		expect(scalar).toMatchObject({ operator: "neq", value: "x" });
+	});
 });
 
 describe("editorKind", () => {
@@ -136,5 +150,16 @@ describe("formatFilterValue", () => {
 		expect(formatFilterValue("x".repeat(30), "eq", column())).toBe(
 			`${"x".repeat(20)}...`,
 		);
+	});
+
+	it("honors truncation budgets", () => {
+		expect(
+			formatFilterValue("x".repeat(30), "eq", column(), { maxInlineChars: 5 }),
+		).toBe("xxxxx...");
+		expect(
+			formatFilterValue(["1", "2", "3"], "in", column({ type: "enum" }), {
+				maxInlineLabels: 5,
+			}),
+		).toBe("1, 2, 3");
 	});
 });

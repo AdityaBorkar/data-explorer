@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ColumnConfig } from "../../columns.ts";
+import { SEARCH_COLUMN_ID } from "../../columns.ts";
 import { validateCondition, validateFilterValue } from "./filter-semantics.ts";
 import { FILTER_OPERATORS } from "./operators.ts";
 
@@ -38,9 +39,11 @@ export function makeFilterConditionSchema(columnsConfig: ColumnConfig[]) {
 	const byId = new Map(columnsConfig.map((c) => [c.id, c]));
 	return z
 		.object({
-			columnId: z.string().refine((id) => byId.has(id) || id === "_search", {
-				message: "Unknown column",
-			}),
+			columnId: z
+				.string()
+				.refine((id) => byId.has(id) || id === SEARCH_COLUMN_ID, {
+					message: "Unknown column",
+				}),
 			combinator: z.enum(["and", "or"]),
 			id: z.string(),
 			operator: z.enum(FILTER_OPERATORS),
@@ -48,7 +51,8 @@ export function makeFilterConditionSchema(columnsConfig: ColumnConfig[]) {
 		})
 		.superRefine((data, ctx) => {
 			// Unknown columns are already reported on `columnId` above.
-			if (data.columnId !== "_search" && !byId.has(data.columnId)) return;
+			if (data.columnId !== SEARCH_COLUMN_ID && !byId.has(data.columnId))
+				return;
 			const error = validateCondition(data, byId);
 			if (error) {
 				ctx.addIssue({ code: z.ZodIssueCode.custom, message: error.message });

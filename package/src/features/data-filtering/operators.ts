@@ -108,9 +108,11 @@ export const FILTER_OPERATORS: readonly FilterOperator[] = Object.keys(
 	OPERATOR_DEFS,
 ) as FilterOperator[];
 
-/** Full arity dispatch for nullary / gating / editor checks. */
+const OPERATOR_SET: ReadonlySet<string> = new Set(Object.keys(OPERATOR_DEFS));
+
+/** Full arity dispatch for nullary / gating / editor checks. Exhaustive over `FilterOperator` — no fallback. */
 export function getOperatorArity(operator: FilterOperator): OperatorArity {
-	return OPERATOR_DEFS[operator]?.arity ?? "single";
+	return OPERATOR_DEFS[operator].arity;
 }
 
 export function getOperatorsForType(type: ColumnDataType): FilterOperator[] {
@@ -118,7 +120,7 @@ export function getOperatorsForType(type: ColumnDataType): FilterOperator[] {
 }
 
 export function getOperatorLabel(operator: FilterOperator): string {
-	return OPERATOR_DEFS[operator]?.label ?? operator;
+	return OPERATOR_DEFS[operator].label;
 }
 
 export function getDefaultOperator(type: ColumnDataType): FilterOperator {
@@ -137,7 +139,7 @@ const LEGACY_OPERATOR_ALIASES: Record<string, FilterOperator> = {
 };
 
 export function normalizeOperator(raw: string): FilterOperator | undefined {
-	if (FILTER_OPERATORS.some((op) => op === raw)) {
+	if (OPERATOR_SET.has(raw)) {
 		return raw as FilterOperator;
 	}
 	return LEGACY_OPERATOR_ALIASES[raw];
